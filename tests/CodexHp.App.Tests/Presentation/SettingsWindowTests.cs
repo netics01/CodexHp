@@ -7,6 +7,7 @@ using System.Windows.Threading;
 using CodexHp.App.Infrastructure;
 using CodexHp.App.Presentation;
 using CodexHp.App.Presentation.Settings;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 using Xunit;
 
@@ -14,6 +15,61 @@ namespace CodexHp.App.Tests.Presentation;
 
 public sealed class SettingsWindowTests
 {
+    [Fact]
+    public void Window_is_resizable_scrollable_and_uses_logical_appearance_units() =>
+        StaTest.Run(() =>
+    {
+        var window = CreateWindow(SettingsGroupKind.Appearance);
+        try
+        {
+            window.Show();
+            PumpDispatcher();
+
+            Assert.Equal(ResizeMode.CanResizeWithGrip, window.ResizeMode);
+            Assert.Equal(WindowStartupLocation.Manual, window.WindowStartupLocation);
+            Assert.True(window.MinWidth <= 480);
+            Assert.True(window.MinHeight <= 360);
+            var scroller = Assert.IsType<ScrollViewer>(window.FindName("SettingsContentScroller"));
+            Assert.Equal(ScrollBarVisibility.Auto, scroller.VerticalScrollBarVisibility);
+            Assert.Equal(ScrollBarVisibility.Auto, scroller.HorizontalScrollBarVisibility);
+            var unitLabels = FindLogicalDescendants<TextBlock>(window)
+                .Where(textBlock => textBlock.IsVisible && textBlock.Text == "DIP")
+                .ToArray();
+            Assert.Equal(6, unitLabels.Length);
+        }
+        finally
+        {
+            window.Close();
+            PumpDispatcher();
+        }
+    });
+
+    [Theory]
+    [InlineData(0, 0, 1000, 700, 2, 0, 0, 1000, 700)]
+    [InlineData(-1920, 0, 1920, 1040, 1.5, -1448, 143, 975, 753)]
+    public void Initial_window_placement_is_centered_and_clamped_to_the_monitor_work_area(
+        int workLeft,
+        int workTop,
+        int workWidth,
+        int workHeight,
+        double scale,
+        int expectedLeft,
+        int expectedTop,
+        int expectedWidth,
+        int expectedHeight)
+    {
+        var placement = SettingsWindowPlacementCalculator.Resolve(
+            new PhysicalRect(workLeft, workTop, workWidth, workHeight),
+            scale,
+            scale,
+            desiredWidthDip: 650,
+            desiredHeightDip: 502);
+
+        Assert.Equal(
+            new PhysicalRect(expectedLeft, expectedTop, expectedWidth, expectedHeight),
+            placement);
+    }
+
     [Fact]
     public void About_page_is_last_and_displays_the_running_binary_version() =>
         StaTest.Run(() =>
@@ -35,7 +91,7 @@ public sealed class SettingsWindowTests
             var commit = Assert.IsType<TextBlock>(window.FindName("AboutCommitText"));
             Assert.True(version.IsVisible);
             Assert.True(commit.IsVisible);
-            Assert.Equal("Version 0.2.1", version.Text);
+            Assert.Equal("Version 0.3.0", version.Text);
             Assert.Matches("^Commit [0-9a-f]{40}$", commit.Text);
             var buildDetails = Assert.IsType<StackPanel>(LogicalTreeHelper.GetParent(version));
             Assert.Same(buildDetails, LogicalTreeHelper.GetParent(commit));
@@ -180,7 +236,7 @@ public sealed class SettingsWindowTests
             Assert.Equal(new GridLength(48), valuesGrid.ColumnDefinitions[1].Width);
 
             var history = Assert.IsType<TextBlock>(window.FindName("VisibleTokenHistoryText"));
-            Assert.Equal("Visible token history: 22 min 15 sec", history.Text);
+            Assert.Equal("Visible token history: 21 min 0 sec", history.Text);
             Assert.Equal(6, Grid.GetRow(history));
             Assert.Equal(3, Grid.GetColumnSpan(history));
             HoldForVisualProbe();
@@ -316,7 +372,7 @@ public sealed class SettingsWindowTests
     });
 
     [Fact]
-    public void Appearance_size_units_use_the_short_px_label() =>
+    public void Appearance_size_units_use_device_independent_pixels() =>
         StaTest.Run(() =>
     {
         var window = CreateWindow(SettingsGroupKind.Appearance);
@@ -330,7 +386,8 @@ public sealed class SettingsWindowTests
                 .Select(textBlock => textBlock.Text)
                 .ToArray();
 
-            Assert.Equal(6, visibleText.Count(text => text == "px"));
+            Assert.Equal(6, visibleText.Count(text => text == "DIP"));
+            Assert.DoesNotContain("px", visibleText);
             Assert.DoesNotContain("Physical px", visibleText);
         }
         finally
@@ -577,7 +634,9 @@ public sealed class SettingsWindowTests
 
             Assert.Equal(650, window.Width);
             Assert.Equal(502, window.Height);
-            Assert.Equal(502, window.MinHeight);
+            Assert.Equal(480, window.MinWidth);
+            Assert.Equal(360, window.MinHeight);
+            Assert.Equal(ResizeMode.CanResizeWithGrip, window.ResizeMode);
             Assert.Equal(13, window.FontSize);
 
             var root = Assert.IsType<Grid>(window.FindName("SettingsRoot"));

@@ -4,15 +4,15 @@
         Title="CodexHp Settings"
         Width="650"
         Height="502"
-        MinWidth="650"
-        MinHeight="502"
+        MinWidth="480"
+        MinHeight="360"
         FontFamily="Segoe UI"
         FontSize="13"
         ThemeMode="System"
         Background="{DynamicResource ApplicationBackgroundBrush}"
         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-        ResizeMode="NoResize"
-        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="Manual"
         ShowInTaskbar="True"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
@@ -179,7 +179,12 @@
                  SelectionChanged="OnGroupSelectionChanged"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
 
-        <Grid Grid.Row="0" Grid.Column="2">
+        <ScrollViewer x:Name="SettingsContentScroller"
+                      Grid.Row="0"
+                      Grid.Column="2"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+        <Grid>
             <Grid x:Name="GeneralPanel">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="28" />
@@ -301,22 +306,22 @@
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="Usage Overlay Width" />
                         <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding OverlayWidth, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Grid.Row="0" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="0" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Usage Overlay Height" />
                         <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding OverlayHeight, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Grid.Row="1" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Gauge Area Width" />
                         <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding GaugePaneWidth, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Grid.Row="2" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="Graph Bar Width" />
                         <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding GraphBarWidth, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Grid.Row="3" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock Grid.Row="4" VerticalAlignment="Center" Text="Graph Bar Gap" />
                         <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding GraphBarGap, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Grid.Row="4" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="4" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock Grid.Row="5" VerticalAlignment="Center" Text="Service Status Stripe Width" />
                         <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding StatusStripeWidth, UpdateSourceTrigger=LostFocus}" />
-                        <TextBlock Grid.Row="5" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="5" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock x:Name="VisibleTokenHistoryText"
                                    Grid.Row="6"
                                    Grid.ColumnSpan="3"
@@ -381,6 +386,7 @@
                 </Border>
             </Grid>
         </Grid>
+        </ScrollViewer>
 
         <StackPanel x:Name="ActionButtons"
                     Grid.Row="1"

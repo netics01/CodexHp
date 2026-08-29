@@ -16,6 +16,7 @@ public sealed class WindowsMonitorServiceTests
         Assert.All(monitors, monitor =>
         {
             Assert.False(string.IsNullOrWhiteSpace(monitor.Id));
+            Assert.False(string.IsNullOrWhiteSpace(monitor.PersistentId));
             Assert.True(monitor.Bounds.Width > 0);
             Assert.True(monitor.Bounds.Height > 0);
             Assert.True(monitor.WorkArea.Width > 0);

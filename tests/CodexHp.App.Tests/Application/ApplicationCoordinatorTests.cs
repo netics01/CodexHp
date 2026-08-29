@@ -136,6 +136,7 @@ public sealed class ApplicationCoordinatorTests
         var requestedBucketSeconds = new List<int>();
         var requestedBucketCounts = new List<int>();
         var settings = AppSettings.Default;
+        var graphAppearance = new AppearanceSettings(288, 68, 100, 2, 0, 4);
         var coordinator = CreateCoordinator(
             readBuckets: (_, bucketSeconds, maxBuckets) =>
             {
@@ -143,7 +144,8 @@ public sealed class ApplicationCoordinatorTests
                 requestedBucketCounts.Add(maxBuckets);
                 return new int[maxBuckets];
             },
-            readSettings: () => settings);
+            readSettings: () => settings,
+            readGraphAppearance: () => graphAppearance);
 
         await coordinator.PollTokenActivityOnceAsync(CancellationToken.None);
         settings = settings with
@@ -155,6 +157,7 @@ public sealed class ApplicationCoordinatorTests
                 GraphBarGap = 2,
             },
         };
+        graphAppearance = new AppearanceSettings(400, 68, 100, 5, 2, 4);
         await coordinator.PollTokenActivityOnceAsync(CancellationToken.None);
 
         Assert.Equal([15, 15], requestedBucketSeconds);
@@ -208,7 +211,8 @@ public sealed class ApplicationCoordinatorTests
         Func<long, int, int, IReadOnlyList<int>>? readBuckets = null,
         Func<CancellationToken, Task<OpenAiServiceStatusSnapshot>>? readService = null,
         Func<VisibilityState>? readVisibility = null,
-        Func<AppSettings>? readSettings = null)
+        Func<AppSettings>? readSettings = null,
+        Func<AppearanceSettings>? readGraphAppearance = null)
     {
         return new ApplicationCoordinator(
             new DelegateCredentialSource(loadCredentials ?? (() => new CodexCredentials("access", null))),
@@ -218,7 +222,8 @@ public sealed class ApplicationCoordinatorTests
             readVisibility ?? (() => new VisibilityState(false, false)),
             readSettings ?? (() => AppSettings.Default),
             clock ?? new BlockingClock(NowUnixMs),
-            new NullLogger());
+            new NullLogger(),
+            readGraphAppearance: readGraphAppearance);
     }
 
     private static UsageSnapshot SampleUsage() => new(

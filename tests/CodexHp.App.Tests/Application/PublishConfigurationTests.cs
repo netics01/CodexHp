@@ -6,11 +6,11 @@ namespace CodexHp.App.Tests.Application;
 public sealed class PublishConfigurationTests
 {
     [Fact]
-    public void Application_project_declares_release_version_0_2_1()
+    public void Application_project_declares_release_version_0_3_0()
     {
         var properties = LoadApplicationProjectProperties();
 
-        Assert.Equal("0.2.1", properties["Version"]);
+        Assert.Equal("0.3.0", properties["Version"]);
     }
 
     [Fact]
@@ -19,7 +19,7 @@ public sealed class PublishConfigurationTests
         var codexHpRoot = FindCodexHpRoot();
         var installer = File.ReadAllText(Path.Combine(codexHpRoot, "installer", "CodexHp.iss"));
 
-        Assert.Contains("#define AppVersion \"0.2.1\"", installer, StringComparison.Ordinal);
+        Assert.Contains("#define AppVersion \"0.3.0\"", installer, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -64,6 +64,22 @@ public sealed class PublishConfigurationTests
             "$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path",
             script,
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Published_app_validation_derives_default_bounds_from_the_runtime_dpi_and_taskbar()
+    {
+        var codexHpRoot = FindCodexHpRoot();
+        var script = File.ReadAllText(Path.Combine(
+            codexHpRoot,
+            "tests",
+            "Windows",
+            "Validate-PublishedApp.ps1"));
+
+        Assert.Contains("GetWindowDpi", script, StringComparison.Ordinal);
+        Assert.Contains("$defaultOverlayWidthDip = 144", script, StringComparison.Ordinal);
+        Assert.Contains("$defaultOverlayHeightDip = 34", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("($monitorBounds[1] + $monitorBounds[3] - 12 - 68)", script, StringComparison.Ordinal);
     }
 
     [Fact]

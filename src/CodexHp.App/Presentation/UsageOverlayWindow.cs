@@ -18,7 +18,8 @@ public sealed class UsageOverlayWindow
     private OverlayWindowHost windowHost;
     private WpfOverlaySurface? overlaySurface;
     private UsageOverlayState? usageOverlayState;
-    private AppSettings settings = AppSettings.Default;
+    private OverlayPresentationSettings presentationSettings =
+        OverlayPresentationSettings.FromUnscaled(AppSettings.Default);
     private UsageOverlayLayout? layout;
     private PhysicalRect? lastHostedOverlayBounds;
     private string? lastMonitorId;
@@ -70,6 +71,8 @@ public sealed class UsageOverlayWindow
 
     public event Action<PhysicalRect>? OverlayPositionChanged;
 
+    public event EventHandler? DisplayEnvironmentChangeRequested;
+
     public bool IsOverlayPositionChangeMode { get; private set; }
 
     public nint WindowHandle { get; private set; }
@@ -94,9 +97,15 @@ public sealed class UsageOverlayWindow
 
     public void Apply(UsageOverlayState state, AppSettings nextSettings)
     {
+        ArgumentNullException.ThrowIfNull(nextSettings);
+        this.Apply(state, OverlayPresentationSettings.FromUnscaled(nextSettings));
+    }
+
+    public void Apply(UsageOverlayState state, OverlayPresentationSettings nextSettings)
+    {
         ObjectDisposedException.ThrowIf(this.isClosed, this);
         this.usageOverlayState = state ?? throw new ArgumentNullException(nameof(state));
-        this.settings = nextSettings ?? throw new ArgumentNullException(nameof(nextSettings));
+        this.presentationSettings = nextSettings ?? throw new ArgumentNullException(nameof(nextSettings));
         this.UpdateLayout();
         this.ApplyVisibility();
     }
@@ -184,8 +193,8 @@ public sealed class UsageOverlayWindow
     private nint CreateWpfSurface()
     {
         this.overlaySurface = new WpfOverlaySurface(
-            this.settings.Appearance.OverlayWidth,
-            this.settings.Appearance.OverlayHeight,
+            this.presentationSettings.Appearance.OverlayWidth,
+            this.presentationSettings.Appearance.OverlayHeight,
             this.windowMessageHook);
         this.overlaySurface.OpenSettingsRequested += this.OnSurfaceOpenSettingsRequested;
         return this.overlaySurface.WindowHandle;
@@ -227,6 +236,7 @@ public sealed class UsageOverlayWindow
         if (IsTaskbarCreatedMessage(message, TaskbarCreatedMessage))
         {
             handled = true;
+            this.DisplayEnvironmentChangeRequested?.Invoke(this, EventArgs.Empty);
             this.ScheduleNativeWindowRecreation();
             return nint.Zero;
         }
@@ -264,7 +274,7 @@ public sealed class UsageOverlayWindow
 
         this.layout = UsageOverlayRenderer.CreateLayout(
             this.usageOverlayState,
-            this.settings,
+            this.presentationSettings,
             this.IsOverlayPositionChangeMode);
         this.overlaySurface?.UpdateStatusStripeTooltip(this.usageOverlayState.StatusStripeTooltip);
         this.SubmitLayeredSurface();

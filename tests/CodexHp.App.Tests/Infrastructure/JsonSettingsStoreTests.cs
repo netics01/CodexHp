@@ -1,4 +1,5 @@
 using CodexHp.App.Infrastructure;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 using Xunit;
 
@@ -99,6 +100,58 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Contains("\"overlayHeight\": 80", migratedJson, StringComparison.Ordinal);
         Assert.DoesNotContain("\"screenWidth\"", migratedJson, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("\"screenHeight\"", migratedJson, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Load_schema_three_migrates_physical_values_to_logical_schema_four_on_the_matched_monitor()
+    {
+        var settingsDirectory = this.SettingsDirectory();
+        Directory.CreateDirectory(settingsDirectory);
+        File.WriteAllText(Path.Combine(settingsDirectory, "settings.json"), """
+        {
+          "schemaVersion": 3,
+          "appearance": {
+            "overlayWidth": 270,
+            "overlayHeight": 68,
+            "gaugePaneWidth": 100,
+            "graphBarWidth": 2,
+            "graphBarGap": 0,
+            "statusStripeWidth": 4
+          },
+          "location": {
+            "monitorId": "DISPLAY2",
+            "x": 0,
+            "y": 2078
+          }
+        }
+        """);
+        var monitor = new MonitorGeometry(
+            "DISPLAY2",
+            new PhysicalRect(0, 0, 3840, 2160),
+            new PhysicalRect(0, 0, 3840, 2064),
+            2,
+            2,
+            true,
+            "MONITOR-STABLE-2");
+        var taskbar = new PhysicalRect(0, 2064, 3840, 96);
+        var store = new JsonSettingsStore(
+            this.localAppData,
+            monitors: () => [monitor],
+            taskbarBounds: _ => taskbar);
+
+        var settings = store.Load();
+
+        Assert.Equal(4, settings.SchemaVersion);
+        Assert.Equal(new AppearanceSettings(135, 34, 50, 1, 0, 2), settings.Appearance);
+        Assert.Equal("MONITOR-STABLE-2", settings.Location.MonitorKey);
+        Assert.Equal(OverlayPlacementTarget.Taskbar, settings.Location.Target);
+        Assert.Equal(0, settings.Location.NormalizedX);
+        Assert.Equal(0.5, settings.Location.NormalizedY);
+        var migratedJson = File.ReadAllText(Path.Combine(settingsDirectory, "settings.json"));
+        Assert.Contains("\"schemaVersion\": 4", migratedJson, StringComparison.Ordinal);
+        Assert.Contains("\"monitorKey\": \"MONITOR-STABLE-2\"", migratedJson, StringComparison.Ordinal);
+        Assert.Contains("\"target\": \"taskbar\"", migratedJson, StringComparison.Ordinal);
+        Assert.Contains("\"normalizedY\": 0.5", migratedJson, StringComparison.Ordinal);
     }
 
     [Fact]

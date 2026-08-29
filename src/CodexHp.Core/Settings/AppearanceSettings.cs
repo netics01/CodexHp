@@ -9,10 +9,18 @@ public sealed record AppearanceSettings(
     int StatusStripeWidth)
 {
     public static AppearanceSettings Default { get; } = new(
-        OverlayWidth: 288,
-        OverlayHeight: 68,
-        GaugePaneWidth: 100,
-        GraphBarWidth: 2,
+        OverlayWidth: 144,
+        OverlayHeight: 34,
+        GaugePaneWidth: 50,
+        GraphBarWidth: 1,
         GraphBarGap: 0,
-        StatusStripeWidth: 4);
+        StatusStripeWidth: 2);
 }
+
+public sealed record EffectiveAppearanceSettings(
+    int OverlayWidth,
+    int OverlayHeight,
+    int GaugePaneWidth,
+    int GraphBarWidth,
+    int GraphBarGap,
+    int StatusStripeWidth);

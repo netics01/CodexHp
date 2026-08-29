@@ -2,6 +2,8 @@ using System.ComponentModel;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using CodexHp.App.Infrastructure;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 
 namespace CodexHp.App.Presentation.Settings;
@@ -33,6 +35,59 @@ public partial class SettingsWindow : System.Windows.Window
     {
         base.OnSourceInitialized(eventArgs);
         AltTabWindowStyle.ApplyVisible(new WindowInteropHelper(this).Handle);
+    }
+
+    internal void ConstrainToWorkArea(MonitorGeometry monitor, bool center = true)
+    {
+        ArgumentNullException.ThrowIfNull(monitor);
+        var scaleX = double.IsFinite(monitor.ScaleX) && monitor.ScaleX > 0 ? monitor.ScaleX : 1;
+        var scaleY = double.IsFinite(monitor.ScaleY) && monitor.ScaleY > 0 ? monitor.ScaleY : 1;
+        var maximumWidthDip = monitor.WorkArea.Width / scaleX;
+        var maximumHeightDip = monitor.WorkArea.Height / scaleY;
+        this.MinWidth = Math.Min(480, maximumWidthDip);
+        this.MinHeight = Math.Min(360, maximumHeightDip);
+        this.MaxWidth = maximumWidthDip;
+        this.MaxHeight = maximumHeightDip;
+        var desiredWidth = double.IsFinite(this.ActualWidth) && this.ActualWidth > 0
+            ? this.ActualWidth
+            : this.Width;
+        var desiredHeight = double.IsFinite(this.ActualHeight) && this.ActualHeight > 0
+            ? this.ActualHeight
+            : this.Height;
+        var placement = !center
+            && NativeMethods.GetWindowRect(new WindowInteropHelper(this).Handle, out var currentBounds)
+                ? ClampToWorkArea(
+                    new PhysicalRect(
+                        currentBounds.Left,
+                        currentBounds.Top,
+                        currentBounds.Right - currentBounds.Left,
+                        currentBounds.Bottom - currentBounds.Top),
+                    monitor.WorkArea)
+                : SettingsWindowPlacementCalculator.Resolve(
+                    monitor.WorkArea,
+                    scaleX,
+                    scaleY,
+                    desiredWidth,
+                    desiredHeight);
+        _ = NativeMethods.SetWindowPos(
+            new WindowInteropHelper(this).Handle,
+            NativeMethods.HwndTop,
+            placement.Left,
+            placement.Top,
+            placement.Width,
+            placement.Height,
+            NativeMethods.SwpNoActivate);
+    }
+
+    private static PhysicalRect ClampToWorkArea(PhysicalRect current, PhysicalRect workArea)
+    {
+        var width = Math.Min(Math.Max(1, current.Width), workArea.Width);
+        var height = Math.Min(Math.Max(1, current.Height), workArea.Height);
+        return new PhysicalRect(
+            Math.Clamp(current.Left, workArea.Left, workArea.Right - width),
+            Math.Clamp(current.Top, workArea.Top, workArea.Bottom - height),
+            width,
+            height);
     }
 
     private void OnGroupSelectionChanged(object sender, SelectionChangedEventArgs eventArgs)

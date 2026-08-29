@@ -38,7 +38,12 @@ public sealed record MonitorGeometry(
     PhysicalRect WorkArea,
     double ScaleX,
     double ScaleY,
-    bool IsPrimary);
+    bool IsPrimary,
+    string? PersistentId = null);
+
+public sealed record DisplayEnvironment(
+    MonitorGeometry Monitor,
+    PhysicalRect? TaskbarBounds);
 
 public sealed record OverlayPlacement(
     string MonitorId,
@@ -47,4 +52,11 @@ public sealed record OverlayPlacement(
     int PhysicalWidth,
     int PhysicalHeight,
     int RelativeX,
-    int RelativeY);
+    int RelativeY)
+{
+    public PhysicalRect Bounds => new(
+        this.PhysicalLeft,
+        this.PhysicalTop,
+        this.PhysicalWidth,
+        this.PhysicalHeight);
+}

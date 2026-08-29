@@ -50,6 +50,26 @@ public sealed record UsageOverlayLayout(
     int Height,
     IReadOnlyList<OverlayDrawCommand> Commands);
 
+public sealed record OverlayPresentationSettings(
+    ColorSettings Colors,
+    EffectiveAppearanceSettings Appearance)
+{
+    public static OverlayPresentationSettings FromUnscaled(AppSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var appearance = settings.Appearance;
+        return new OverlayPresentationSettings(
+            settings.Colors,
+            new EffectiveAppearanceSettings(
+                appearance.OverlayWidth,
+                appearance.OverlayHeight,
+                appearance.GaugePaneWidth,
+                appearance.GraphBarWidth,
+                appearance.GraphBarGap,
+                appearance.StatusStripeWidth));
+    }
+}
+
 public static class UsageOverlayRenderer
 {
     private const int RefreshHeight = 2;
@@ -64,6 +84,15 @@ public static class UsageOverlayRenderer
     public static UsageOverlayLayout CreateLayout(
         UsageOverlayState state,
         AppSettings settings,
+        bool isOverlayPositionChangeMode)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return CreateLayout(state, OverlayPresentationSettings.FromUnscaled(settings), isOverlayPositionChangeMode);
+    }
+
+    public static UsageOverlayLayout CreateLayout(
+        UsageOverlayState state,
+        OverlayPresentationSettings settings,
         bool isOverlayPositionChangeMode)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -193,11 +222,18 @@ public static class UsageOverlayRenderer
     private static void AddGraph(
         ICollection<OverlayDrawCommand> commands,
         IReadOnlyList<int> buckets,
-        AppSettings settings,
+        OverlayPresentationSettings settings,
         int overlayHeight)
     {
-        var chartLeft = TokenGraphViewport.ChartLeft(settings.Appearance);
-        var chartRight = TokenGraphViewport.ChartRight(settings.Appearance);
+        var chartAppearance = new AppearanceSettings(
+            settings.Appearance.OverlayWidth,
+            settings.Appearance.OverlayHeight,
+            settings.Appearance.GaugePaneWidth,
+            settings.Appearance.GraphBarWidth,
+            settings.Appearance.GraphBarGap,
+            settings.Appearance.StatusStripeWidth);
+        var chartLeft = TokenGraphViewport.ChartLeft(chartAppearance);
+        var chartRight = TokenGraphViewport.ChartRight(chartAppearance);
         var chartTop = 4;
         var baselineTop = overlayHeight - 6;
         var chartBottom = baselineTop;

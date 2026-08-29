@@ -27,7 +27,7 @@ public sealed record AppSettings(
     AppearanceSettings Appearance,
     OverlayLocationSettings Location)
 {
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
 
     public static AppSettings Default { get; } = new(
         SchemaVersion: CurrentSchemaVersion,

@@ -34,7 +34,8 @@ public sealed class WindowsMonitorService : IMonitorService
                 ToPhysicalRect(info.WorkArea),
                 scaleX,
                 scaleY,
-                (info.Flags & NativeMethods.MonitorInfoPrimary) != 0));
+                (info.Flags & NativeMethods.MonitorInfoPrimary) != 0,
+                GetPersistentMonitorId(info.DeviceName)));
             return true;
         };
 
@@ -85,5 +86,17 @@ public sealed class WindowsMonitorService : IMonitorService
             rectangle.Top,
             rectangle.Right - rectangle.Left,
             rectangle.Bottom - rectangle.Top);
+
+    private static string GetPersistentMonitorId(string deviceName)
+    {
+        var device = new NativeMethods.DisplayDevice
+        {
+            Size = System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.DisplayDevice>(),
+        };
+        return NativeMethods.EnumDisplayDevices(deviceName, 0, ref device, 0)
+            && !string.IsNullOrWhiteSpace(device.DeviceId)
+                ? device.DeviceId
+                : deviceName;
+    }
 
 }

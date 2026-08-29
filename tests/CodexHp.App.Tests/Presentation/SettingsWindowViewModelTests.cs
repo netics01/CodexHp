@@ -38,17 +38,17 @@ public sealed class SettingsWindowViewModelTests
     {
         var viewModel = CreateViewModel();
 
-        Assert.Equal("Visible token history: 22 min 15 sec", viewModel.VisibleTokenHistoryText);
+        Assert.Equal("Visible token history: 21 min 0 sec", viewModel.VisibleTokenHistoryText);
 
         viewModel.OverlayWidth = 400;
         viewModel.GraphBarWidth = 5;
         viewModel.GraphBarGap = 2;
 
-        Assert.Equal("Visible token history: 10 min 15 sec", viewModel.VisibleTokenHistoryText);
+        Assert.Equal("Visible token history: 12 min 0 sec", viewModel.VisibleTokenHistoryText);
 
         viewModel.ResetAppearanceToDefaults();
 
-        Assert.Equal("Visible token history: 22 min 15 sec", viewModel.VisibleTokenHistoryText);
+        Assert.Equal("Visible token history: 21 min 0 sec", viewModel.VisibleTokenHistoryText);
     }
 
     [Fact]

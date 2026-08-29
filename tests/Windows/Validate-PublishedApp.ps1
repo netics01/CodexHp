@@ -97,6 +97,11 @@ public static class CodexHpWindowProbe
         return unchecked((uint)GetWindowLongPtr(windowHandle, GwlExStyle).ToInt64());
     }
 
+    public static uint GetWindowDpi(IntPtr windowHandle)
+    {
+        return GetDpiForWindow(windowHandle);
+    }
+
     public static string GetWindowClassName(IntPtr windowHandle)
     {
         var className = new StringBuilder(256);
@@ -222,6 +227,9 @@ public static class CodexHpWindowProbe
     [DllImport("user32.dll")]
     private static extern IntPtr GetParent(IntPtr windowHandle);
 
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr windowHandle);
+
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr(IntPtr windowHandle, int index);
 
@@ -331,11 +339,53 @@ try {
         $expectedBounds = $ExpectedOverlayBounds
     }
     else {
+        $defaultOverlayWidthDip = 144
+        $defaultOverlayHeightDip = 34
+        $edgeInsetDip = 2
+        $dpi = [CodexHpWindowProbe]::GetWindowDpi($overlayWindowHandle)
+        if ($dpi -eq 0) {
+            throw 'The usage overlay DPI could not be read.'
+        }
+        $scale = [double]$dpi / 96.0
+        $preferredWidth = [Math]::Max(1, [int][Math]::Round(
+                $defaultOverlayWidthDip * $scale,
+                [MidpointRounding]::AwayFromZero))
+        $preferredHeight = [Math]::Max(1, [int][Math]::Round(
+                $defaultOverlayHeightDip * $scale,
+                [MidpointRounding]::AwayFromZero))
+        $edgeInset = [Math]::Max(1, [int][Math]::Round(
+                $edgeInsetDip * $scale,
+                [MidpointRounding]::AwayFromZero))
+        $horizontalTaskbar = $taskbarBounds[2] -ge $taskbarBounds[3]
+        if ($horizontalTaskbar) {
+            $expectedWidth = [Math]::Min(
+                $preferredWidth,
+                [Math]::Max(1, $taskbarBounds[2] - (2 * $edgeInset)))
+            $expectedHeight = [Math]::Min(
+                $preferredHeight,
+                [Math]::Max(1, $taskbarBounds[3] - (2 * $edgeInset)))
+            $maximumLeftOffset = [Math]::Max(0, $taskbarBounds[2] - $expectedWidth)
+            $maximumTopOffset = [Math]::Max(0, $taskbarBounds[3] - $expectedHeight)
+            $expectedLeft = $taskbarBounds[0] + [Math]::Min($edgeInset, $maximumLeftOffset)
+            $expectedTop = $taskbarBounds[1] + [int][Math]::Floor($maximumTopOffset / 2.0)
+        }
+        else {
+            $expectedWidth = [Math]::Min(
+                $preferredWidth,
+                [Math]::Max(1, $taskbarBounds[2] - (2 * $edgeInset)))
+            $expectedHeight = [Math]::Min(
+                $preferredHeight,
+                [Math]::Max(1, $taskbarBounds[3] - (2 * $edgeInset)))
+            $maximumLeftOffset = [Math]::Max(0, $taskbarBounds[2] - $expectedWidth)
+            $maximumTopOffset = [Math]::Max(0, $taskbarBounds[3] - $expectedHeight)
+            $expectedLeft = $taskbarBounds[0] + [int][Math]::Floor($maximumLeftOffset / 2.0)
+            $expectedTop = $taskbarBounds[1] + [Math]::Min($edgeInset, $maximumTopOffset)
+        }
         $expectedBounds = @(
-            ($monitorBounds[0] + 2),
-            ($monitorBounds[1] + $monitorBounds[3] - 12 - 68),
-            288,
-            68
+            $expectedLeft,
+            $expectedTop,
+            $expectedWidth,
+            $expectedHeight
         )
     }
     if ([string]::Join(',', $actualBounds) -ne [string]::Join(',', $expectedBounds)) {

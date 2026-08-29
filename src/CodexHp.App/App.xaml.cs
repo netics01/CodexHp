@@ -4,6 +4,7 @@ using CodexHp.App.Infrastructure;
 using CodexHp.App.Presentation;
 using CodexHp.App.Presentation.Settings;
 using CodexHp.Core.Domain;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 
 namespace CodexHp.App;
@@ -20,7 +21,10 @@ public partial class App : System.Windows.Application
     private SettingsWindow? settingsWindow;
     private SettingsWindowController? settingsWindowController;
     private OverlayPositionController? positionController;
+    private DisplayEnvironmentWatcher? displayEnvironmentWatcher;
     private AppSettings activeSettings = AppSettings.Default;
+    private OverlayPresentationSettings activePresentation =
+        OverlayPresentationSettings.FromUnscaled(AppSettings.Default);
     private UsageOverlayState currentUsageOverlayState = UsageOverlayStateReducer.Reduce(
         UsageProviderState.Waiting,
         TokenActivityProviderState.Waiting,
@@ -73,7 +77,13 @@ public partial class App : System.Windows.Application
     private void StartApplication()
     {
         this.logger = new RollingFileLogger();
-        var settingsStore = new JsonSettingsStore();
+        var monitorService = new WindowsMonitorService();
+        var taskbarLocator = new TaskbarWindowLocator();
+        Func<string, PhysicalRect?> taskbarBounds = monitorId =>
+            taskbarLocator.FindForMonitor(monitorId)?.TaskbarBounds;
+        var settingsStore = new JsonSettingsStore(
+            monitors: monitorService.GetMonitors,
+            taskbarBounds: taskbarBounds);
         var startupRegistration = new StartupRegistration(
             Environment.ProcessPath ?? throw new InvalidOperationException("The executable path is not available."));
         this.activeSettings = settingsStore.Load() with
@@ -81,16 +91,24 @@ public partial class App : System.Windows.Application
             StartWithWindows = startupRegistration.IsEnabled(),
         };
         var settingsCommitService = new SettingsCommitService(settingsStore, startupRegistration);
-        var monitorService = new WindowsMonitorService();
-        this.positionController = new OverlayPositionController(monitorService);
+        this.positionController = new OverlayPositionController(monitorService, taskbarBounds);
+        var displayResolution = this.positionController.Resolve(this.activeSettings);
+        this.activePresentation = new OverlayPresentationSettings(
+            this.activeSettings.Colors,
+            displayResolution.Appearance);
 
         this.usageOverlayWindow = new UsageOverlayWindow(
-            new OverlayWindowHost(new TaskbarWindowLocator(), monitorService));
-        this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activeSettings);
-        this.usageOverlayWindow.SetPlacement(this.positionController.Restore(this.activeSettings));
+            new OverlayWindowHost(taskbarLocator, monitorService));
+        this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
+        this.usageOverlayWindow.SetPlacement(displayResolution.Placement);
         this.usageOverlayWindow.OpenSettingsRequested += (_, _) => this.OpenSettings();
         this.usageOverlayWindow.OverlayPositionChanged += this.OnOverlayPositionChanged;
+        this.usageOverlayWindow.DisplayEnvironmentChangeRequested +=
+            (_, _) => this.displayEnvironmentWatcher?.RequestRefresh();
         this.usageOverlayWindow.Show();
+        this.displayEnvironmentWatcher = new DisplayEnvironmentWatcher(
+            this.Dispatcher,
+            this.RefreshDisplayEnvironment);
 
         this.settingsWindowController = new SettingsWindowController(
             () => new SettingsWindowViewModel(
@@ -125,7 +143,9 @@ public partial class App : System.Windows.Application
             () => visibilitySource.Read(this.usageOverlayWindow.WindowHandle),
             () => Volatile.Read(ref this.activeSettings),
             clock,
-            this.logger);
+            this.logger,
+            readGraphAppearance: () => ToAppearanceSettings(
+                Volatile.Read(ref this.activePresentation).Appearance));
         coordinator.UsageOverlayStateChanged += this.OnUsageOverlayStateChanged;
         this.coordinatorTask = this.RunCoordinatorAsync(coordinator, this.lifetimeCancellation.Token);
         this.logger.Log(DiagnosticLevel.Information, "Lifecycle", "CodexHp started.");
@@ -159,9 +179,18 @@ public partial class App : System.Windows.Application
             }
 
             this.currentUsageOverlayState = state;
-            this.usageOverlayWindow.Apply(state, this.activeSettings);
+            this.usageOverlayWindow.Apply(state, this.activePresentation);
         });
     }
+
+    private static AppearanceSettings ToAppearanceSettings(EffectiveAppearanceSettings appearance) =>
+        new(
+            appearance.OverlayWidth,
+            appearance.OverlayHeight,
+            appearance.GaugePaneWidth,
+            appearance.GraphBarWidth,
+            appearance.GraphBarGap,
+            appearance.StatusStripeWidth);
 
     private void ApplySettingsPreview(AppSettings settings)
     {
@@ -171,8 +200,12 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        this.usageOverlayWindow.Apply(this.currentUsageOverlayState, settings);
-        this.usageOverlayWindow.SetPlacement(this.positionController.Restore(settings));
+        var displayResolution = this.positionController.Resolve(settings);
+        this.activePresentation = new OverlayPresentationSettings(
+            settings.Colors,
+            displayResolution.Appearance);
+        this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
+        this.usageOverlayWindow.SetPlacement(displayResolution.Placement);
     }
 
     private void OnOverlayPositionChanged(CodexHp.Core.Positioning.PhysicalRect overlayBounds)
@@ -183,6 +216,35 @@ public partial class App : System.Windows.Application
         }
 
         viewModel.PreviewLocation(this.positionController.Capture(overlayBounds));
+    }
+
+    private void RefreshDisplayEnvironment()
+    {
+        if (Volatile.Read(ref this.shutdownStarted) != 0
+            || this.usageOverlayWindow is null
+            || this.positionController is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var resolution = this.positionController.Resolve(this.activeSettings);
+            this.activePresentation = new OverlayPresentationSettings(
+                this.activeSettings.Colors,
+                resolution.Appearance);
+            this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
+            this.usageOverlayWindow.SetPlacement(resolution.Placement);
+            this.ConstrainSettingsWindow(resolution.Placement.MonitorId, center: false);
+        }
+        catch (Exception exception)
+        {
+            this.logger?.Log(
+                DiagnosticLevel.Warning,
+                "Display",
+                "The display environment could not be refreshed.",
+                exception);
+        }
     }
 
     private void OpenSettings()
@@ -208,6 +270,30 @@ public partial class App : System.Windows.Application
             }
         };
         window.Show();
+        if (this.positionController is { } controller)
+        {
+            var resolution = controller.Resolve(this.activeSettings);
+            this.ConstrainSettingsWindow(resolution.Placement.MonitorId, center: true);
+        }
+    }
+
+    private void ConstrainSettingsWindow(string monitorId, bool center)
+    {
+        if (this.settingsWindow is null || this.positionController is null)
+        {
+            return;
+        }
+
+        var monitor = this.positionController.GetDisplays()
+            .Select(display => display.Monitor)
+            .FirstOrDefault(candidate => string.Equals(
+                candidate.Id,
+                monitorId,
+                StringComparison.OrdinalIgnoreCase));
+        if (monitor is not null)
+        {
+            this.settingsWindow.ConstrainToWorkArea(monitor, center);
+        }
     }
 
     private void ActivateSettingsWindow(SettingsWindowViewModel viewModel)
@@ -265,6 +351,8 @@ public partial class App : System.Windows.Application
         this.lifetimeCancellation = null;
         this.trayIcon?.Dispose();
         this.trayIcon = null;
+        this.displayEnvironmentWatcher?.Dispose();
+        this.displayEnvironmentWatcher = null;
         this.usageOverlayWindow?.CloseForShutdown();
         this.usageOverlayWindow = null;
         this.httpClient?.Dispose();

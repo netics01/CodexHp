@@ -57,7 +57,12 @@ public sealed class OverlayPositionPreviewIntegrationTests
         var captured = positionController.Capture(new PhysicalRect(2070, 150, 288, 68));
         viewModel.PreviewLocation(captured);
 
-        Assert.Equal(new OverlayLocationSettings("DISPLAY2", 150, 150), viewModel.Working.Location);
+        Assert.Equal("DISPLAY2", viewModel.Working.Location.MonitorId);
+        Assert.Equal(150, viewModel.Working.Location.X);
+        Assert.Equal(150, viewModel.Working.Location.Y);
+        Assert.Equal(OverlayPlacementTarget.Desktop, viewModel.Working.Location.Target);
+        Assert.NotNull(viewModel.Working.Location.NormalizedX);
+        Assert.NotNull(viewModel.Working.Location.NormalizedY);
         Assert.Equal(viewModel.Working.Location, previews[^1].Location);
 
         viewModel.Cancel();
@@ -66,6 +71,29 @@ public sealed class OverlayPositionPreviewIntegrationTests
         Assert.Equal("DISPLAY1", restored.MonitorId);
         Assert.Equal(12, restored.PhysicalLeft);
         Assert.Equal(20, restored.PhysicalTop);
+    }
+
+    [Fact]
+    public void Resolve_returns_one_effective_physical_contract_for_rendering_and_placement()
+    {
+        var monitor = Primary with
+        {
+            ScaleX = 2,
+            ScaleY = 2,
+            PersistentId = "STABLE-DISPLAY-1",
+        };
+        var taskbar = new PhysicalRect(0, 1024, 1920, 56);
+        var controller = new OverlayPositionController(
+            new FakeMonitorService([monitor]),
+            _ => taskbar);
+
+        var resolution = controller.Resolve(AppSettings.Default);
+
+        Assert.Equal(new EffectiveAppearanceSettings(288, 48, 100, 2, 0, 4), resolution.Appearance);
+        Assert.Equal(resolution.Appearance.OverlayWidth, resolution.Placement.PhysicalWidth);
+        Assert.Equal(resolution.Appearance.OverlayHeight, resolution.Placement.PhysicalHeight);
+        Assert.Equal(OverlayPlacementTarget.Taskbar, resolution.EffectiveTarget);
+        Assert.True(resolution.WasSizeAdjusted);
     }
 
     private sealed class FakeMonitorService(IReadOnlyList<MonitorGeometry> monitors) : IMonitorService

@@ -10,7 +10,7 @@ public sealed class UsageOverlayLayoutTests
     [Fact]
     public void Default_layout_keeps_gauges_refresh_tracks_and_chart_in_separate_bounds()
     {
-        var layout = UsageOverlayRenderer.CreateLayout(SampleState(), AppSettings.Default, false);
+        var layout = UsageOverlayRenderer.CreateLayout(SampleState(), ReferencePhysicalSettings, false);
 
         Assert.Equal(288, layout.Width);
         Assert.Equal(68, layout.Height);
@@ -65,7 +65,7 @@ public sealed class UsageOverlayLayoutTests
     [Fact]
     public void Graph_baseline_uses_the_shared_token_viewport_bounds()
     {
-        var settings = AppSettings.Default;
+        var settings = ReferencePhysicalSettings;
 
         var baseline = Single(
             UsageOverlayRenderer.CreateLayout(SampleState(), settings, false),
@@ -75,8 +75,28 @@ public sealed class UsageOverlayLayoutTests
         Assert.Equal(TokenGraphViewport.ChartRight(settings.Appearance), baseline.Bounds.Right);
     }
 
+    [Fact]
+    public void Effective_physical_appearance_controls_both_bitmap_and_internal_layout()
+    {
+        var presentation = new OverlayPresentationSettings(
+            AppSettings.Default.Colors,
+            new EffectiveAppearanceSettings(288, 68, 100, 2, 0, 4));
+
+        var layout = UsageOverlayRenderer.CreateLayout(SampleState(), presentation, false);
+
+        Assert.Equal(288, layout.Width);
+        Assert.Equal(68, layout.Height);
+        Assert.Equal(100, Single(layout, OverlayElementRole.GraphBaseline).Bounds.Left - 4);
+        Assert.Equal(2, layout.Commands.First(command => command.Role == OverlayElementRole.TokenBar).Bounds.Width);
+    }
+
     private static OverlayDrawCommand Single(UsageOverlayLayout layout, OverlayElementRole role) =>
         Assert.Single(layout.Commands, command => command.Role == role);
+
+    private static AppSettings ReferencePhysicalSettings => AppSettings.Default with
+    {
+        Appearance = new AppearanceSettings(288, 68, 100, 2, 0, 4),
+    };
 
     private static UsageOverlayState SampleState() => new(
         IsVisible: true,

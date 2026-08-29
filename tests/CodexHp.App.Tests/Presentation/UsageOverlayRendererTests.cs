@@ -12,7 +12,7 @@ public sealed class UsageOverlayRendererTests
     {
         var state = State([10_000, 55_000, 100_000]);
 
-        var bars = UsageOverlayRenderer.CreateLayout(state, AppSettings.Default, false)
+        var bars = UsageOverlayRenderer.CreateLayout(state, ReferencePhysicalSettings, false)
             .Commands
             .Where(command => command.Role == OverlayElementRole.TokenBar)
             .ToArray();
@@ -32,7 +32,7 @@ public sealed class UsageOverlayRendererTests
     {
         var bars = UsageOverlayRenderer.CreateLayout(
                 State([3_677, 45_172]),
-                AppSettings.Default,
+                ReferencePhysicalSettings,
                 false)
             .Commands
             .Where(command => command.Role == OverlayElementRole.TokenBar)
@@ -45,7 +45,7 @@ public sealed class UsageOverlayRendererTests
     [Fact]
     public void Five_minute_grid_uses_twenty_fifteen_second_buckets()
     {
-        var dots = UsageOverlayRenderer.CreateLayout(State([1]), AppSettings.Default, false)
+        var dots = UsageOverlayRenderer.CreateLayout(State([1]), ReferencePhysicalSettings, false)
             .Commands
             .Where(command => command.Role == OverlayElementRole.GraphGridDot)
             .ToArray();
@@ -67,7 +67,7 @@ public sealed class UsageOverlayRendererTests
             null,
             null);
 
-        var texts = UsageOverlayRenderer.CreateLayout(state, AppSettings.Default, false)
+        var texts = UsageOverlayRenderer.CreateLayout(state, ReferencePhysicalSettings, false)
             .Commands
             .Where(command => command.Role is OverlayElementRole.ManaText or OverlayElementRole.HpText)
             .ToArray();
@@ -84,7 +84,7 @@ public sealed class UsageOverlayRendererTests
             HpBar = new GaugeDisplayState(40, 0.25, true),
         };
 
-        var layout = UsageOverlayRenderer.CreateLayout(stale, AppSettings.Default, false);
+        var layout = UsageOverlayRenderer.CreateLayout(stale, ReferencePhysicalSettings, false);
 
         Assert.Equal(0.55, layout.Commands.First(command => command.Role == OverlayElementRole.ManaFill).Opacity);
         Assert.Equal(0.55, layout.Commands.First(command => command.Role == OverlayElementRole.ManaText).Opacity);
@@ -95,7 +95,7 @@ public sealed class UsageOverlayRendererTests
     [Fact]
     public void Overlay_position_change_mode_adds_four_inside_four_pixel_outline_edges_last()
     {
-        var commands = UsageOverlayRenderer.CreateLayout(State([1]), AppSettings.Default, true).Commands;
+        var commands = UsageOverlayRenderer.CreateLayout(State([1]), ReferencePhysicalSettings, true).Commands;
         var outline = commands.Where(command => command.Role == OverlayElementRole.OverlayPositionOutline).ToArray();
 
         Assert.Equal(4, outline.Length);
@@ -113,4 +113,9 @@ public sealed class UsageOverlayRendererTests
         TokenBuckets: buckets,
         StatusStripeColor: null,
         StatusStripeTooltip: null);
+
+    private static AppSettings ReferencePhysicalSettings => AppSettings.Default with
+    {
+        Appearance = new AppearanceSettings(288, 68, 100, 2, 0, 4),
+    };
 }

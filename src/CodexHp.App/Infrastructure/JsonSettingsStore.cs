@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using CodexHp.App.Application;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 
 namespace CodexHp.App.Infrastructure;
@@ -19,8 +20,14 @@ public sealed class JsonSettingsStore : ISettingsStore
     };
 
     private readonly Func<DateTimeOffset> clock;
+    private readonly Func<IReadOnlyList<MonitorGeometry>> monitors;
+    private readonly Func<string, PhysicalRect?> taskbarBounds;
 
-    public JsonSettingsStore(string? localAppData = null, Func<DateTimeOffset>? clock = null)
+    public JsonSettingsStore(
+        string? localAppData = null,
+        Func<DateTimeOffset>? clock = null,
+        Func<IReadOnlyList<MonitorGeometry>>? monitors = null,
+        Func<string, PhysicalRect?>? taskbarBounds = null)
     {
         var root = string.IsNullOrWhiteSpace(localAppData)
             ? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)
@@ -33,6 +40,8 @@ public sealed class JsonSettingsStore : ISettingsStore
         this.SettingsDirectory = Path.Combine(root, "CodexHp");
         this.SettingsPath = Path.Combine(this.SettingsDirectory, "settings.json");
         this.clock = clock ?? (() => DateTimeOffset.Now);
+        this.monitors = monitors ?? (() => []);
+        this.taskbarBounds = taskbarBounds ?? (_ => null);
     }
 
     public string SettingsDirectory { get; }
@@ -53,7 +62,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             var json = File.ReadAllText(this.SettingsPath, Encoding.UTF8);
             var document = JsonSerializer.Deserialize<SettingsDocument>(json, SerializerOptions)
                 ?? throw new JsonException("Settings document is empty.");
-            var settings = Map(document);
+            var settings = this.Map(document);
             this.Save(settings);
             return settings;
         }
@@ -88,10 +97,10 @@ public sealed class JsonSettingsStore : ISettingsStore
         }
     }
 
-    private static AppSettings Map(SettingsDocument document)
+    private AppSettings Map(SettingsDocument document)
     {
         var defaults = AppSettings.Default;
-        var usesPhysicalPixels = document.SchemaVersion is >= 2 and <= AppSettings.CurrentSchemaVersion;
+        var hasPersistedAppearance = document.SchemaVersion is >= 2 and <= AppSettings.CurrentSchemaVersion;
         var colors = new ColorSettings(
             ParseColor(document.Colors?.ManaBar, defaults.Colors.ManaBar),
             ParseColor(document.Colors?.HpBar, defaults.Colors.HpBar),
@@ -100,7 +109,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             ParseColor(document.Colors?.ServiceUnknown, defaults.Colors.ServiceUnknown),
             ParseColor(document.Colors?.TokenLow, defaults.Colors.TokenLow),
             ParseColor(document.Colors?.TokenHigh, defaults.Colors.TokenHigh));
-        var appearance = usesPhysicalPixels
+        var persistedAppearance = hasPersistedAppearance
             ? new AppearanceSettings(
                 document.Appearance?.OverlayWidth
                     ?? document.Appearance?.LegacyV2Width
@@ -113,12 +122,27 @@ public sealed class JsonSettingsStore : ISettingsStore
                 document.Appearance?.GraphBarGap ?? defaults.Appearance.GraphBarGap,
                 document.Appearance?.StatusStripeWidth ?? defaults.Appearance.StatusStripeWidth)
             : defaults.Appearance;
-        var location = usesPhysicalPixels
-            ? new OverlayLocationSettings(
-                string.IsNullOrWhiteSpace(document.Location?.MonitorId) ? null : document.Location.MonitorId,
+        var appearance = persistedAppearance;
+        var location = defaults.Location;
+        if (document.SchemaVersion == AppSettings.CurrentSchemaVersion)
+        {
+            location = new OverlayLocationSettings(
+                Clean(document.Location?.MonitorId),
                 ParsePhysicalCoordinate(document.Location?.X, defaults.Location.X),
-                ParsePhysicalCoordinate(document.Location?.Y, defaults.Location.Y))
-            : defaults.Location;
+                ParsePhysicalCoordinate(document.Location?.Y, defaults.Location.Y),
+                Clean(document.Location?.MonitorKey),
+                ParseTarget(document.Location?.Target),
+                ParseNormalized(document.Location?.NormalizedX),
+                ParseNormalized(document.Location?.NormalizedY));
+        }
+        else if (document.SchemaVersion is 2 or 3)
+        {
+            var legacyLocation = new OverlayLocationSettings(
+                Clean(document.Location?.MonitorId),
+                ParsePhysicalCoordinate(document.Location?.X, defaults.Location.X),
+                ParsePhysicalCoordinate(document.Location?.Y, defaults.Location.Y));
+            (appearance, location) = this.MigratePhysicalSettings(persistedAppearance, legacyLocation);
+        }
         var settings = new AppSettings(
             SchemaVersion: AppSettings.CurrentSchemaVersion,
             StartWithWindows: document.StartWithWindows ?? defaults.StartWithWindows,
@@ -129,8 +153,101 @@ public sealed class JsonSettingsStore : ISettingsStore
         return SettingsValidator.Validate(settings).Settings;
     }
 
+    private (AppearanceSettings Appearance, OverlayLocationSettings Location) MigratePhysicalSettings(
+        AppearanceSettings physicalAppearance,
+        OverlayLocationSettings legacyLocation)
+    {
+        var availableMonitors = this.monitors();
+        var monitor = availableMonitors.FirstOrDefault(candidate => string.Equals(
+            candidate.Id,
+            legacyLocation.MonitorId,
+            StringComparison.OrdinalIgnoreCase))
+            ?? availableMonitors.FirstOrDefault(candidate => candidate.IsPrimary)
+            ?? availableMonitors.FirstOrDefault();
+        if (monitor is null)
+        {
+            return (physicalAppearance, legacyLocation);
+        }
+
+        var logicalAppearance = new AppearanceSettings(
+            ToLogical(physicalAppearance.OverlayWidth, monitor.ScaleX),
+            ToLogical(physicalAppearance.OverlayHeight, monitor.ScaleY),
+            ToLogical(physicalAppearance.GaugePaneWidth, monitor.ScaleX),
+            ToLogical(physicalAppearance.GraphBarWidth, monitor.ScaleX),
+            physicalAppearance.GraphBarGap == 0 ? 0 : ToLogical(physicalAppearance.GraphBarGap, monitor.ScaleX),
+            ToLogical(physicalAppearance.StatusStripeWidth, monitor.ScaleX));
+        var overlayBounds = new PhysicalRect(
+            monitor.Bounds.Left + legacyLocation.X,
+            monitor.Bounds.Top + legacyLocation.Y,
+            physicalAppearance.OverlayWidth,
+            physicalAppearance.OverlayHeight);
+        var taskbar = this.TryGetTaskbarBounds(monitor.Id);
+        var target = taskbar is { } taskbarBounds && taskbarBounds.Contains(overlayBounds.Center)
+            ? OverlayPlacementTarget.Taskbar
+            : OverlayPlacementTarget.Desktop;
+        var container = target == OverlayPlacementTarget.Taskbar && taskbar is { } selectedTaskbar
+            ? selectedTaskbar
+            : ValidWorkArea(monitor);
+        var normalizedX = Normalize(
+            overlayBounds.Left - container.Left,
+            container.Width - overlayBounds.Width);
+        var normalizedY = Normalize(
+            overlayBounds.Top - container.Top,
+            container.Height - overlayBounds.Height);
+        var location = legacyLocation with
+        {
+            MonitorKey = monitor.PersistentId,
+            Target = target,
+            NormalizedX = normalizedX,
+            NormalizedY = normalizedY,
+        };
+        return (logicalAppearance, location);
+    }
+
+    private PhysicalRect? TryGetTaskbarBounds(string monitorId)
+    {
+        try
+        {
+            return this.taskbarBounds(monitorId);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private static ColorValue ParseColor(string? value, ColorValue defaultValue) =>
         ColorValue.TryParse(value, out var parsed) ? parsed : defaultValue;
+
+    private static string? Clean(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value;
+
+    private static OverlayPlacementTarget ParseTarget(string? value) =>
+        string.Equals(value, "desktop", StringComparison.OrdinalIgnoreCase)
+            ? OverlayPlacementTarget.Desktop
+            : OverlayPlacementTarget.Taskbar;
+
+    private static double? ParseNormalized(double? value) =>
+        value is { } normalized && double.IsFinite(normalized)
+            ? Math.Clamp(normalized, 0, 1)
+            : null;
+
+    private static int ToLogical(int physicalValue, double scale) =>
+        Math.Max(1, (int)Math.Round(
+            physicalValue / (double.IsFinite(scale) && scale > 0 ? scale : 1),
+            MidpointRounding.AwayFromZero));
+
+    private static PhysicalRect ValidWorkArea(MonitorGeometry monitor) =>
+        monitor.WorkArea.Width > 0
+            && monitor.WorkArea.Height > 0
+            && monitor.Bounds.Contains(monitor.WorkArea)
+                ? monitor.WorkArea
+                : monitor.Bounds;
+
+    private static double Normalize(int offset, int maximumOffset) =>
+        maximumOffset <= 0
+            ? 0
+            : Math.Clamp((double)offset / maximumOffset, 0, 1);
 
     private static int ParsePhysicalCoordinate(double? value, int defaultValue)
     {
@@ -203,6 +320,10 @@ public sealed class JsonSettingsStore : ISettingsStore
                 MonitorId = settings.Location.MonitorId,
                 X = settings.Location.X,
                 Y = settings.Location.Y,
+                MonitorKey = settings.Location.MonitorKey,
+                Target = settings.Location.Target == OverlayPlacementTarget.Desktop ? "desktop" : "taskbar",
+                NormalizedX = settings.Location.NormalizedX,
+                NormalizedY = settings.Location.NormalizedY,
             },
         };
     }
@@ -254,5 +375,13 @@ public sealed class JsonSettingsStore : ISettingsStore
         public double? X { get; set; }
 
         public double? Y { get; set; }
+
+        public string? MonitorKey { get; set; }
+
+        public string? Target { get; set; }
+
+        public double? NormalizedX { get; set; }
+
+        public double? NormalizedY { get; set; }
     }
 }

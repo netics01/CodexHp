@@ -142,6 +142,26 @@ internal static class NativeMethods
         internal string DeviceName;
     }
 
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct DisplayDevice
+    {
+        internal int Size;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        internal string DeviceName;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        internal string DeviceString;
+
+        internal uint StateFlags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        internal string DeviceId;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        internal string DeviceKey;
+    }
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool EnumDisplayMonitors(
@@ -153,6 +173,14 @@ internal static class NativeMethods
     [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool GetMonitorInfo(nint monitorHandle, ref MonitorInfoEx monitorInfo);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "EnumDisplayDevicesW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool EnumDisplayDevices(
+        string deviceName,
+        uint deviceIndex,
+        ref DisplayDevice displayDevice,
+        uint flags);
 
     [DllImport("user32.dll")]
     internal static extern nint MonitorFromWindow(nint windowHandle, uint flags);

@@ -1,15 +1,17 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       tag:
         description: Existing version tag to release, such as v0.2.0
         required: true
         type: string
+      allow_unsigned:
+        description: I acknowledge that this GitHub Release is not code-signed
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -19,9 +21,8 @@ jobs:
     runs-on: windows-latest
     environment: release
     env:
-      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-      WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
-      WINDOWS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      ALLOW_UNSIGNED: ${{ inputs.allow_unsigned }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,9 +31,12 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Verify tag and project version
+      - name: Verify explicit unsigned approval and project version
         shell: pwsh
         run: |
+          if ($env:ALLOW_UNSIGNED -ne 'true') {
+            throw 'Unsigned publication requires allow_unsigned=true.'
+          }
           [xml]$project = Get-Content ./src/CodexHp.App/CodexHp.App.csproj -Raw
           $version = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText.Trim()
           if ($env:RELEASE_TAG -ne "v$version") {
@@ -49,89 +53,35 @@ jobs:
         shell: pwsh
         run: ./scripts/Verify-Core.ps1
 
-      - name: Prepare signing tools and certificate
-        id: signing
-        shell: pwsh
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_SIGNING_CERTIFICATE_BASE64)) {
-            throw 'The release environment is missing WINDOWS_SIGNING_CERTIFICATE_BASE64.'
-          }
-          $signTool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" `
-            -Filter signtool.exe -Recurse -File |
-            Where-Object FullName -Match '\\x64\\signtool\.exe$' |
-            Sort-Object FullName -Descending |
-            Select-Object -First 1
-          if ($null -eq $signTool) {
-            throw 'signtool.exe was not found on the GitHub-hosted runner.'
-          }
-          $certificatePath = Join-Path $env:RUNNER_TEMP 'codexhp-signing.pfx'
-          [IO.File]::WriteAllBytes(
-            $certificatePath,
-            [Convert]::FromBase64String($env:WINDOWS_SIGNING_CERTIFICATE_BASE64))
-          "signtool=$($signTool.FullName)" >> $env:GITHUB_OUTPUT
-          "certificate_path=$certificatePath" >> $env:GITHUB_OUTPUT
-
-      - name: Sign portable executable
-        shell: pwsh
-        run: |
-          & '${{ steps.signing.outputs.signtool }}' sign `
-            /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
-            /f '${{ steps.signing.outputs.certificate_path }}' `
-            /p $env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD `
-            ./out/win-x64/CodexHp.exe
-          if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE." }
-
-      - name: Build installer around signed executable
+      - name: Build installer
         shell: pwsh
         run: ./scripts/Build-Installer.ps1 -UseExistingVerifiedPublish
 
-      - name: Sign installer
+      - name: Stage explicitly approved unsigned release assets
         shell: pwsh
-        run: |
-          [xml]$project = Get-Content ./src/CodexHp.App/CodexHp.App.csproj -Raw
-          $version = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText.Trim()
-          & '${{ steps.signing.outputs.signtool }}' sign `
-            /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
-            /f '${{ steps.signing.outputs.certificate_path }}' `
-            /p $env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD `
-            "./out/installer/CodexHp-Setup-$version-x64.exe"
-          if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE." }
+        run: ./scripts/Stage-Release.ps1 -AllowUnsignedRelease
 
-      - name: Stage signed release assets
-        shell: pwsh
-        run: ./scripts/Stage-Release.ps1
-
-      - name: Remove temporary signing certificate
-        if: always()
-        shell: pwsh
-        run: |
-          $certificatePath = '${{ steps.signing.outputs.certificate_path }}'
-          if (-not [string]::IsNullOrWhiteSpace($certificatePath) -and
-              (Test-Path -LiteralPath $certificatePath)) {
-            Remove-Item -LiteralPath $certificatePath -Force
-          }
-
-      - name: Publish GitHub Release
+      - name: Publish unsigned GitHub Release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $notes = @'
+          > [!WARNING]
+          > This release is not code-signed. Windows SmartScreen or Smart App Control may warn about or block these files. Download them only from this GitHub Release and verify the SHA-256 checksums.
+
+          CodexHp 0.2.0 introduces installer-first distribution for Windows 11.
+
+          - `CodexHp-Setup-0.2.0-x64.exe` is the recommended per-user installer.
+          - `CodexHp-Portable-0.2.0-x64.exe` is the secondary portable build.
+          - `SHA256SUMS.txt` contains the SHA-256 digest for both executables.
+          - This release is not submitted to WinGet.
+          '@
+          $notesPath = Join-Path $env:RUNNER_TEMP 'codexhp-release-notes.md'
+          $notes | Set-Content -LiteralPath $notesPath -Encoding utf8NoBOM
           $assets = @(Get-ChildItem ./out/release -File | ForEach-Object FullName)
-          gh release create $env:RELEASE_TAG $assets --verify-tag --generate-notes --title "CodexHp $env:RELEASE_TAG"
-
-      - name: Generate and validate WinGet manifests
-        shell: pwsh
-        run: |
-          [xml]$project = Get-Content ./src/CodexHp.App/CodexHp.App.csproj -Raw
-          $version = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText.Trim()
-          $installer = "./out/release/CodexHp-Setup-$version-x64.exe"
-          $url = "https://github.com/${{ github.repository }}/releases/download/$env:RELEASE_TAG/CodexHp-Setup-$version-x64.exe"
-          ./scripts/New-WinGetManifest.ps1 -InstallerPath $installer -InstallerUrl $url
-          winget validate --manifest "./out/winget/manifests/n/netics01/CodexHp/$version" --disable-interactivity
-          if ($LASTEXITCODE -ne 0) { throw "winget validate failed with exit code $LASTEXITCODE." }
-
-      - name: Upload WinGet submission artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: winget-netics01.CodexHp-${{ env.RELEASE_TAG }}
-          path: out/winget/manifests/n/netics01/CodexHp/
+          gh release create $env:RELEASE_TAG $assets `
+            --verify-tag `
+            --latest `
+            --title "CodexHp $env:RELEASE_TAG" `
+            --notes-file $notesPath

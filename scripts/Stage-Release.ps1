@@ -2,7 +2,8 @@
 param(
     [string]$PortableExecutablePath,
     [string]$InstallerPath,
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    [switch]$AllowUnsignedRelease
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,7 +39,7 @@ function Assert-PathBelowOutDirectory {
     return $fullPath
 }
 
-function Assert-ValidSignature {
+function Assert-ReleaseArtifact {
     param([Parameter(Mandatory)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -46,16 +47,21 @@ function Assert-ValidSignature {
     }
 
     $signature = Get-AuthenticodeSignature -LiteralPath $Path
-    if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+    if (-not $AllowUnsignedRelease -and
+        $signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
         throw "Signature status for '$Path' was '$($signature.Status)'; expected Valid."
+    }
+    if ($AllowUnsignedRelease -and
+        $signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+        Write-Warning "Staging an explicitly approved unsigned release artifact: $Path"
     }
 }
 
 $portableExecutablePathFull = Assert-PathBelowOutDirectory $PortableExecutablePath
 $installerPathFull = Assert-PathBelowOutDirectory $InstallerPath
 $outputDirectoryFull = Assert-PathBelowOutDirectory $OutputDirectory
-Assert-ValidSignature $portableExecutablePathFull
-Assert-ValidSignature $installerPathFull
+Assert-ReleaseArtifact $portableExecutablePathFull
+Assert-ReleaseArtifact $installerPathFull
 
 if (Test-Path -LiteralPath $outputDirectoryFull) {
     Remove-Item -LiteralPath $outputDirectoryFull -Recurse -Force

@@ -94,15 +94,15 @@ public sealed class ReleaseConfigurationTests
     }
 
     [Fact]
-    public void Readme_pair_discloses_unsigned_0_3_0_and_no_winget_submission()
+    public void Readme_pair_discloses_unsigned_distribution_and_no_winget_availability()
     {
         var english = ReadRequiredRepositoryFile("README.md");
         var korean = ReadRequiredRepositoryFile("README.ko.md");
 
-        Assert.Contains("Version 0.3.0 is published without Authenticode code signing", english, StringComparison.Ordinal);
-        Assert.Contains("This release is not submitted to WinGet", english, StringComparison.Ordinal);
-        Assert.Contains("버전 0.3.0은 Authenticode 코드 서명 없이 공개", korean, StringComparison.Ordinal);
-        Assert.Contains("이 릴리스는 WinGet에 제출하지 않습니다", korean, StringComparison.Ordinal);
+        Assert.Contains("The current release is not Authenticode-signed", english, StringComparison.Ordinal);
+        Assert.Contains("CodexHp is not yet distributed through WinGet", english, StringComparison.Ordinal);
+        Assert.Contains("현재 릴리스는 Authenticode 코드 서명이 없습니다", korean, StringComparison.Ordinal);
+        Assert.Contains("CodexHp는 아직 WinGet으로 배포하지 않습니다", korean, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -126,6 +126,33 @@ public sealed class ReleaseConfigurationTests
         Assert.Contains("official release assets are built only by this local command", english, StringComparison.Ordinal);
         Assert.Contains("Publish-LocalRelease.ps1 -AllowUnsignedRelease", korean, StringComparison.Ordinal);
         Assert.Contains("공식 릴리스 자산은 이 로컬 명령으로만 빌드", korean, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Readme_pair_leads_with_taskbar_visuals_and_keeps_the_hp_metaphor_to_a_name_explanation()
+    {
+        var repositoryRoot = FindCodexHpRoot();
+        var english = ReadRequiredRepositoryFile("README.md");
+        var korean = ReadRequiredRepositoryFile("README.ko.md");
+        var visualNames = new[]
+        {
+            "codexhp-taskbar.png",
+            "codexhp-at-a-glance.svg",
+            "codexhp-placement.svg",
+        };
+
+        Assert.Contains("right on the Windows 11 taskbar", english, StringComparison.Ordinal);
+        Assert.Contains("## Why the name CodexHp?", english, StringComparison.Ordinal);
+        Assert.Contains("Windows 11 작업 표시줄에서 한눈에", korean, StringComparison.Ordinal);
+        Assert.Contains("## 왜 CodexHp라는 이름인가요?", korean, StringComparison.Ordinal);
+        foreach (var visualName in visualNames)
+        {
+            Assert.Contains($"docs/assets/readme/{visualName}", english, StringComparison.Ordinal);
+            Assert.Contains($"docs/assets/readme/{visualName}", korean, StringComparison.Ordinal);
+            Assert.True(
+                File.Exists(Path.Combine(repositoryRoot, "docs", "assets", "readme", visualName)),
+                $"Required README visual is missing: {visualName}");
+        }
     }
 
     private static string ReadRequiredRepositoryFile(params string[] segments)

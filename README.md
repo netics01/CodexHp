@@ -2,76 +2,101 @@
 
 [한국어](README.ko.md)
 
-CodexHp is a Windows 11 desktop overlay for monitoring Codex usage. It displays session and weekly usage gauges, recent local token activity, and an OpenAI service-status indicator above the taskbar.
+**See your Codex usage limits and recent token activity at a glance—right on the Windows 11 taskbar.**
 
-> CodexHp is an independent, unofficial project. It is not affiliated with, endorsed by, or supported by OpenAI.
+CodexHp is a compact taskbar overlay for people who use Codex in the ChatGPT desktop app on Windows 11. Without opening another window, you can see what remains in your 5-hour and weekly limits, when they reset, recent activity from local Codex sessions, and OpenAI service status.
 
-## Status
+![CodexHp showing session and weekly limit gauges plus a token activity graph directly on the Windows 11 taskbar](docs/assets/readme/codexhp-taskbar.png)
 
-Version 0.2.0 introduces installer-first distribution. For regular use, download `CodexHp-Setup-<version>-x64.exe` from [GitHub Releases](https://github.com/netics01/CodexHp/releases). It installs for the current user under `%LocalAppData%\Programs\CodexHp`, adds a Start menu shortcut and an uninstall entry, and offers to start CodexHp when you sign in. The startup choice is selected on the first install and preserved by later upgrades.
+**[Get the latest release](https://github.com/netics01/CodexHp/releases/latest)**
 
-`CodexHp-Portable-<version>-x64.exe` remains available for temporary or portable use. Move it out of Downloads or temporary directories before enabling **Run CodexHp when Windows starts**; CodexHp disables that option in locations likely to be cleaned or moved. The installer is the recommended choice for an always-running companion.
+*Current downloads are unsigned and may trigger a Windows security warning. See [Install](#install) for details.*
 
-Version 0.3.0 is published without Authenticode code signing. Windows SmartScreen or Smart App Control may warn about or block its executables. Download them only from this repository's GitHub Release and compare their SHA-256 digests with `SHA256SUMS.txt`. This release is not submitted to WinGet.
+## Codex usage at a glance
 
-## Requirements
+![Numbered overview of the CodexHp usage gauges, reset progress, token activity graph, and service-status indicator](docs/assets/readme/codexhp-at-a-glance.svg)
+
+| No. | What you see |
+| --- | --- |
+| **1** | Remaining usage in your current **5-hour session** and **weekly** windows |
+| **2** | Time remaining until each usage window resets |
+| **3** | Recent token activity read from your local Codex sessions |
+| **4** | OpenAI service incidents, with affected components shown on hover over the status indicator |
+
+The activity graph adds context to the remaining limits. Idle periods, steady work, and sudden bursts are easy to distinguish at a glance.
+
+## Taskbar-first, not taskbar-only
+
+![CodexHp placed directly in the Windows taskbar and at a custom desktop position](docs/assets/readme/codexhp-placement.svg)
+
+| No. | Placement |
+| --- | --- |
+| **1** | Attach CodexHp to the Windows taskbar for a native-feeling, at-a-glance display |
+| **2** | Move it anywhere on a connected display when the taskbar is not the best fit |
+
+CodexHp adapts saved placement to different monitor bounds, taskbar layouts, and DPI scales. Open **Overlay Position** in settings and drag the outlined overlay to place it.
+
+## Designed to run quietly all day
+
+- Starts with Windows by default when installed, and preserves your choice during upgrades.
+- Can stay visible all the time or appear only while ChatGPT is running.
+- Hides automatically when a full-screen app is active on the same monitor.
+- Opens settings when you double-click the overlay or click its notification-area icon.
+- Lets you customize gauge colors, size, graph density, placement, and the service-status indicator.
+
+## Install
+
+1. Download `CodexHp-Setup-<version>-x64.exe` from the [latest GitHub Release](https://github.com/netics01/CodexHp/releases/latest).
+2. Run the per-user installer. It places CodexHp under `%LocalAppData%\Programs\CodexHp` and adds Start menu and uninstall entries.
+3. Launch CodexHp from the installer or Start menu. Starting automatically when you sign in is selected by default and can be changed in Settings.
+
+`CodexHp-Portable-<version>-x64.exe` is also available for temporary use. Move the portable build out of Downloads or other temporary locations before enabling Windows startup; CodexHp disables startup registration from locations likely to be cleaned or moved.
+
+> [!WARNING]
+> The current release is not Authenticode-signed. Windows SmartScreen or Smart App Control may warn about or block it. Download only from this repository's GitHub Release and verify the files against `SHA256SUMS.txt`. CodexHp is not yet distributed through WinGet.
+
+To calculate the installer's SHA-256 digest in PowerShell, run the following command and compare the result with the matching entry in `SHA256SUMS.txt`:
+
+```powershell
+Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
+```
+
+### Requirements
 
 - Windows 11 build 22000 or later (x64)
-- .NET 10 SDK for development builds
 - The ChatGPT desktop app installed, signed in, and able to use Codex
 
-CodexHp is designed for the Codex experience in the ChatGPT desktop app. It does not support other operating systems, OpenCode, or general ChatGPT conversation usage.
+CodexHp is built for the Codex experience in the ChatGPT desktop app. It does not support other operating systems, OpenCode, or ordinary ChatGPT conversations.
 
-## What it does
+## Why the name CodexHp?
 
-- Shows remaining session and weekly Codex usage, plus reset progress.
-- Displays recent local Codex token activity as a compact graph.
-- Indicates known OpenAI service issues and hides the overlay when a fullscreen app covers its monitor.
-- Provides a tray icon and settings window for appearance, placement, visibility, and startup behavior.
-
-Double-click the overlay or click the tray icon to open settings. The app normally starts in the notification area and keeps the overlay visible even while usage data is unavailable.
+“HP” comes from health bars in games. When you use Codex frequently, the remaining limit can feel like a resource you need to watch. The name is playful, but the goal is practical—one glance shows whether you can keep going or should pace yourself until the next reset.
 
 ## Data and privacy
 
-CodexHp reads the existing Codex authentication cache from `%CODEX_HOME%\auth.json` or `%USERPROFILE%\.codex\auth.json` and local Codex activity data to retrieve and display usage. It sends the existing authentication token only with the usage request required for that display.
+CodexHp reads the existing Codex authentication cache from `%CODEX_HOME%\auth.json` or `%USERPROFILE%\.codex\auth.json` and local Codex activity data. It uses the cached token only to request Codex usage data from `chatgpt.com`.
 
-CodexHp does not perform sign-in, store the authentication token in its settings, or intentionally write it to its logs. The usage endpoint and local data formats are not a public compatibility contract and may change without notice; the app can stop working as a result. Review the source before using it with your account.
+CodexHp does not perform sign-in, store the authentication token in its settings or logs, or send it to a separate server operated by the CodexHp developer. It relies on a non-public usage endpoint and local activity formats that may change without notice; CodexHp can stop working if they do. If credential handling is a concern, review the source and release checksums before using the app.
 
-## Develop and verify
+## Build from source
 
-Run a development build:
+Development requires the .NET 10 SDK pinned by `global.json`. Inno Setup 6 is required only to build the installer.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Run-Development.ps1
-```
-
-Build, test, and create a self-contained single-file `win-x64` publish:
-
-```powershell
 pwsh -NoProfile -File .\scripts\Verify-Core.ps1
-```
-
-The local publish output is `out\win-x64\CodexHp.exe`. The `out` directory is intentionally untracked.
-
-Build the per-user installer with Inno Setup 6:
-
-```powershell
 pwsh -NoProfile -File .\scripts\Build-Installer.ps1
 ```
 
-The installer is written to `out\installer`. To exercise a real first install, GUI startup, upgrade with startup disabled, and uninstall, close CodexHp and run:
-
-```powershell
-pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
-```
-
-For maintainers, official release assets are built only by this local command; GitHub Actions remains an independent CI check and does not create a second set of binaries:
+The development publish is written to `out\win-x64`, and installer output is written to `out\installer`. Both are intentionally untracked. For maintainers, official release assets are built only by this local command; GitHub Actions remains an independent CI check and does not create a second set of binaries.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
 ```
 
-The command requires a clean `main` checkout synchronized with `origin/main`, pinned build tools, and an explicit unsigned-release acknowledgement. It verifies the complete build, creates exactly the installer, portable executable, and checksum file, publishes them, downloads them again for SHA-256 verification, updates the local installed copy, and verifies its path and version. It refuses to replace assets in an existing GitHub Release. WinGet manifest generation remains available as preparation for a future signed release, but version 0.3.0 is not submitted to WinGet.
+## Project status
+
+CodexHp is an unofficial early-stage project independent of OpenAI. It is not affiliated with, endorsed by, or supported by OpenAI. Changes to ChatGPT, Codex, Windows, or their internal integration details may temporarily break some features.
 
 ## License
 

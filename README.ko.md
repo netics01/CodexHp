@@ -2,76 +2,101 @@
 
 [English](README.md)
 
-CodexHp는 Codex 사용량을 확인하는 Windows 11 데스크톱 오버레이입니다. 작업 표시줄 위에서 세션·주간 사용량 게이지, 최근 로컬 토큰 활동, OpenAI 서비스 상태 표시를 제공합니다.
+**Codex 사용 한도와 최근 토큰 활동을 Windows 11 작업 표시줄에서 한눈에 확인하세요.**
 
-> CodexHp는 독립적인 비공식 프로젝트이며 OpenAI와 제휴·보증·지원 관계가 없습니다.
+CodexHp는 Windows 11의 ChatGPT 데스크톱 앱에서 Codex를 사용하는 사람들을 위한 작은 작업 표시줄 오버레이입니다. 다른 창을 열지 않아도 5시간·주간 한도의 남은 사용량, 초기화까지 남은 시간, 로컬 Codex 세션의 최근 활동, OpenAI 서비스 상태를 확인할 수 있습니다.
 
-## 현재 상태
+![Windows 11 작업 표시줄에서 세션·주간 한도 게이지와 토큰 활동 그래프를 보여주는 CodexHp](docs/assets/readme/codexhp-taskbar.png)
 
-버전 0.2.0부터 설치 프로그램을 기본 배포 방식으로 사용합니다. 일반적인 사용자는 [GitHub Releases](https://github.com/netics01/CodexHp/releases)에서 `CodexHp-Setup-<version>-x64.exe`를 내려받으세요. 현재 사용자용 `%LocalAppData%\Programs\CodexHp`에 설치되고 시작 메뉴 바로 가기와 제거 항목이 추가되며 Windows 로그인 시 CodexHp를 시작하도록 선택할 수 있습니다. 자동 실행은 첫 설치에서 기본 선택되고 이후 업그레이드에서는 기존 사용자 선택을 유지합니다.
+**[최신 릴리스에서 설치 프로그램 받기](https://github.com/netics01/CodexHp/releases/latest)**
 
-임시 또는 휴대용 사용을 위한 `CodexHp-Portable-<version>-x64.exe`도 제공합니다. **Windows 시작 시 CodexHp 실행**을 켜기 전에 다운로드 또는 임시 디렉터리 밖의 안정적인 위치로 옮기세요. 정리되거나 이동되기 쉬운 위치에서는 CodexHp가 이 옵션을 비활성화합니다. 상시 실행 컴패니언으로 사용한다면 설치 프로그램을 권장합니다.
+*현재 다운로드 파일은 미서명 상태이므로 Windows 보안 경고가 표시될 수 있습니다. 자세한 내용은 [설치](#설치)를 확인하세요.*
 
-버전 0.3.0은 Authenticode 코드 서명 없이 공개합니다. Windows SmartScreen이나 Smart App Control이 실행 파일에 관해 경고하거나 차단할 수 있습니다. 이 저장소의 GitHub Release에서만 내려받고 SHA-256 해시를 `SHA256SUMS.txt`와 비교하세요. 이 릴리스는 WinGet에 제출하지 않습니다.
+## Codex 사용량을 한눈에
 
-## 요구 사항
+![CodexHp의 사용 한도 게이지, 초기화까지 남은 시간, 토큰 활동 그래프, 서비스 상태 표시를 번호로 설명하는 그림](docs/assets/readme/codexhp-at-a-glance.svg)
+
+| 번호 | 표시하는 정보 |
+| --- | --- |
+| **1** | 현재 **5시간 한도**와 **주간 한도**의 남은 사용량 |
+| **2** | 각 한도가 초기화될 때까지 남은 시간 |
+| **3** | 로컬 Codex 세션에서 읽은 최근 토큰 활동 |
+| **4** | OpenAI 서비스 장애 상태. 상태 표시에 마우스를 올리면 영향을 받는 구성 요소 표시 |
+
+활동 그래프를 함께 보면 남은 한도뿐 아니라 최근 사용 패턴도 파악할 수 있습니다. 사용하지 않은 구간, 꾸준히 작업한 구간, 갑작스럽게 사용량이 늘어난 구간을 한눈에 구분할 수 있습니다.
+
+## 작업 표시줄이 기본이지만, 원하는 위치에 둘 수 있습니다
+
+![Windows 작업 표시줄 안과 데스크톱 사용자 지정 위치에 각각 배치한 CodexHp](docs/assets/readme/codexhp-placement.svg)
+
+| 번호 | 배치 방식 |
+| --- | --- |
+| **1** | 작업 표시줄에 붙여 언제든 바로 확인 |
+| **2** | 작업 표시줄이 불편하다면 연결된 디스플레이의 원하는 위치로 이동 |
+
+모니터 구성이나 DPI 배율이 달라져도 저장한 위치가 화면에 맞도록 자동으로 보정됩니다. 설정에서 **Overlay Position(오버레이 위치)**을 열고 나타나는 배치 프레임을 드래그하세요.
+
+## 하루 종일 조용히 실행되도록 설계
+
+- 설치 시 기본적으로 Windows와 함께 시작하며 업그레이드 후에도 사용자의 선택을 유지합니다.
+- 항상 표시하거나 ChatGPT가 실행되는 동안에만 표시할 수 있습니다.
+- 같은 모니터에서 전체 화면 앱이 실행되면 자동으로 숨깁니다.
+- 오버레이를 두 번 클릭하거나 알림 영역 아이콘을 클릭하면 설정을 엽니다.
+- 게이지 색상, 크기, 그래프 밀도, 위치, 서비스 상태 표시를 사용자 지정할 수 있습니다.
+
+## 설치
+
+1. [최신 GitHub Release](https://github.com/netics01/CodexHp/releases/latest)에서 `CodexHp-Setup-<version>-x64.exe`를 내려받습니다.
+2. 현재 사용자용 설치 프로그램을 실행합니다. CodexHp가 `%LocalAppData%\Programs\CodexHp`에 설치되고 시작 메뉴와 제거 항목이 추가됩니다.
+3. 설치 프로그램이나 시작 메뉴에서 CodexHp를 실행합니다. Windows 로그인 시 자동 시작이 기본으로 선택되며 설정에서 바꿀 수 있습니다.
+
+설치 없이 실행할 수 있는 `CodexHp-Portable-<version>-x64.exe`도 제공합니다. 자동 실행을 사용하려면 먼저 다운로드 폴더처럼 이동되거나 정리되기 쉬운 위치 밖으로 파일을 옮기세요. CodexHp는 이런 위치에서의 자동 실행 등록을 비활성화합니다.
+
+> [!WARNING]
+> 현재 릴리스는 Authenticode 코드 서명이 없습니다. Windows SmartScreen이나 Smart App Control이 경고하거나 차단할 수 있습니다. 이 저장소의 GitHub Release에서만 내려받고 `SHA256SUMS.txt`로 파일을 검증하세요. CodexHp는 아직 WinGet으로 배포하지 않습니다.
+
+PowerShell에서 다음 명령으로 설치 프로그램의 SHA-256 값을 계산한 다음 `SHA256SUMS.txt`의 해당 항목과 비교하세요.
+
+```powershell
+Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
+```
+
+### 요구 사항
 
 - Windows 11 빌드 22000 이상(x64)
-- 개발 빌드용 .NET 10 SDK
 - 설치 및 로그인되어 있고 Codex를 사용할 수 있는 ChatGPT 데스크톱 앱
 
-CodexHp는 ChatGPT 데스크톱 앱의 Codex 환경을 대상으로 합니다. 다른 운영 체제, OpenCode, 일반 ChatGPT 대화 사용량은 지원하지 않습니다.
+CodexHp는 ChatGPT 데스크톱 앱의 Codex 환경을 대상으로 합니다. 다른 운영 체제, OpenCode, 일반적인 ChatGPT 대화는 지원하지 않습니다.
 
-## 주요 기능
+## 왜 CodexHp라는 이름인가요?
 
-- 남은 세션·주간 Codex 사용량과 초기화 진행 상태 표시
-- 최근 로컬 Codex 토큰 활동을 작은 그래프로 표시
-- 알려진 OpenAI 서비스 문제 표시 및 같은 모니터의 전체 화면 앱 감지 시 오버레이 숨김
-- 모양, 위치, 표시 조건, 시작 프로그램 동작을 설정하는 트레이 아이콘과 설정 창 제공
-
-오버레이를 두 번 클릭하거나 트레이 아이콘을 클릭하면 설정 창을 엽니다. 사용량 데이터를 아직 가져오지 못한 상태에서도 앱은 일반적으로 알림 영역과 오버레이를 유지합니다.
+“HP”는 게임의 체력 게이지에서 따온 이름입니다. Codex를 자주 사용하면 남은 한도는 계속 살펴야 하는 자원처럼 느껴질 수 있습니다. 이름은 재미있지만 목표는 실용적입니다. 한 번 보는 것만으로 계속 작업해도 될지, 다음 초기화까지 사용량을 조절해야 할지 판단할 수 있습니다.
 
 ## 데이터와 개인정보
 
-CodexHp는 기존 Codex 인증 캐시 `%CODEX_HOME%\auth.json` 또는 `%USERPROFILE%\.codex\auth.json`과 로컬 Codex 활동 데이터를 읽어 사용량을 표시합니다. 표시를 위해 필요한 사용량 요청에만 기존 인증 토큰을 전송합니다.
+CodexHp는 기존 Codex 인증 캐시 `%CODEX_HOME%\auth.json` 또는 `%USERPROFILE%\.codex\auth.json`과 로컬 Codex 활동 데이터를 읽습니다. 캐시된 토큰은 `chatgpt.com`에서 Codex 사용량을 요청할 때만 사용합니다.
 
-CodexHp는 로그인 과정을 수행하지 않으며, 인증 토큰을 자체 설정에 저장하거나 의도적으로 로그에 기록하지 않습니다. 사용량 엔드포인트와 로컬 데이터 형식은 공개 호환성 계약이 아니므로 예고 없이 바뀔 수 있으며, 이 경우 앱이 동작하지 않을 수 있습니다. 계정과 함께 사용하기 전에 소스 코드를 검토하세요.
+CodexHp는 로그인 과정을 수행하지 않으며 인증 토큰을 설정이나 로그에 저장하거나 CodexHp 개발자가 운영하는 별도 서버로 전송하지 않습니다. CodexHp는 공개 API가 아닌 사용량 엔드포인트와 로컬 활동 형식에 의존하므로 예고 없이 동작이 바뀔 수 있습니다. 인증 정보 처리 방식이 우려된다면 사용 전에 소스 코드와 릴리스 체크섬을 확인하세요.
 
-## 개발 및 검증
+## 소스에서 빌드
 
-개발 빌드를 실행합니다.
+개발에는 `global.json`에 고정된 .NET 10 SDK가 필요합니다. Inno Setup 6은 설치 프로그램을 빌드할 때만 필요합니다.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Run-Development.ps1
-```
-
-빌드·테스트·자체 포함 단일 파일 `win-x64` 게시를 실행합니다.
-
-```powershell
 pwsh -NoProfile -File .\scripts\Verify-Core.ps1
-```
-
-로컬 게시 결과는 `out\win-x64\CodexHp.exe`에 생성됩니다. `out` 디렉터리는 의도적으로 추적하지 않습니다.
-
-Inno Setup 6으로 현재 사용자용 설치 프로그램을 빌드합니다.
-
-```powershell
 pwsh -NoProfile -File .\scripts\Build-Installer.ps1
 ```
 
-설치 프로그램은 `out\installer`에 생성됩니다. 첫 설치, GUI 시작, 자동 실행을 끈 상태의 업그레이드, 제거를 실제로 검증하려면 CodexHp를 종료하고 다음 명령을 실행합니다.
-
-```powershell
-pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
-```
-
-관리자용 공식 릴리스 자산은 이 로컬 명령으로만 빌드합니다. GitHub Actions는 독립적인 CI 검증만 수행하며 별도의 바이너리를 만들지 않습니다.
+개발 게시 결과는 `out\win-x64`에, 설치 프로그램은 `out\installer`에 생성됩니다. 두 위치 모두 의도적으로 추적하지 않습니다. 관리자용 공식 릴리스 자산은 이 로컬 명령으로만 빌드합니다. GitHub Actions는 독립적인 CI 검증만 수행하며 별도의 바이너리를 만들지 않습니다.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
 ```
 
-이 명령은 `origin/main`과 동기화된 깨끗한 `main` 체크아웃, 고정된 빌드 도구, 미서명 릴리스에 대한 명시적 확인을 요구합니다. 전체 빌드를 검증하고 설치 프로그램·portable 실행 파일·체크섬 파일만 생성해 공개한 다음, 다시 내려받아 SHA-256을 검증하고 로컬 설치본을 갱신해 실행 경로와 버전을 확인합니다. 기존 GitHub Release의 자산은 교체하지 않습니다. 향후 서명된 릴리스를 위한 WinGet manifest 생성 기능은 유지하지만 버전 0.3.0은 WinGet에 제출하지 않습니다.
+## 프로젝트 상태
+
+CodexHp는 OpenAI와 무관한 비공식 초기 단계 프로젝트입니다. OpenAI와 제휴·보증·지원 관계가 없으며 ChatGPT, Codex, Windows 또는 내부 연동 방식이 변경되면 일부 기능이 일시적으로 동작하지 않을 수 있습니다.
 
 ## 라이선스
 

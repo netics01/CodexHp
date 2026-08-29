@@ -70,6 +70,33 @@ public sealed class SettingsWindowViewModelTests
     }
 
     [Fact]
+    public void Unsafe_portable_startup_can_be_disabled_but_not_reenabled()
+    {
+        var viewModel = CreateViewModel(canStartWithWindows: false);
+
+        Assert.True(viewModel.StartWithWindows);
+        Assert.True(viewModel.CanStartWithWindows);
+
+        viewModel.StartWithWindows = false;
+
+        Assert.False(viewModel.StartWithWindows);
+        Assert.False(viewModel.CanStartWithWindows);
+
+        viewModel.StartWithWindows = true;
+
+        Assert.False(viewModel.StartWithWindows);
+    }
+
+    [Fact]
+    public void Unsafe_portable_startup_is_disabled_when_not_already_registered()
+    {
+        var baseline = AppSettings.Default with { StartWithWindows = false };
+        var viewModel = CreateViewModel(baseline, canStartWithWindows: false);
+
+        Assert.False(viewModel.CanStartWithWindows);
+    }
+
+    [Fact]
     public void Overlay_position_group_toggles_outline_and_drag_mode()
     {
         var modes = new List<bool>();
@@ -170,10 +197,12 @@ public sealed class SettingsWindowViewModelTests
         AppSettings? baseline = null,
         List<AppSettings>? previews = null,
         List<bool>? positionModes = null,
-        Func<AppSettings, AppSettings>? commit = null) =>
+        Func<AppSettings, AppSettings>? commit = null,
+        bool canStartWithWindows = true) =>
         new(
             baseline ?? AppSettings.Default,
             settings => previews?.Add(settings),
             enabled => positionModes?.Add(enabled),
-            commit ?? (settings => settings));
+            commit ?? (settings => settings),
+            canStartWithWindows);
 }

@@ -3,6 +3,7 @@ param(
     [string]$PublishDirectory = (Join-Path $PSScriptRoot '..\..\out\win-x64'),
     [int[]]$ExpectedOverlayBounds,
     [switch]$SkipPixelVerification,
+    [switch]$AllowInstallerFiles,
     [switch]$KeepRunning
 )
 
@@ -252,11 +253,12 @@ public static class CodexHpWindowProbe
 
 $resolvedPublishDirectory = (Resolve-Path -LiteralPath $PublishDirectory).Path
 $files = @(Get-ChildItem -LiteralPath $resolvedPublishDirectory -File)
-if ($files.Count -ne 1 -or $files[0].Name -ne 'CodexHp.exe') {
+$codexHpExecutables = @($files | Where-Object Name -eq 'CodexHp.exe')
+if ($codexHpExecutables.Count -ne 1 -or (-not $AllowInstallerFiles -and $files.Count -ne 1)) {
     throw "Published directory must contain only CodexHp.exe. Found: $($files.Name -join ', ')"
 }
 
-$executablePath = $files[0].FullName
+$executablePath = $codexHpExecutables[0].FullName
 $alreadyRunning = @(Get-Process -Name 'CodexHp' -ErrorAction SilentlyContinue)
 if ($alreadyRunning.Count -gt 0) {
     throw 'Close the existing CodexHp process before published-app validation.'

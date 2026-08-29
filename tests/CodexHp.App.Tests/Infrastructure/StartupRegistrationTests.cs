@@ -41,6 +41,22 @@ public sealed class StartupRegistrationTests
         Assert.Equal("keep", registry.Values["AnotherApp"]);
     }
 
+    [Fact]
+    public void SetEnabled_rejects_a_new_startup_entry_from_the_downloads_directory()
+    {
+        var registry = new FakeRegistryValueStore();
+        var downloadsExecutable = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Downloads",
+            "CodexHp.exe");
+        var registration = new StartupRegistration(registry, downloadsExecutable);
+
+        var exception = Assert.Throws<InvalidOperationException>(() => registration.SetEnabled(true));
+
+        Assert.Contains("stable location", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(registry.Values.ContainsKey(StartupRegistration.ValueName));
+    }
+
     internal sealed class FakeRegistryValueStore : IRegistryValueStore
     {
         public Dictionary<string, string> Values { get; } = new(StringComparer.OrdinalIgnoreCase);

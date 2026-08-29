@@ -6,11 +6,11 @@ namespace CodexHp.App.Tests.Application;
 public sealed class PublishConfigurationTests
 {
     [Fact]
-    public void Application_project_declares_release_version_0_1_0()
+    public void Application_project_declares_release_version_0_2_0()
     {
         var properties = LoadApplicationProjectProperties();
 
-        Assert.Equal("0.1.0", properties["Version"]);
+        Assert.Equal("0.2.0", properties["Version"]);
     }
 
     [Fact]

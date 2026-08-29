@@ -197,6 +197,7 @@
                         <CheckBox Style="{StaticResource CompactCheckBoxStyle}"
                                   Content="Run CodexHp when Windows starts"
                                   IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
+                                  IsEnabled="{Binding CanStartWithWindows}"
                                   Margin="0,0,0,4" />
                         <CheckBox Style="{StaticResource CompactCheckBoxStyle}"
                                   Content="Show the usage overlay only while the ChatGPT desktop app is running"

@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.Win32;
 using CodexHp.App.Application;
 
@@ -31,8 +32,13 @@ public sealed class StartupRegistration : IStartupRegistration
             throw new ArgumentException("Executable path is required.", nameof(executablePath));
         }
 
-        this.command = $"\"{executablePath}\"";
+        var fullExecutablePath = Path.GetFullPath(executablePath);
+        this.command = $"\"{fullExecutablePath}\"";
+        this.CanEnable = !IsUnderDirectory(fullExecutablePath, GetDownloadsDirectory())
+            && !IsUnderDirectory(fullExecutablePath, Path.GetTempPath());
     }
+
+    public bool CanEnable { get; }
 
     public bool IsEnabled() => string.Equals(
         this.registry.Read(ValueName),
@@ -43,12 +49,36 @@ public sealed class StartupRegistration : IStartupRegistration
     {
         if (enabled)
         {
+            if (!this.CanEnable)
+            {
+                throw new InvalidOperationException(
+                    "Install or move CodexHp to a stable location before enabling Windows startup.");
+            }
+
             this.registry.Write(ValueName, this.command);
         }
         else
         {
             this.registry.Delete(ValueName);
         }
+    }
+
+    private static string GetDownloadsDirectory() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+        "Downloads");
+
+    private static bool IsUnderDirectory(string path, string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return false;
+        }
+
+        var fullPath = Path.GetFullPath(path);
+        var fullDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(directory));
+        return fullPath.StartsWith(
+            fullDirectory + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class CurrentUserRunRegistryValueStore : IRegistryValueStore

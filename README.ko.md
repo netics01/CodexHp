@@ -8,7 +8,9 @@ CodexHp는 Codex 사용량을 확인하는 Windows 11 데스크톱 오버레이�
 
 ## 현재 상태
 
-버전 0.1.0은 첫 공개 릴리스입니다. 자체 포함 `win-x64` 빌드는 [GitHub Releases](https://github.com/netics01/CodexHp/releases)에서 다운로드할 수 있습니다. CodexHp는 휴대용 단일 실행 파일로 배포하며, 현재 설치 프로그램은 제공하지 않습니다.
+버전 0.2.0부터 설치 프로그램을 기본 배포 방식으로 사용합니다. 일반적인 사용자는 [GitHub Releases](https://github.com/netics01/CodexHp/releases)에서 `CodexHp-Setup-<version>-x64.exe`를 내려받으세요. 현재 사용자용 `%LocalAppData%\Programs\CodexHp`에 설치되고 시작 메뉴 바로 가기와 제거 항목이 추가되며 Windows 로그인 시 CodexHp를 시작하도록 선택할 수 있습니다. 자동 실행은 첫 설치에서 기본 선택되고 이후 업그레이드에서는 기존 사용자 선택을 유지합니다.
+
+임시 또는 휴대용 사용을 위한 `CodexHp-Portable-<version>-x64.exe`도 제공합니다. **Windows 시작 시 CodexHp 실행**을 켜기 전에 다운로드 또는 임시 디렉터리 밖의 안정적인 위치로 옮기세요. 정리되거나 이동되기 쉬운 위치에서는 CodexHp가 이 옵션을 비활성화합니다. 상시 실행 컴패니언으로 사용한다면 설치 프로그램을 권장합니다.
 
 ## 요구 사항
 
@@ -48,6 +50,20 @@ pwsh -NoProfile -File .\scripts\Verify-Core.ps1
 ```
 
 로컬 게시 결과는 `out\win-x64\CodexHp.exe`에 생성됩니다. `out` 디렉터리는 의도적으로 추적하지 않습니다.
+
+Inno Setup 6으로 현재 사용자용 설치 프로그램을 빌드합니다.
+
+```powershell
+pwsh -NoProfile -File .\scripts\Build-Installer.ps1
+```
+
+설치 프로그램은 `out\installer`에 생성됩니다. 첫 설치, GUI 시작, 자동 실행을 끈 상태의 업그레이드, 제거를 실제로 검증하려면 CodexHp를 종료하고 다음 명령을 실행합니다.
+
+```powershell
+pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
+```
+
+GitHub 릴리스 워크플로에는 `release` 환경의 `WINDOWS_SIGNING_CERTIFICATE_BASE64`, `WINDOWS_SIGNING_CERTIFICATE_PASSWORD` secret이 필요합니다. portable 실행 파일과 설치 프로그램을 모두 서명하고, 서명되지 않은 릴리스 산출물을 거부하며, 체크섬과 `netics01.CodexHp`용 검증된 WinGet manifest를 생성합니다. WinGet pull request 생성은 서명된 GitHub Release가 공개된 뒤 유지관리자가 별도로 수행합니다.
 
 ## 라이선스
 

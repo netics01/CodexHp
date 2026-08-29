@@ -74,9 +74,12 @@ public partial class App : System.Windows.Application
     {
         this.logger = new RollingFileLogger();
         var settingsStore = new JsonSettingsStore();
-        this.activeSettings = settingsStore.Load();
         var startupRegistration = new StartupRegistration(
             Environment.ProcessPath ?? throw new InvalidOperationException("The executable path is not available."));
+        this.activeSettings = settingsStore.Load() with
+        {
+            StartWithWindows = startupRegistration.IsEnabled(),
+        };
         var settingsCommitService = new SettingsCommitService(settingsStore, startupRegistration);
         var monitorService = new WindowsMonitorService();
         this.positionController = new OverlayPositionController(monitorService);
@@ -94,7 +97,8 @@ public partial class App : System.Windows.Application
                 this.activeSettings,
                 this.ApplySettingsPreview,
                 enabled => this.usageOverlayWindow.SetOverlayPositionChangeMode(enabled),
-                desired => settingsCommitService.Commit(desired)),
+                desired => settingsCommitService.Commit(desired),
+                canStartWithWindows: startupRegistration.CanEnable),
             this.ShowSettingsWindow,
             this.ActivateSettingsWindow);
 

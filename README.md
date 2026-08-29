@@ -8,7 +8,9 @@ CodexHp is a Windows 11 desktop overlay for monitoring Codex usage. It displays 
 
 ## Status
 
-Version 0.1.0 is the initial public release. Download the self-contained `win-x64` build from [GitHub Releases](https://github.com/netics01/CodexHp/releases). CodexHp is distributed as a portable single executable; an installer is not currently provided.
+Version 0.2.0 introduces installer-first distribution. For regular use, download `CodexHp-Setup-<version>-x64.exe` from [GitHub Releases](https://github.com/netics01/CodexHp/releases). It installs for the current user under `%LocalAppData%\Programs\CodexHp`, adds a Start menu shortcut and an uninstall entry, and offers to start CodexHp when you sign in. The startup choice is selected on the first install and preserved by later upgrades.
+
+`CodexHp-Portable-<version>-x64.exe` remains available for temporary or portable use. Move it out of Downloads or temporary directories before enabling **Run CodexHp when Windows starts**; CodexHp disables that option in locations likely to be cleaned or moved. The installer is the recommended choice for an always-running companion.
 
 ## Requirements
 
@@ -48,6 +50,20 @@ pwsh -NoProfile -File .\scripts\Verify-Core.ps1
 ```
 
 The local publish output is `out\win-x64\CodexHp.exe`. The `out` directory is intentionally untracked.
+
+Build the per-user installer with Inno Setup 6:
+
+```powershell
+pwsh -NoProfile -File .\scripts\Build-Installer.ps1
+```
+
+The installer is written to `out\installer`. To exercise a real first install, GUI startup, upgrade with startup disabled, and uninstall, close CodexHp and run:
+
+```powershell
+pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
+```
+
+The GitHub release workflow requires the `WINDOWS_SIGNING_CERTIFICATE_BASE64` and `WINDOWS_SIGNING_CERTIFICATE_PASSWORD` secrets in the `release` environment. It signs both the portable executable and installer, refuses unsigned release assets, publishes checksums, and produces validated WinGet manifests for `netics01.CodexHp`. Creating a WinGet pull request remains a separate maintainer action after the signed GitHub Release is available.
 
 ## License
 

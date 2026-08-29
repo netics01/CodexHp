@@ -12,18 +12,21 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     private readonly Action<AppSettings> preview;
     private readonly Action<bool> changeOverlayPositionMode;
     private readonly Func<AppSettings, AppSettings> commit;
+    private readonly bool canEnableStartWithWindows;
     private SettingsGroup selectedGroup;
 
     public SettingsWindowViewModel(
         AppSettings baseline,
         Action<AppSettings>? preview,
         Action<bool>? changeOverlayPositionMode,
-        Func<AppSettings, AppSettings> commit)
+        Func<AppSettings, AppSettings> commit,
+        bool canStartWithWindows = true)
     {
         this.baseline = baseline ?? throw new ArgumentNullException(nameof(baseline));
         this.preview = preview ?? (_ => { });
         this.changeOverlayPositionMode = changeOverlayPositionMode ?? (_ => { });
         this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
+        this.canEnableStartWithWindows = canStartWithWindows;
         this.editSession = new SettingsEditSession(baseline);
         this.Groups =
         [
@@ -42,6 +45,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     public IReadOnlyList<SettingsGroup> Groups { get; }
 
     public AppSettings Working => this.editSession.Working;
+
+    public bool CanStartWithWindows => this.canEnableStartWithWindows || this.StartWithWindows;
 
     public bool IsClosed { get; private set; }
 
@@ -70,7 +75,15 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     public bool StartWithWindows
     {
         get => this.Working.StartWithWindows;
-        set => this.UpdateWorking(this.Working with { StartWithWindows = value }, previewVisual: false);
+        set
+        {
+            if (value && !this.canEnableStartWithWindows && !this.Working.StartWithWindows)
+            {
+                return;
+            }
+
+            this.UpdateWorking(this.Working with { StartWithWindows = value }, previewVisual: false);
+        }
     }
 
     public bool ShowOnlyWhenChatGptRunning

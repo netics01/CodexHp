@@ -66,17 +66,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $version = $env:RELEASE_TAG.TrimStart('v')
           $notes = @'
           > [!WARNING]
           > This release is not code-signed. Windows SmartScreen or Smart App Control may warn about or block these files. Download them only from this GitHub Release and verify the SHA-256 checksums.
 
-          CodexHp 0.2.0 introduces installer-first distribution for Windows 11.
+          CodexHp {version} for Windows 11.
 
-          - `CodexHp-Setup-0.2.0-x64.exe` is the recommended per-user installer.
-          - `CodexHp-Portable-0.2.0-x64.exe` is the secondary portable build.
+          - `CodexHp-Setup-{version}-x64.exe` is the recommended per-user installer.
+          - `CodexHp-Portable-{version}-x64.exe` is the secondary portable build.
           - `SHA256SUMS.txt` contains the SHA-256 digest for both executables.
           - This release is not submitted to WinGet.
-          '@
+          '@.Replace('{version}', $version)
           $notesPath = Join-Path $env:RUNNER_TEMP 'codexhp-release-notes.md'
           $notes | Set-Content -LiteralPath $notesPath -Encoding utf8NoBOM
           $assets = @(Get-ChildItem ./out/release -File | ForEach-Object FullName)

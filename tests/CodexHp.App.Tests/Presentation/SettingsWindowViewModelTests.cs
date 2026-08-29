@@ -7,14 +7,14 @@ namespace CodexHp.App.Tests.Presentation;
 public sealed class SettingsWindowViewModelTests
 {
     [Fact]
-    public void Groups_are_ordered_general_color_appearance_and_position()
+    public void Groups_are_ordered_general_color_appearance_position_and_about()
     {
         var viewModel = CreateViewModel();
 
         Assert.Equal(
-            [SettingsGroupKind.General, SettingsGroupKind.Color, SettingsGroupKind.Appearance, SettingsGroupKind.OverlayPosition],
+            [SettingsGroupKind.General, SettingsGroupKind.Color, SettingsGroupKind.Appearance, SettingsGroupKind.OverlayPosition, SettingsGroupKind.About],
             viewModel.Groups.Select(group => group.Kind));
-        Assert.Equal(["General", "Colors", "Appearance", "Overlay Position"], viewModel.Groups.Select(group => group.Title));
+        Assert.Equal(["General", "Colors", "Appearance", "Overlay Position", "About"], viewModel.Groups.Select(group => group.Title));
     }
 
     [Fact]

@@ -15,6 +15,38 @@ namespace CodexHp.App.Tests.Presentation;
 public sealed class SettingsWindowTests
 {
     [Fact]
+    public void About_page_is_last_and_displays_the_running_binary_version() =>
+        StaTest.Run(() =>
+    {
+        var viewModel = new SettingsWindowViewModel(
+            AppSettings.Default,
+            _ => { },
+            _ => { },
+            settings => settings);
+        Assert.Equal("About", viewModel.Groups[^1].Title);
+        viewModel.SelectedGroup = viewModel.Groups[^1];
+        var window = new SettingsWindow(viewModel);
+        try
+        {
+            window.Show();
+            PumpDispatcher();
+
+            var version = Assert.IsType<TextBlock>(window.FindName("AboutVersionText"));
+            Assert.True(version.IsVisible);
+            Assert.StartsWith("Version 0.2.1", version.Text, StringComparison.Ordinal);
+            Assert.Same(
+                window.TryFindResource("TextFillColorSecondaryBrush"),
+                version.Foreground);
+            HoldForVisualProbe();
+        }
+        finally
+        {
+            window.Close();
+            PumpDispatcher();
+        }
+    });
+
+    [Fact]
     public void Colors_page_labels_explain_the_UI_concept_and_its_actual_meaning() =>
         StaTest.Run(() =>
     {

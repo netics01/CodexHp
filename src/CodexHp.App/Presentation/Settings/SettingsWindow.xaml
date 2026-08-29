@@ -353,6 +353,29 @@
                                Text="Drag the usage overlay to the desired location." />
                 </Border>
             </Grid>
+
+            <Grid x:Name="AboutPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="About" />
+                </Border>
+                <Border Grid.Row="1" Style="{StaticResource SectionBodyStyle}">
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                TextBlock.TextAlignment="Center">
+                        <TextBlock FontSize="22"
+                                   FontWeight="SemiBold"
+                                   Text="CodexHp" />
+                        <TextBlock x:Name="AboutVersionText"
+                                   Margin="0,8,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="{Binding ApplicationVersionText}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Grid>
 
         <StackPanel x:Name="ActionButtons"

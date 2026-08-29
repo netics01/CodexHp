@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
@@ -34,6 +35,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
             new SettingsGroup(SettingsGroupKind.Color, "Colors"),
             new SettingsGroup(SettingsGroupKind.Appearance, "Appearance"),
             new SettingsGroup(SettingsGroupKind.OverlayPosition, "Overlay Position"),
+            new SettingsGroup(SettingsGroupKind.About, "About"),
         ];
         this.selectedGroup = this.Groups[0];
     }
@@ -43,6 +45,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     public event Action<SettingsCloseRequest>? CloseRequested;
 
     public IReadOnlyList<SettingsGroup> Groups { get; }
+
+    public string ApplicationVersionText { get; } = $"Version {ResolveApplicationVersion()}";
 
     public AppSettings Working => this.editSession.Working;
 
@@ -262,6 +266,18 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         {
             throw new InvalidOperationException("The settings edit session is already closed.");
         }
+    }
+
+    private static string ResolveApplicationVersion()
+    {
+        var assembly = typeof(SettingsWindowViewModel).Assembly;
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+
+        return !string.IsNullOrWhiteSpace(informationalVersion)
+            ? informationalVersion
+            : assembly.GetName().Version?.ToString(3) ?? "Unknown";
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>

@@ -49,6 +49,7 @@ public partial class SettingsWindow : System.Windows.Window
         this.ColorPanel.Visibility = group == SettingsGroupKind.Color ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         this.AppearancePanel.Visibility = group == SettingsGroupKind.Appearance ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         this.OverlayPositionPanel.Visibility = group == SettingsGroupKind.OverlayPosition ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+        this.AboutPanel.Visibility = group == SettingsGroupKind.About ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
     }
 
     private void OnPickManaColor(object sender, System.Windows.RoutedEventArgs eventArgs) =>

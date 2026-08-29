@@ -24,6 +24,19 @@ public sealed class ReleaseConfigurationTests
     }
 
     [Fact]
+    public void Release_notes_derive_versioned_asset_names_from_the_requested_tag()
+    {
+        var workflow = ReadRequiredRepositoryFile(".github", "workflows", "release.yml");
+
+        Assert.Contains("$version = $env:RELEASE_TAG.TrimStart('v')", workflow, StringComparison.Ordinal);
+        Assert.Contains("CodexHp-Setup-{version}-x64.exe", workflow, StringComparison.Ordinal);
+        Assert.Contains("CodexHp-Portable-{version}-x64.exe", workflow, StringComparison.Ordinal);
+        Assert.Contains(".Replace('{version}', $version)", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("CodexHp-Setup-0.2.0-x64.exe", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("CodexHp-Portable-0.2.0-x64.exe", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Release_staging_requires_signatures_by_default_with_an_explicit_unsigned_override()
     {
         var staging = ReadRequiredRepositoryFile("scripts", "Stage-Release.ps1");

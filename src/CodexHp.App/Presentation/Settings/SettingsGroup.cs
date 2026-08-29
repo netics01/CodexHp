@@ -6,6 +6,7 @@ public enum SettingsGroupKind
     Color,
     Appearance,
     OverlayPosition,
+    About,
 }
 
 public sealed record SettingsGroup(SettingsGroupKind Kind, string Title);

@@ -32,11 +32,20 @@ public sealed class SettingsWindowTests
             PumpDispatcher();
 
             var version = Assert.IsType<TextBlock>(window.FindName("AboutVersionText"));
+            var commit = Assert.IsType<TextBlock>(window.FindName("AboutCommitText"));
             Assert.True(version.IsVisible);
-            Assert.StartsWith("Version 0.2.1", version.Text, StringComparison.Ordinal);
+            Assert.True(commit.IsVisible);
+            Assert.Equal("Version 0.2.1", version.Text);
+            Assert.Matches("^Commit [0-9a-f]{40}$", commit.Text);
+            var buildDetails = Assert.IsType<StackPanel>(LogicalTreeHelper.GetParent(version));
+            Assert.Same(buildDetails, LogicalTreeHelper.GetParent(commit));
+            Assert.Equal(Orientation.Vertical, buildDetails.Orientation);
             Assert.Same(
                 window.TryFindResource("TextFillColorSecondaryBrush"),
                 version.Foreground);
+            Assert.Same(
+                window.TryFindResource("TextFillColorSecondaryBrush"),
+                commit.Foreground);
             HoldForVisualProbe();
         }
         finally

@@ -373,6 +373,10 @@
                                    Margin="0,8,0,0"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    Text="{Binding ApplicationVersionText}" />
+                        <TextBlock x:Name="AboutCommitText"
+                                   Margin="0,4,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="{Binding ApplicationCommitText}" />
                     </StackPanel>
                 </Border>
             </Grid>

@@ -5,35 +5,57 @@ namespace CodexHp.App.Tests.Application;
 public sealed class ReleaseConfigurationTests
 {
     [Fact]
-    public void Release_workflow_requires_explicit_manual_approval_for_unsigned_publication()
+    public void Local_release_is_the_only_official_binary_source_and_enforces_publication_safeguards()
     {
-        var workflow = ReadRequiredRepositoryFile(".github", "workflows", "release.yml");
-        var buildInstaller = ReadRequiredRepositoryFile("scripts", "Build-Installer.ps1");
+        var repositoryRoot = FindCodexHpRoot();
+        var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
+        var actionsReleasePath = Path.Combine(repositoryRoot, ".github", "workflows", "release.yml");
 
-        Assert.DoesNotContain("\n  push:", workflow, StringComparison.Ordinal);
-        Assert.Contains("allow_unsigned:", workflow, StringComparison.Ordinal);
-        Assert.Contains("type: boolean", workflow, StringComparison.Ordinal);
-        Assert.Contains("if ($env:ALLOW_UNSIGNED -ne 'true')", workflow, StringComparison.Ordinal);
-        Assert.Contains("Build-Installer.ps1 -UseExistingVerifiedPublish", workflow, StringComparison.Ordinal);
-        Assert.Contains("Stage-Release.ps1 -AllowUnsignedRelease", workflow, StringComparison.Ordinal);
-        Assert.Contains("This release is not code-signed", workflow, StringComparison.Ordinal);
-        Assert.Contains("gh release create", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("WINDOWS_SIGNING_CERTIFICATE_BASE64", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("signtool.exe", workflow, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("[switch]$UseExistingVerifiedPublish", buildInstaller, StringComparison.Ordinal);
+        Assert.False(File.Exists(actionsReleasePath));
+        Assert.Contains("[switch]$AllowUnsignedRelease", localRelease, StringComparison.Ordinal);
+        Assert.Contains("git status --porcelain=v1 --untracked-files=all", localRelease, StringComparison.Ordinal);
+        Assert.Contains("refs/remotes/origin/main", localRelease, StringComparison.Ordinal);
+        Assert.Contains("Build-Installer.ps1", localRelease, StringComparison.Ordinal);
+        Assert.Contains("Stage-Release.ps1", localRelease, StringComparison.Ordinal);
+        Assert.Contains("gh release create", localRelease, StringComparison.Ordinal);
+        Assert.Contains("gh release download", localRelease, StringComparison.Ordinal);
+        Assert.Contains("Get-FileHash", localRelease, StringComparison.Ordinal);
+        Assert.Contains("ProductVersion", localRelease, StringComparison.Ordinal);
+        Assert.Contains("CodexHp-Setup-$version-x64.exe", localRelease, StringComparison.Ordinal);
+        Assert.Contains("CodexHp-Portable-$version-x64.exe", localRelease, StringComparison.Ordinal);
+        Assert.Contains("SHA256SUMS.txt", localRelease, StringComparison.Ordinal);
+        Assert.Contains("/VERYSILENT", localRelease, StringComparison.Ordinal);
+        Assert.DoesNotContain("WINDOWS_SIGNING_CERTIFICATE_BASE64", localRelease, StringComparison.Ordinal);
+        Assert.DoesNotContain("signtool.exe", localRelease, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void Release_notes_derive_versioned_asset_names_from_the_requested_tag()
+    public void Local_release_pins_the_build_toolchain_and_derives_assets_from_the_project_version()
     {
-        var workflow = ReadRequiredRepositoryFile(".github", "workflows", "release.yml");
+        var sdk = ReadRequiredRepositoryFile("global.json");
+        var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
 
-        Assert.Contains("$version = $env:RELEASE_TAG.TrimStart('v')", workflow, StringComparison.Ordinal);
-        Assert.Contains("CodexHp-Setup-{version}-x64.exe", workflow, StringComparison.Ordinal);
-        Assert.Contains("CodexHp-Portable-{version}-x64.exe", workflow, StringComparison.Ordinal);
-        Assert.Contains(".Replace('{version}', $version)", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("CodexHp-Setup-0.2.0-x64.exe", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("CodexHp-Portable-0.2.0-x64.exe", workflow, StringComparison.Ordinal);
+        Assert.Contains("\"version\": \"10.0.203\"", sdk, StringComparison.Ordinal);
+        Assert.Contains("$requiredInnoSetupVersion = '6.7.3'", localRelease, StringComparison.Ordinal);
+        Assert.Contains("$tag = \"v$version\"", localRelease, StringComparison.Ordinal);
+        Assert.Contains("CodexHp-Setup-{version}-x64.exe", localRelease, StringComparison.Ordinal);
+        Assert.Contains("CodexHp-Portable-{version}-x64.exe", localRelease, StringComparison.Ordinal);
+        Assert.Contains(".Replace('{version}', $version)", localRelease, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Local_release_marks_process_shutdown_before_installation_so_failures_restore_the_installed_build()
+    {
+        var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
+
+        Assert.Contains(
+            "$applicationProcessesStopped = $true\r\n    Stop-CodexHpProcesses\r\n    $installerProcess",
+            localRelease,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "if ($applicationProcessesStopped) {\r\n        Restore-InstalledApplicationAfterFailure",
+            localRelease,
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -55,7 +77,7 @@ public sealed class ReleaseConfigurationTests
     public void WinGet_generation_uses_a_signed_inno_user_installer_and_paired_locales()
     {
         var generator = ReadRequiredRepositoryFile("scripts", "New-WinGetManifest.ps1");
-        var workflow = ReadRequiredRepositoryFile(".github", "workflows", "release.yml");
+        var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
 
         Assert.Contains("Get-AuthenticodeSignature", generator, StringComparison.Ordinal);
         Assert.Contains("[switch]$AllowUnsignedDevelopmentBuild", generator, StringComparison.Ordinal);
@@ -67,8 +89,8 @@ public sealed class ReleaseConfigurationTests
         Assert.Contains("{4B302CDD-065E-4C2F-A0CD-DC430E4B03A8}_is1", generator, StringComparison.Ordinal);
         Assert.Contains("PackageLocale: en-US", generator, StringComparison.Ordinal);
         Assert.Contains("PackageLocale: ko-KR", generator, StringComparison.Ordinal);
-        Assert.DoesNotContain("New-WinGetManifest.ps1", workflow, StringComparison.Ordinal);
-        Assert.DoesNotContain("winget validate", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("New-WinGetManifest.ps1", localRelease, StringComparison.Ordinal);
+        Assert.DoesNotContain("winget validate", localRelease, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -90,6 +112,20 @@ public sealed class ReleaseConfigurationTests
 
         Assert.Contains("scripts/Verify-Core.ps1", workflow, StringComparison.Ordinal);
         Assert.Contains("windows-latest", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("gh release create", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("contents: write", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Readme_pair_documents_the_single_local_release_command()
+    {
+        var english = ReadRequiredRepositoryFile("README.md");
+        var korean = ReadRequiredRepositoryFile("README.ko.md");
+
+        Assert.Contains("Publish-LocalRelease.ps1 -AllowUnsignedRelease", english, StringComparison.Ordinal);
+        Assert.Contains("official release assets are built only by this local command", english, StringComparison.Ordinal);
+        Assert.Contains("Publish-LocalRelease.ps1 -AllowUnsignedRelease", korean, StringComparison.Ordinal);
+        Assert.Contains("공식 릴리스 자산은 이 로컬 명령으로만 빌드", korean, StringComparison.Ordinal);
     }
 
     private static string ReadRequiredRepositoryFile(params string[] segments)

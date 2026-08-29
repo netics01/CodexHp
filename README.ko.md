@@ -65,7 +65,13 @@ pwsh -NoProfile -File .\scripts\Build-Installer.ps1
 pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
 ```
 
-버전 0.3.0 GitHub 릴리스 워크플로는 수동으로만 실행하며 명시적인 `allow_unsigned` 확인을 요구합니다. 미서명 경고와 함께 설치 프로그램, portable 실행 파일, 체크섬을 공개합니다. 향후 서명된 릴리스를 위한 WinGet manifest 생성 기능은 유지하지만 버전 0.3.0은 WinGet에 제출하지 않습니다.
+관리자용 공식 릴리스 자산은 이 로컬 명령으로만 빌드합니다. GitHub Actions는 독립적인 CI 검증만 수행하며 별도의 바이너리를 만들지 않습니다.
+
+```powershell
+pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
+```
+
+이 명령은 `origin/main`과 동기화된 깨끗한 `main` 체크아웃, 고정된 빌드 도구, 미서명 릴리스에 대한 명시적 확인을 요구합니다. 전체 빌드를 검증하고 설치 프로그램·portable 실행 파일·체크섬 파일만 생성해 공개한 다음, 다시 내려받아 SHA-256을 검증하고 로컬 설치본을 갱신해 실행 경로와 버전을 확인합니다. 기존 GitHub Release의 자산은 교체하지 않습니다. 향후 서명된 릴리스를 위한 WinGet manifest 생성 기능은 유지하지만 버전 0.3.0은 WinGet에 제출하지 않습니다.
 
 ## 라이선스
 

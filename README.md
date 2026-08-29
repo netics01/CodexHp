@@ -65,7 +65,13 @@ The installer is written to `out\installer`. To exercise a real first install, G
 pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
 ```
 
-The version 0.3.0 GitHub release workflow is manual-only and requires an explicit `allow_unsigned` acknowledgement. It publishes the installer, portable executable, and checksums with a prominent unsigned warning. WinGet manifest generation remains available as preparation for a future signed release, but version 0.3.0 is not submitted to WinGet.
+For maintainers, official release assets are built only by this local command; GitHub Actions remains an independent CI check and does not create a second set of binaries:
+
+```powershell
+pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
+```
+
+The command requires a clean `main` checkout synchronized with `origin/main`, pinned build tools, and an explicit unsigned-release acknowledgement. It verifies the complete build, creates exactly the installer, portable executable, and checksum file, publishes them, downloads them again for SHA-256 verification, updates the local installed copy, and verifies its path and version. It refuses to replace assets in an existing GitHub Release. WinGet manifest generation remains available as preparation for a future signed release, but version 0.3.0 is not submitted to WinGet.
 
 ## License
 

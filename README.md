@@ -66,7 +66,7 @@ Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
 - Windows 11 build 22000 or later (x64)
 - The ChatGPT desktop app installed, signed in, and able to use Codex
 
-CodexHp is built for the Codex experience in the ChatGPT desktop app. It does not support other operating systems, OpenCode, or ordinary ChatGPT conversations.
+CodexHp is built for the Codex experience in the ChatGPT desktop app. It does not support other operating systems or ordinary ChatGPT conversations.
 
 ## Why the name CodexHp?
 

@@ -66,7 +66,7 @@ Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
 - Windows 11 빌드 22000 이상(x64)
 - 설치 및 로그인되어 있고 Codex를 사용할 수 있는 ChatGPT 데스크톱 앱
 
-CodexHp는 ChatGPT 데스크톱 앱의 Codex 환경을 대상으로 합니다. 다른 운영 체제, OpenCode, 일반적인 ChatGPT 대화는 지원하지 않습니다.
+CodexHp는 ChatGPT 데스크톱 앱의 Codex 환경을 대상으로 합니다. 다른 운영 체제나 일반적인 ChatGPT 대화는 지원하지 않습니다.
 
 ## 왜 CodexHp라는 이름인가요?
 

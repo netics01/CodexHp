@@ -1,0 +1,8 @@
+<Application x:Class="CodexHp.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown"
+             ThemeMode="System">
+    <Application.Resources>
+    </Application.Resources>
+</Application>

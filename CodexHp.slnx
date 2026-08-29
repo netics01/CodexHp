@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/CodexHp.App/CodexHp.App.csproj" />
+  <Project Path="src/CodexHp.Core/CodexHp.Core.csproj" />
+  <Project Path="tests/CodexHp.App.Tests/CodexHp.App.Tests.csproj" />
+  <Project Path="tests/CodexHp.Core.Tests/CodexHp.Core.Tests.csproj" />
+</Solution>

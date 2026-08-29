@@ -1,0 +1,22 @@
+# Build, publish, and local visual-verification artifacts
+/out/
+**/bin/
+**/obj/
+
+# Local user and IDE state
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+# OS noise and local logs
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log
+
+# Local secrets
+.env
+.env.*
+!.env.example

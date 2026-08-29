@@ -1,0 +1,19 @@
+# Line endings policy (Windows-first)
+* text=auto eol=crlf
+
+# Scripts that are commonly sensitive to CRLF
+*.sh text eol=lf
+
+# Common binaries
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.7z binary
+*.gz binary
+*.tar binary
+*.exe binary
+*.dll binary

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
+    <AssemblyName>CodexHp</AssemblyName>
+    <RootNamespace>CodexHp.App</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TargetPlatformMinVersion>10.0.22000.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.22000.0</SupportedOSPlatformVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\CodexHp.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <SatelliteResourceLanguages>ko</SatelliteResourceLanguages>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CodexHp.Core\CodexHp.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CodexHp.App.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets\CodexHp.ico" LogicalName="CodexHp.App.Assets.CodexHp.ico" />
+  </ItemGroup>
+</Project>

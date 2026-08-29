@@ -1,0 +1,380 @@
+<Window x:Class="CodexHp.App.Presentation.Settings.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="CodexHp Settings"
+        Width="650"
+        Height="502"
+        MinWidth="650"
+        MinHeight="502"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        ThemeMode="System"
+        Background="{DynamicResource ApplicationBackgroundBrush}"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        Closing="OnClosing"
+        PreviewKeyDown="OnPreviewKeyDown">
+    <Window.Resources>
+        <SolidColorBrush x:Key="SettingsSelectedBrush"
+                         Color="{DynamicResource TextFillColorPrimary}"
+                         Opacity="0.44" />
+
+        <Style x:Key="NavigationItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="ItemBackground"
+                                Background="{TemplateBinding Background}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ItemBackground"
+                                        Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBackground"
+                                        Property="Background"
+                                        Value="{DynamicResource SettingsSelectedBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="Border">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="Background" Value="{DynamicResource ControlSolidFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="0.5,0.5,0.5,0" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="SectionBodyStyle" TargetType="Border">
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="Background" Value="{DynamicResource ApplicationBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="0.5" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <Style x:Key="CompactButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="10,2" />
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="0.5" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="{DynamicResource ControlFillColorTertiaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="{DynamicResource FocusStrokeColorOuterBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorDisabledBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactTextBoxStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="4,1" />
+            <Setter Property="Background" Value="{DynamicResource ControlFillColorDefaultBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="CompactCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+    </Window.Resources>
+
+    <Grid x:Name="SettingsRoot" Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="130" />
+            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <ListBox x:Name="GroupList"
+                 Grid.Row="0"
+                 Grid.Column="0"
+                 Width="130"
+                 ItemsSource="{Binding Groups}"
+                 SelectedItem="{Binding SelectedGroup, Mode=TwoWay}"
+                 DisplayMemberPath="Title"
+                 FontSize="13"
+                 Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                 Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                 BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}"
+                 BorderThickness="0.5"
+                 ItemContainerStyle="{StaticResource NavigationItemStyle}"
+                 SelectionChanged="OnGroupSelectionChanged"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+
+        <Grid Grid.Row="0" Grid.Column="2">
+            <Grid x:Name="GeneralPanel">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border x:Name="GeneralHeader" Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock x:Name="GeneralSectionTitle"
+                               Style="{StaticResource SectionTitleStyle}"
+                               Text="General" />
+                </Border>
+                <Border x:Name="GeneralBody"
+                        Grid.Row="1"
+                        Style="{StaticResource SectionBodyStyle}">
+                    <StackPanel>
+                        <CheckBox Style="{StaticResource CompactCheckBoxStyle}"
+                                  Content="Run CodexHp when Windows starts"
+                                  IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
+                                  Margin="0,0,0,4" />
+                        <CheckBox Style="{StaticResource CompactCheckBoxStyle}"
+                                  Content="Show the usage overlay only while the ChatGPT desktop app is running"
+                                  IsChecked="{Binding ShowOnlyWhenChatGptRunning, Mode=TwoWay}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="ColorPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Colors" />
+                </Border>
+                <Border Grid.Row="1" Style="{StaticResource SectionBodyStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid VerticalAlignment="Top">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="44" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="30" />
+                                <RowDefinition Height="30" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="ManaBar: Token Limit Gauge for 5 Hours" />
+                            <Border x:Name="ManaColorSwatch" Grid.Row="0" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
+                            <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickManaColor" />
+                            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="HpBar: Token Limit Gauge for One Week" />
+                            <Border x:Name="HpColorSwatch" Grid.Row="1" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
+                            <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickHpColor" />
+                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Refresh Gauge: Time Remaining Until Token Limit Reset" />
+                            <Border x:Name="RefreshColorSwatch" Grid.Row="2" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
+                            <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickRefreshColor" />
+                            <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="Issue Stripe: OpenAI Service Issue Detected" />
+                            <Border x:Name="IssueColorSwatch" Grid.Row="3" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
+                            <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickIssueColor" />
+                            <TextBlock Grid.Row="4" VerticalAlignment="Center" Text="Unknown Stripe: Unable to Check OpenAI Service Status" />
+                            <Border x:Name="UnknownColorSwatch" Grid.Row="4" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
+                            <Button Grid.Row="4" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickUnknownColor" />
+                            <TextBlock Grid.Row="5" VerticalAlignment="Center" Text="Token Graph Low: ≤10K Tokens per 15s" />
+                            <Border x:Name="TokenLowColorSwatch" Grid.Row="5" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
+                            <Button Grid.Row="5" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickTokenLowColor" />
+                            <TextBlock Grid.Row="6" VerticalAlignment="Center" Text="Token Graph High: ≥100K Tokens per 15s" />
+                            <Border x:Name="TokenHighColorSwatch" Grid.Row="6" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
+                            <Button Grid.Row="6" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickTokenHighColor" />
+                        </Grid>
+                        <Button x:Name="ResetColorsButton"
+                                Grid.Row="1"
+                                Width="120"
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Style="{StaticResource CompactButtonStyle}"
+                                Content="Reset to Defaults"
+                                Click="OnResetColors" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="AppearancePanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Appearance" />
+                </Border>
+                <Border Grid.Row="1" Style="{StaticResource SectionBodyStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid x:Name="AppearanceValuesGrid" VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="190" />
+                            <ColumnDefinition Width="48" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="30" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="Usage Overlay Width" />
+                        <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding OverlayWidth, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="0" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Usage Overlay Height" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding OverlayHeight, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Gauge Area Width" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding GaugePaneWidth, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="Graph Bar Width" />
+                        <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding GraphBarWidth, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="4" VerticalAlignment="Center" Text="Graph Bar Gap" />
+                        <TextBox Grid.Row="4" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding GraphBarGap, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="4" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock Grid.Row="5" VerticalAlignment="Center" Text="Service Status Stripe Width" />
+                        <TextBox Grid.Row="5" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding StatusStripeWidth, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="5" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="px" />
+                        <TextBlock x:Name="VisibleTokenHistoryText"
+                                   Grid.Row="6"
+                                   Grid.ColumnSpan="3"
+                                   Margin="0,6,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="{Binding VisibleTokenHistoryText}" />
+                        </Grid>
+                        <Button x:Name="ResetAppearanceButton"
+                                Grid.Row="1"
+                                Width="120"
+                                Margin="0,10,0,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Style="{StaticResource CompactButtonStyle}"
+                                Content="Reset to Defaults"
+                                Click="OnResetAppearance" />
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="OverlayPositionPanel" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="28" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource SectionHeaderStyle}">
+                    <TextBlock Style="{StaticResource SectionTitleStyle}" Text="Overlay Position" />
+                </Border>
+                <Border Grid.Row="1" Style="{StaticResource SectionBodyStyle}">
+                    <TextBlock HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontWeight="SemiBold"
+                               Text="Drag the usage overlay to the desired location." />
+                </Border>
+            </Grid>
+        </Grid>
+
+        <StackPanel x:Name="ActionButtons"
+                    Grid.Row="1"
+                    Grid.Column="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Margin="0,10,0,0">
+            <Button x:Name="OkButton"
+                    Width="92"
+                    Height="26"
+                    Margin="0,0,10,0"
+                    Style="{StaticResource CompactButtonStyle}"
+                    Content="OK"
+                    IsDefault="True"
+                    Click="OnConfirm" />
+            <Button x:Name="CancelButton"
+                    Width="92"
+                    Height="26"
+                    Style="{StaticResource CompactButtonStyle}"
+                    Content="Cancel"
+                    IsCancel="True"
+                    Click="OnCancel" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -142,8 +142,12 @@ public sealed class ReleaseConfigurationTests
         };
 
         Assert.Contains("right on the Windows 11 taskbar", english, StringComparison.Ordinal);
+        Assert.Contains("## On the taskbar—or anywhere you want", english, StringComparison.Ordinal);
+        Assert.Contains("you may wonder how you ever used Codex without it", english, StringComparison.Ordinal);
         Assert.Contains("## Why the name CodexHp?", english, StringComparison.Ordinal);
         Assert.Contains("Windows 11 작업 표시줄에서 한눈에", korean, StringComparison.Ordinal);
+        Assert.Contains("## 작업 표시줄에도, 원하는 곳 어디에나", korean, StringComparison.Ordinal);
+        Assert.Contains("이 프로그램 없이 어떻게 Codex를 썼는지", korean, StringComparison.Ordinal);
         Assert.Contains("## 왜 CodexHp라는 이름인가요?", korean, StringComparison.Ordinal);
         foreach (var visualName in visualNames)
         {

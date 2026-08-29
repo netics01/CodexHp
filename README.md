@@ -25,7 +25,7 @@ CodexHp is a compact taskbar overlay for people who use Codex in the ChatGPT des
 
 The activity graph adds context to the remaining limits. Idle periods, steady work, and sudden bursts are easy to distinguish at a glance.
 
-## Taskbar-first, not taskbar-only
+## On the taskbar—or anywhere you want
 
 ![CodexHp placed directly in the Windows taskbar and at a custom desktop position](docs/assets/readme/codexhp-placement.svg)
 
@@ -34,15 +34,19 @@ The activity graph adds context to the remaining limits. Idle periods, steady wo
 | **1** | Attach CodexHp to the Windows taskbar for a native-feeling, at-a-glance display |
 | **2** | Move it anywhere on a connected display when the taskbar is not the best fit |
 
-CodexHp adapts saved placement to different monitor bounds, taskbar layouts, and DPI scales. Open **Overlay Position** in settings and drag the outlined overlay to place it.
+Open **Overlay Position** in settings and drag the outlined overlay to place it.
 
-## Designed to run quietly all day
+## Fits your Windows setup
+
+CodexHp keeps saved placement usable across monitor bounds, taskbar layouts, and DPI scales, then gives you control over how and when it appears.
 
 - Starts with Windows by default when installed, and preserves your choice during upgrades.
 - Can stay visible all the time or appear only while ChatGPT is running.
 - Hides automatically when a full-screen app is active on the same monitor.
 - Opens settings when you double-click the overlay or click its notification-area icon.
 - Lets you customize gauge colors, size, graph density, placement, and the service-status indicator.
+
+> Once CodexHp becomes part of your Windows setup, you may wonder how you ever used Codex without it.
 
 ## Install
 

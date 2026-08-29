@@ -72,14 +72,14 @@ public sealed class ReleaseConfigurationTests
     }
 
     [Fact]
-    public void Readme_pair_discloses_unsigned_0_2_0_and_no_winget_submission()
+    public void Readme_pair_discloses_unsigned_0_2_1_and_no_winget_submission()
     {
         var english = ReadRequiredRepositoryFile("README.md");
         var korean = ReadRequiredRepositoryFile("README.ko.md");
 
-        Assert.Contains("Version 0.2.0 is published without Authenticode code signing", english, StringComparison.Ordinal);
+        Assert.Contains("Version 0.2.1 is published without Authenticode code signing", english, StringComparison.Ordinal);
         Assert.Contains("This release is not submitted to WinGet", english, StringComparison.Ordinal);
-        Assert.Contains("버전 0.2.0은 Authenticode 코드 서명 없이 공개", korean, StringComparison.Ordinal);
+        Assert.Contains("버전 0.2.1은 Authenticode 코드 서명 없이 공개", korean, StringComparison.Ordinal);
         Assert.Contains("이 릴리스는 WinGet에 제출하지 않습니다", korean, StringComparison.Ordinal);
     }
 

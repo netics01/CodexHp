@@ -12,7 +12,7 @@ CodexHp는 Codex 사용량을 확인하는 Windows 11 데스크톱 오버레이�
 
 임시 또는 휴대용 사용을 위한 `CodexHp-Portable-<version>-x64.exe`도 제공합니다. **Windows 시작 시 CodexHp 실행**을 켜기 전에 다운로드 또는 임시 디렉터리 밖의 안정적인 위치로 옮기세요. 정리되거나 이동되기 쉬운 위치에서는 CodexHp가 이 옵션을 비활성화합니다. 상시 실행 컴패니언으로 사용한다면 설치 프로그램을 권장합니다.
 
-버전 0.2.0은 Authenticode 코드 서명 없이 공개합니다. Windows SmartScreen이나 Smart App Control이 실행 파일에 관해 경고하거나 차단할 수 있습니다. 이 저장소의 GitHub Release에서만 내려받고 SHA-256 해시를 `SHA256SUMS.txt`와 비교하세요. 이 릴리스는 WinGet에 제출하지 않습니다.
+버전 0.2.1은 Authenticode 코드 서명 없이 공개합니다. Windows SmartScreen이나 Smart App Control이 실행 파일에 관해 경고하거나 차단할 수 있습니다. 이 저장소의 GitHub Release에서만 내려받고 SHA-256 해시를 `SHA256SUMS.txt`와 비교하세요. 이 릴리스는 WinGet에 제출하지 않습니다.
 
 ## 요구 사항
 
@@ -65,7 +65,7 @@ pwsh -NoProfile -File .\scripts\Build-Installer.ps1
 pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
 ```
 
-버전 0.2.0 GitHub 릴리스 워크플로는 수동으로만 실행하며 명시적인 `allow_unsigned` 확인을 요구합니다. 미서명 경고와 함께 설치 프로그램, portable 실행 파일, 체크섬을 공개합니다. 향후 서명된 릴리스를 위한 WinGet manifest 생성 기능은 유지하지만 버전 0.2.0은 WinGet에 제출하지 않습니다.
+버전 0.2.1 GitHub 릴리스 워크플로는 수동으로만 실행하며 명시적인 `allow_unsigned` 확인을 요구합니다. 미서명 경고와 함께 설치 프로그램, portable 실행 파일, 체크섬을 공개합니다. 향후 서명된 릴리스를 위한 WinGet manifest 생성 기능은 유지하지만 버전 0.2.1은 WinGet에 제출하지 않습니다.
 
 ## 라이선스
 

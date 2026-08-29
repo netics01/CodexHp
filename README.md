@@ -12,7 +12,7 @@ Version 0.2.0 introduces installer-first distribution. For regular use, download
 
 `CodexHp-Portable-<version>-x64.exe` remains available for temporary or portable use. Move it out of Downloads or temporary directories before enabling **Run CodexHp when Windows starts**; CodexHp disables that option in locations likely to be cleaned or moved. The installer is the recommended choice for an always-running companion.
 
-Version 0.2.0 is published without Authenticode code signing. Windows SmartScreen or Smart App Control may warn about or block its executables. Download them only from this repository's GitHub Release and compare their SHA-256 digests with `SHA256SUMS.txt`. This release is not submitted to WinGet.
+Version 0.2.1 is published without Authenticode code signing. Windows SmartScreen or Smart App Control may warn about or block its executables. Download them only from this repository's GitHub Release and compare their SHA-256 digests with `SHA256SUMS.txt`. This release is not submitted to WinGet.
 
 ## Requirements
 
@@ -65,7 +65,7 @@ The installer is written to `out\installer`. To exercise a real first install, G
 pwsh -NoProfile -File .\tests\Windows\Validate-Installer.ps1
 ```
 
-The version 0.2.0 GitHub release workflow is manual-only and requires an explicit `allow_unsigned` acknowledgement. It publishes the installer, portable executable, and checksums with a prominent unsigned warning. WinGet manifest generation remains available as preparation for a future signed release, but version 0.2.0 is not submitted to WinGet.
+The version 0.2.1 GitHub release workflow is manual-only and requires an explicit `allow_unsigned` acknowledgement. It publishes the installer, portable executable, and checksums with a prominent unsigned warning. WinGet manifest generation remains available as preparation for a future signed release, but version 0.2.1 is not submitted to WinGet.
 
 ## License
 

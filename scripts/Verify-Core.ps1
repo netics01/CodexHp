@@ -3,7 +3,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
-$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $solutionPath = Join-Path $repositoryRoot 'CodexHp.slnx'
 $projectPath = Join-Path $repositoryRoot 'src\CodexHp.App\CodexHp.App.csproj'
 $publishRoot = Join-Path $repositoryRoot 'out'

@@ -6,6 +6,14 @@ namespace CodexHp.App.Tests.Application;
 public sealed class PublishConfigurationTests
 {
     [Fact]
+    public void Application_project_declares_release_version_0_1_0()
+    {
+        var properties = LoadApplicationProjectProperties();
+
+        Assert.Equal("0.1.0", properties["Version"]);
+    }
+
+    [Fact]
     public void Application_project_targets_windows_11_or_later()
     {
         var properties = LoadApplicationProjectProperties();
@@ -34,6 +42,19 @@ public sealed class PublishConfigurationTests
 
         Assert.Contains("$maximumPublishedExecutableBytes = 100MB", script, StringComparison.Ordinal);
         Assert.Contains("Published CodexHp.exe exceeds the 100 MiB size budget.", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Core_verification_resolves_the_repository_root_from_the_scripts_directory()
+    {
+        var codexHpRoot = FindCodexHpRoot();
+        var scriptPath = Path.Combine(codexHpRoot, "scripts", "Verify-Core.ps1");
+        var script = File.ReadAllText(scriptPath);
+
+        Assert.Contains(
+            "$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path",
+            script,
+            StringComparison.Ordinal);
     }
 
     [Fact]

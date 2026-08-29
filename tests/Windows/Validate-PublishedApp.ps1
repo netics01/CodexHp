@@ -307,8 +307,8 @@ try {
     if (($overlayStyle -band 0x00CF0000) -ne 0) {
         throw 'Taskbar-hosted usage overlay window still has caption or frame styles.'
     }
-    if (($overlayExtendedStyle -band 0x00000008) -ne 0) {
-        throw 'Taskbar-hosted usage overlay window still has WS_EX_TOPMOST.'
+    if (($overlayExtendedStyle -band 0x00000008) -eq 0) {
+        throw 'Taskbar-hosted WPF usage overlay window is missing WS_EX_TOPMOST.'
     }
     if (($overlayExtendedStyle -band 0x00040000) -ne 0) {
         throw 'Taskbar-hosted usage overlay window still has WS_EX_APPWINDOW.'

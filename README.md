@@ -8,7 +8,7 @@ CodexHp is a Windows 11 desktop overlay for monitoring Codex usage. It displays 
 
 ## Status
 
-This repository contains the application source code. It does not currently provide an installer, release process, or supported binary download.
+Version 0.1.0 is the initial public release. Download the self-contained `win-x64` build from [GitHub Releases](https://github.com/netics01/CodexHp/releases). CodexHp is distributed as a portable single executable; an installer is not currently provided.
 
 ## Requirements
 

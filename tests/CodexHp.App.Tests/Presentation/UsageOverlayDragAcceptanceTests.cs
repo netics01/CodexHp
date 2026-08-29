@@ -177,7 +177,7 @@ public sealed class UsageOverlayDragAcceptanceTests(ITestOutputHelper output)
             Assert.Equal(taskbar.WindowHandle, NativeMethods.GetParent(windowHandle));
             Assert.NotEqual(0u, style & NativeMethods.WsChild);
             Assert.Equal(0u, style & NativeMethods.WsPopup);
-            Assert.Equal(0u, extendedStyle & NativeMethods.WsExTopmost);
+            Assert.NotEqual(0u, extendedStyle & NativeMethods.WsExTopmost);
             return;
         }
 

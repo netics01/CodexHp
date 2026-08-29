@@ -12,6 +12,94 @@ namespace CodexHp.App.Tests.Presentation;
 public sealed class UsageOverlayHostingIntegrationTests
 {
     [Fact]
+    public void Sequential_WPF_hosting_operations_preserve_popup_topmost_state()
+    {
+        StaTest.Run(() =>
+        {
+            var previousDpiContext = NativeMethods.SetThreadDpiAwarenessContext(
+                NativeMethods.DpiAwarenessContextPerMonitorAwareV2);
+            Assert.NotEqual(nint.Zero, previousDpiContext);
+            try
+            {
+                var monitor = new WindowsMonitorService().GetMonitors().Single(item => item.IsPrimary);
+                var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id);
+                Assert.NotNull(taskbar);
+
+                var window = new UsageOverlayWindow();
+                try
+                {
+                    window.SetPlacement(new OverlayPlacement(
+                        monitor.Id,
+                        taskbar.Value.TaskbarBounds.Left + 2,
+                        taskbar.Value.TaskbarBounds.Bottom - 68 - 2,
+                        288,
+                        68,
+                        2,
+                        taskbar.Value.TaskbarBounds.Bottom - 68 - 2 - monitor.Bounds.Top));
+                }
+                finally
+                {
+                    window.CloseForShutdown();
+                }
+            }
+            finally
+            {
+                _ = NativeMethods.SetThreadDpiAwarenessContext(previousDpiContext);
+            }
+        });
+
+        StaTest.Run(() =>
+        {
+            var previousDpiContext = NativeMethods.SetThreadDpiAwarenessContext(
+                NativeMethods.DpiAwarenessContextPerMonitorAwareV2);
+            Assert.NotEqual(nint.Zero, previousDpiContext);
+            try
+            {
+                var monitor = new WindowsMonitorService().GetMonitors().Single(item => item.IsPrimary);
+                var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id);
+                Assert.NotNull(taskbar);
+
+                using var surface = new WpfOverlaySurface(32, 16, NoOpHook);
+                var host = new OverlayWindowHost();
+                var childBounds = new PhysicalRect(
+                    taskbar.Value.TaskbarBounds.Left + 2,
+                    taskbar.Value.TaskbarBounds.Bottom - 18,
+                    32,
+                    16);
+
+                _ = host.Apply(surface.WindowHandle, childBounds, monitor.Id);
+                surface.SetVisibility(true);
+                _ = host.DetachForDrag(surface.WindowHandle);
+                _ = surface.Present(new UsageOverlayLayout(32, 16, []));
+                var completedPopupBounds = new PhysicalRect(
+                    monitor.Bounds.Left + 600,
+                    monitor.Bounds.Top + 600,
+                    32,
+                    16);
+                _ = host.Apply(surface.WindowHandle, completedPopupBounds, monitor.Id);
+                var beforePresent = unchecked((uint)NativeMethods
+                    .GetWindowLongPointer(surface.WindowHandle, NativeMethods.GwlExStyle)
+                    .ToInt64());
+
+                _ = surface.Present(new UsageOverlayLayout(32, 16, []));
+                PumpDispatcher();
+                var afterPresent = unchecked((uint)NativeMethods
+                    .GetWindowLongPointer(surface.WindowHandle, NativeMethods.GwlExStyle)
+                    .ToInt64());
+
+                Assert.True(
+                    (beforePresent & NativeMethods.WsExTopmost) != 0
+                        && (afterPresent & NativeMethods.WsExTopmost) != 0,
+                    $"Topmost state was lost. Before=0x{beforePresent:X8}, After=0x{afterPresent:X8}");
+            }
+            finally
+            {
+                _ = NativeMethods.SetThreadDpiAwarenessContext(previousDpiContext);
+            }
+        });
+    }
+
+    [Fact]
     public void WPF_surface_visibility_uses_the_WPF_window_lifecycle() =>
         StaTest.Run(() =>
     {

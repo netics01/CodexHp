@@ -75,7 +75,7 @@ public sealed class OverlayWindowHostTests
                 Assert.NotEqual(0u, childStyle & NativeMethods.WsChild);
                 Assert.Equal(0u, childStyle & NativeMethods.WsPopup);
                 Assert.Equal(0u, childStyle & 0x00CF0000u);
-                Assert.Equal(0u, childExtendedStyle & NativeMethods.WsExTopmost);
+                Assert.NotEqual(0u, childExtendedStyle & NativeMethods.WsExTopmost);
                 Assert.Equal(0u, childExtendedStyle & 0x00040000u);
                 Assert.NotEqual(0u, childExtendedStyle & NativeMethods.WsExLayered);
 

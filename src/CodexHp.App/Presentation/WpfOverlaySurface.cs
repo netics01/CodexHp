@@ -41,6 +41,7 @@ internal sealed class WpfOverlaySurface : IDisposable
             ResizeMode = ResizeMode.NoResize,
             ShowInTaskbar = false,
             ShowActivated = false,
+            Topmost = true,
             Content = this.image,
             UseLayoutRounding = true,
             SnapsToDevicePixels = true,

@@ -38,13 +38,13 @@ CodexHp는 로그인 과정을 수행하지 않으며, 인증 토큰을 자체 �
 개발 빌드를 실행합니다.
 
 ```powershell
-pwsh -NoProfile -File .\Scripts\Agent\Run-Development.ps1
+pwsh -NoProfile -File .\Scripts\Run-Development.ps1
 ```
 
 빌드·테스트·자체 포함 단일 파일 `win-x64` 게시를 실행합니다.
 
 ```powershell
-pwsh -NoProfile -File .\Scripts\Agent\Verify-Core.ps1
+pwsh -NoProfile -File .\Scripts\Verify-Core.ps1
 ```
 
 로컬 게시 결과는 `out\win-x64\CodexHp.exe`에 생성됩니다. `out` 디렉터리는 의도적으로 추적하지 않습니다.

@@ -31,7 +31,7 @@ public sealed class TokenFileCursorCache
 
             var append = entry is not null
                 && info.Length > entry.Length
-                && info.LastWriteTimeUtc > entry.LastWriteTimeUtc;
+                && info.LastWriteTimeUtc >= entry.LastWriteTimeUtc;
             if (!append)
             {
                 entry = new CacheEntry();

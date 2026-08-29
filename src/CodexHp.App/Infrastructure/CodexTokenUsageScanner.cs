@@ -140,10 +140,31 @@ public sealed class CodexTokenUsageScanner : ICodexTokenActivitySource
                 continue;
             }
 
-            if (lastWriteUtc >= oldestInterestingWriteUtc)
+            if (lastWriteUtc >= oldestInterestingWriteUtc || IsHeldOpen(file))
             {
                 yield return file;
             }
+        }
+    }
+
+    private static bool IsHeldOpen(string file)
+    {
+        try
+        {
+            using var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.None);
+            return false;
+        }
+        catch (IOException exception) when ((exception.HResult & 0xFFFF) is 32 or 33)
+        {
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
         }
     }
 

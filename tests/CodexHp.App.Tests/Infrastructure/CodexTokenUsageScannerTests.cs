@@ -51,6 +51,22 @@ public sealed class CodexTokenUsageScannerTests : IDisposable
     }
 
     [Fact]
+    public void ReadRecentTokenBuckets_reads_active_file_when_its_last_write_time_is_stale()
+    {
+        var file = this.WriteSession(TokenCountLine("2026-05-25T15:17:55.000Z", 11));
+        File.SetLastWriteTimeUtc(file, DateTimeOffset.Parse("2026-05-25T14:00:00.000Z").UtcDateTime);
+        using var activeWriter = new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+
+        var buckets = CodexTokenUsageScanner.ReadRecentTokenBuckets(
+            this.root,
+            UnixMs("2026-05-25T15:18:00.000Z"),
+            10,
+            3);
+
+        Assert.Equal([0, 0, 11], buckets);
+    }
+
+    [Fact]
     public void ReadRecentTokenBuckets_reads_archived_sessions()
     {
         this.WriteSession(TokenCountLine("2026-05-25T15:17:55.000Z", 11));

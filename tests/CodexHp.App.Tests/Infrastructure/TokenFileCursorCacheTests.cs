@@ -44,6 +44,25 @@ public sealed class TokenFileCursorCacheTests : IDisposable
     }
 
     [Fact]
+    public void ReadLines_appends_when_length_grows_without_a_last_write_time_change()
+    {
+        var file = this.FilePath();
+        var firstLine = $"first-{Guid.NewGuid():N}";
+        var staleLastWriteTime = DateTime.UtcNow.AddHours(-1);
+        File.WriteAllText(file, firstLine + Environment.NewLine);
+        File.SetLastWriteTimeUtc(file, staleLastWriteTime);
+        var cache = new TokenFileCursorCache();
+        var first = cache.ReadLines(file);
+
+        File.AppendAllText(file, "second" + Environment.NewLine);
+        File.SetLastWriteTimeUtc(file, staleLastWriteTime);
+        var second = cache.ReadLines(file);
+
+        Assert.Equal([firstLine, "second"], second);
+        Assert.Same(first[0], second[0]);
+    }
+
+    [Fact]
     public void ReadLines_replaces_a_previous_unterminated_tail_when_it_is_completed()
     {
         var file = this.FilePath();

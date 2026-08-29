@@ -44,11 +44,13 @@ public sealed class OverlayWindowHostTests
             try
             {
                 var host = new OverlayWindowHost();
+                var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                    taskbar.Value.TaskbarBounds);
                 var requested = new PhysicalRect(
                     taskbar.Value.TaskbarBounds.Left + 2,
-                    taskbar.Value.TaskbarBounds.Bottom - 68 - 2,
+                    taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
                     288,
-                    68);
+                    overlayHeight);
                 var resolution = OverlayHostPlacementCalculator.Resolve(
                     requested,
                     monitor.Bounds,

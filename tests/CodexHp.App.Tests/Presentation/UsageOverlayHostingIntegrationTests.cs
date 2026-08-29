@@ -28,14 +28,16 @@ public sealed class UsageOverlayHostingIntegrationTests
                 var window = new UsageOverlayWindow();
                 try
                 {
+                    var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                        taskbar.Value.TaskbarBounds);
                     window.SetPlacement(new OverlayPlacement(
                         monitor.Id,
                         taskbar.Value.TaskbarBounds.Left + 2,
-                        taskbar.Value.TaskbarBounds.Bottom - 68 - 2,
+                        taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
                         288,
-                        68,
+                        overlayHeight,
                         2,
-                        taskbar.Value.TaskbarBounds.Bottom - 68 - 2 - monitor.Bounds.Top));
+                        taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2 - monitor.Bounds.Top));
                 }
                 finally
                 {
@@ -242,14 +244,16 @@ public sealed class UsageOverlayHostingIntegrationTests
             try
             {
                 var initialWindowHandle = window.WindowHandle;
+                var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                    taskbar.Value.TaskbarBounds);
                 var placement = new OverlayPlacement(
                     monitor.Id,
                     taskbar.Value.TaskbarBounds.Left + 2,
-                    taskbar.Value.TaskbarBounds.Bottom - 68 - 2,
+                    taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
                     288,
-                    68,
+                    overlayHeight,
                     2,
-                    taskbar.Value.TaskbarBounds.Bottom - 68 - 2 - monitor.Bounds.Top);
+                    taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2 - monitor.Bounds.Top);
 
                 window.SetPlacement(placement);
 
@@ -286,20 +290,22 @@ public sealed class UsageOverlayHostingIntegrationTests
             var monitor = new WindowsMonitorService().GetMonitors().Single(item => item.IsPrimary);
             var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id);
             Assert.NotNull(taskbar);
+            var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                taskbar.Value.TaskbarBounds);
             var childPlacement = new OverlayPlacement(
                 monitor.Id,
                 taskbar.Value.TaskbarBounds.Left + 2,
-                taskbar.Value.TaskbarBounds.Bottom - 68 - 2,
+                taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
                 288,
-                68,
+                overlayHeight,
                 2,
-                taskbar.Value.TaskbarBounds.Bottom - 68 - 2 - monitor.Bounds.Top);
+                taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2 - monitor.Bounds.Top);
             var popupPlacement = new OverlayPlacement(
                 monitor.Id,
                 monitor.Bounds.Left + 600,
                 monitor.Bounds.Top + 600,
                 288,
-                68,
+                overlayHeight,
                 600,
                 600);
             var visibleState = new UsageOverlayState(
@@ -312,7 +318,14 @@ public sealed class UsageOverlayHostingIntegrationTests
             var window = new UsageOverlayWindow();
             try
             {
-                window.Apply(visibleState, AppSettings.Default);
+                var settings = AppSettings.Default with
+                {
+                    Appearance = AppSettings.Default.Appearance with
+                    {
+                        OverlayHeight = overlayHeight,
+                    },
+                };
+                window.Apply(visibleState, settings);
                 window.SetPlacement(childPlacement);
                 window.Show();
                 var firstWindowHandle = window.WindowHandle;
@@ -360,20 +373,22 @@ public sealed class UsageOverlayHostingIntegrationTests
             var monitor = new WindowsMonitorService().GetMonitors().Single(item => item.IsPrimary);
             var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id);
             Assert.NotNull(taskbar);
+            var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                taskbar.Value.TaskbarBounds);
             var taskbarPlacement = new OverlayPlacement(
                 monitor.Id,
                 taskbar.Value.TaskbarBounds.Left + 2,
-                taskbar.Value.TaskbarBounds.Bottom - 68 - 2,
+                taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
                 288,
-                68,
+                overlayHeight,
                 2,
-                taskbar.Value.TaskbarBounds.Bottom - 68 - 2 - monitor.Bounds.Top);
+                taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2 - monitor.Bounds.Top);
             var popupPlacement = new OverlayPlacement(
                 monitor.Id,
                 monitor.Bounds.Left + 600,
                 monitor.Bounds.Top + 600,
                 288,
-                68,
+                overlayHeight,
                 600,
                 600);
             var issueState = new UsageOverlayState(
@@ -386,7 +401,14 @@ public sealed class UsageOverlayHostingIntegrationTests
             var window = new UsageOverlayWindow();
             try
             {
-                window.Apply(issueState, AppSettings.Default);
+                var settings = AppSettings.Default with
+                {
+                    Appearance = AppSettings.Default.Appearance with
+                    {
+                        OverlayHeight = overlayHeight,
+                    },
+                };
+                window.Apply(issueState, settings);
                 window.SetPlacement(taskbarPlacement);
                 window.Show();
                 var firstOverlayWindow = window.WindowHandle;
@@ -478,6 +500,8 @@ public sealed class UsageOverlayHostingIntegrationTests
             var monitor = new WindowsMonitorService().GetMonitors().Single(item => item.IsPrimary);
             var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id);
             Assert.NotNull(taskbar);
+            var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                taskbar.Value.TaskbarBounds);
 
             var paintCount = 0;
             var window = new UsageOverlayWindow(
@@ -489,6 +513,13 @@ public sealed class UsageOverlayHostingIntegrationTests
                 });
             try
             {
+                var settings = AppSettings.Default with
+                {
+                    Appearance = AppSettings.Default.Appearance with
+                    {
+                        OverlayHeight = overlayHeight,
+                    },
+                };
                 window.Apply(
                     new UsageOverlayState(
                         true,
@@ -497,18 +528,18 @@ public sealed class UsageOverlayHostingIntegrationTests
                         [10_000, 55_000, 100_000],
                         null,
                         null),
-                    AppSettings.Default);
+                    settings);
 
                 Assert.Equal(1, paintCount);
 
                 window.SetPlacement(new OverlayPlacement(
                     monitor.Id,
                     taskbar.Value.TaskbarBounds.Left + 2,
-                    taskbar.Value.TaskbarBounds.Bottom - 68 - 2,
+                    taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
                     288,
-                    68,
+                    overlayHeight,
                     2,
-                    taskbar.Value.TaskbarBounds.Bottom - 68 - 2 - monitor.Bounds.Top));
+                    taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2 - monitor.Bounds.Top));
 
                 Assert.Equal(2, paintCount);
             }

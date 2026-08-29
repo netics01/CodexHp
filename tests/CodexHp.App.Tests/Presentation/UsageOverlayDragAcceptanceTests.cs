@@ -13,7 +13,6 @@ namespace CodexHp.App.Tests.Presentation;
 public sealed class UsageOverlayDragAcceptanceTests(ITestOutputHelper output)
 {
     private const int OverlayWidth = 288;
-    private const int OverlayHeight = 68;
     private const uint ManaBarColorRef = 0x00FF8E3A;
 
     [Theory]
@@ -38,6 +37,8 @@ public sealed class UsageOverlayDragAcceptanceTests(ITestOutputHelper output)
             var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id);
             Assert.NotNull(taskbar);
             Assert.Equal(monitor.Bounds.Bottom, taskbar.Value.TaskbarBounds.Bottom);
+            var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                taskbar.Value.TaskbarBounds);
 
             var left = Math.Clamp(
                 monitor.Bounds.Left + 600,
@@ -45,21 +46,21 @@ public sealed class UsageOverlayDragAcceptanceTests(ITestOutputHelper output)
                 monitor.Bounds.Right - OverlayWidth);
             var childBounds = new PhysicalRect(
                 left,
-                taskbar.Value.TaskbarBounds.Bottom - OverlayHeight - 2,
+                taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
                 OverlayWidth,
-                OverlayHeight);
+                overlayHeight);
             var popupBounds = new PhysicalRect(
                 left,
-                taskbar.Value.TaskbarBounds.Top - OverlayHeight - 80,
+                taskbar.Value.TaskbarBounds.Top - overlayHeight - 80,
                 OverlayWidth,
-                OverlayHeight);
-            var nearestPopupTop = taskbar.Value.TaskbarBounds.Top - OverlayHeight;
-            var nearestChildTop = taskbar.Value.TaskbarBounds.Bottom - OverlayHeight - 2;
+                overlayHeight);
+            var nearestPopupTop = taskbar.Value.TaskbarBounds.Top - overlayHeight;
+            var nearestChildTop = taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2;
             var midpointBounds = new PhysicalRect(
                 left,
                 nearestPopupTop + ((nearestChildTop - nearestPopupTop) / 2),
                 OverlayWidth,
-                OverlayHeight);
+                overlayHeight);
             var midpointResolution = OverlayHostPlacementCalculator.Resolve(
                 midpointBounds,
                 monitor.Bounds,
@@ -67,7 +68,7 @@ public sealed class UsageOverlayDragAcceptanceTests(ITestOutputHelper output)
             Assert.Equal(OverlayHostMode.TaskbarChild, midpointResolution.Mode);
             Assert.Equal(
                 taskbar.Value.TaskbarBounds.Top
-                    + ((taskbar.Value.TaskbarBounds.Height - OverlayHeight) / 2),
+                    + ((taskbar.Value.TaskbarBounds.Height - overlayHeight) / 2),
                 midpointResolution.OverlayBounds.Top);
             var initialBounds = start == DragStart.Taskbar ? childBounds : popupBounds;
             var completedDragBounds = destination switch
@@ -110,7 +111,14 @@ public sealed class UsageOverlayDragAcceptanceTests(ITestOutputHelper output)
         var window = new UsageOverlayWindow();
         try
         {
-            window.Apply(VisibleState(), AppSettings.Default);
+            var settings = AppSettings.Default with
+            {
+                Appearance = AppSettings.Default.Appearance with
+                {
+                    OverlayHeight = initialBounds.Height,
+                },
+            };
+            window.Apply(VisibleState(), settings);
             window.SetPlacement(ToPlacement(monitor, initialBounds));
             window.Show();
             PumpDispatcher();

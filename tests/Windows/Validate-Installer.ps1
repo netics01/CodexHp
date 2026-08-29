@@ -16,6 +16,9 @@ $runKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
 $applicationKeyPath = 'HKCU:\Software\netics01\CodexHp'
 $uninstallKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{4B302CDD-065E-4C2F-A0CD-DC430E4B03A8}_is1'
 $valueName = 'CodexHp'
+$settingsDirectory = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) 'CodexHp'
+$settingsPath = Join-Path $settingsDirectory 'settings.json'
+$settingsBackupPath = Join-Path $settingsDirectory ("settings.json.installer-validation-backup-" + [Guid]::NewGuid().ToString('N'))
 
 function Assert-PathBelowOutDirectory {
     param([Parameter(Mandatory)][string]$Path)
@@ -94,8 +97,15 @@ $originalRunValueExists = $null -ne $originalRunValue
 $uninstallerPath = Join-Path $testInstallDirectoryFull 'unins000.exe'
 $installedExecutablePath = Join-Path $testInstallDirectoryFull 'CodexHp.exe'
 $installedByValidator = $false
+$settingsOriginallyExisted = Test-Path -LiteralPath $settingsPath -PathType Leaf
+$settingsTemporarilyMoved = $false
 
 try {
+    if ($settingsOriginallyExisted) {
+        Move-Item -LiteralPath $settingsPath -Destination $settingsBackupPath
+        $settingsTemporarilyMoved = $true
+    }
+
     Invoke-Setup $installerPathFull
     $installedByValidator = $true
 
@@ -195,5 +205,17 @@ finally {
     }
     elseif (Test-Path -LiteralPath $runKeyPath) {
         Remove-ItemProperty -LiteralPath $runKeyPath -Name $valueName -ErrorAction SilentlyContinue
+    }
+
+    if ($settingsTemporarilyMoved) {
+        if (Test-Path -LiteralPath $settingsPath -PathType Leaf) {
+            Remove-Item -LiteralPath $settingsPath -Force
+        }
+
+        Move-Item -LiteralPath $settingsBackupPath -Destination $settingsPath
+    }
+    elseif (-not $settingsOriginallyExisted -and
+        (Test-Path -LiteralPath $settingsPath -PathType Leaf)) {
+        Remove-Item -LiteralPath $settingsPath -Force
     }
 }

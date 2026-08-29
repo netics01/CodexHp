@@ -83,6 +83,15 @@ public sealed class InstallerConfigurationTests
         Assert.Contains("finally", validator, StringComparison.Ordinal);
         Assert.Contains("Set-ItemProperty", validator, StringComparison.Ordinal);
         Assert.Contains(".InnerText.Trim()", validator, StringComparison.Ordinal);
+        Assert.Contains("$settingsBackupPath", validator, StringComparison.Ordinal);
+        Assert.Contains(
+            "Move-Item -LiteralPath $settingsPath -Destination $settingsBackupPath",
+            validator,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Move-Item -LiteralPath $settingsBackupPath -Destination $settingsPath",
+            validator,
+            StringComparison.Ordinal);
     }
 
     private static string ReadRequiredRepositoryFile(params string[] segments)

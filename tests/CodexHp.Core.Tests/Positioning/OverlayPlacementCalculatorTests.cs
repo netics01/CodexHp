@@ -38,30 +38,15 @@ public sealed class OverlayPlacementCalculatorTests
     }
 
     [Fact]
-    public void Development_comparison_placement_is_one_physical_height_above_product_default()
+    public void Restore_does_not_expose_a_development_comparison_placement_option()
     {
-        var placement = OverlayPlacementCalculator.Restore(
-            OverlayLocationSettings.Default,
-            [Primary],
-            288,
-            68,
-            useDevelopmentComparisonPlacement: true);
+        var restore = typeof(OverlayPlacementCalculator).GetMethod(
+            nameof(OverlayPlacementCalculator.Restore));
 
-        Assert.Equal(2, placement.PhysicalLeft);
-        Assert.Equal(2012, placement.PhysicalTop);
-        Assert.Equal(2080, placement.PhysicalTop + placement.PhysicalHeight);
-
-        var hosted = OverlayHostPlacementCalculator.Resolve(
-            new PhysicalRect(
-                placement.PhysicalLeft,
-                placement.PhysicalTop,
-                placement.PhysicalWidth,
-                placement.PhysicalHeight),
-            Primary.Bounds,
-            new PhysicalRect(0, 2064, 3840, 96));
-
-        Assert.Equal(OverlayHostMode.DesktopPopup, hosted.Mode);
-        Assert.Equal(new PhysicalRect(2, 1996, 288, 68), hosted.OverlayBounds);
+        Assert.NotNull(restore);
+        Assert.DoesNotContain(
+            restore.GetParameters(),
+            parameter => parameter.ParameterType == typeof(bool));
     }
 
     [Fact]

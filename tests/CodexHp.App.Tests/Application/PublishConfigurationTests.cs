@@ -29,7 +29,7 @@ public sealed class PublishConfigurationTests
     public void Core_verification_rejects_a_published_executable_over_the_size_budget()
     {
         var codexHpRoot = FindCodexHpRoot();
-        var scriptPath = Path.Combine(codexHpRoot, "Scripts", "Verify-Core.ps1");
+        var scriptPath = Path.Combine(codexHpRoot, "scripts", "Verify-Core.ps1");
         var script = File.ReadAllText(scriptPath);
 
         Assert.Contains("$maximumPublishedExecutableBytes = 100MB", script, StringComparison.Ordinal);

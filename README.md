@@ -38,13 +38,13 @@ CodexHp does not perform sign-in, store the authentication token in its settings
 Run a development build:
 
 ```powershell
-pwsh -NoProfile -File .\Scripts\Run-Development.ps1
+pwsh -NoProfile -File .\scripts\Run-Development.ps1
 ```
 
 Build, test, and create a self-contained single-file `win-x64` publish:
 
 ```powershell
-pwsh -NoProfile -File .\Scripts\Verify-Core.ps1
+pwsh -NoProfile -File .\scripts\Verify-Core.ps1
 ```
 
 The local publish output is `out\win-x64\CodexHp.exe`. The `out` directory is intentionally untracked.

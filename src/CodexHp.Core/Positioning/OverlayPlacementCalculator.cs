@@ -11,8 +11,7 @@ public static class OverlayPlacementCalculator
         OverlayLocationSettings location,
         IReadOnlyList<MonitorGeometry> monitors,
         int physicalWidth,
-        int physicalHeight,
-        bool useDevelopmentComparisonPlacement = false)
+        int physicalHeight)
     {
         ArgumentNullException.ThrowIfNull(location);
         Validate(monitors, physicalWidth, physicalHeight);
@@ -23,7 +22,7 @@ public static class OverlayPlacementCalculator
                 candidate.Id,
                 location.MonitorId,
                 StringComparison.OrdinalIgnoreCase));
-        var useDefaultPlacement = useDevelopmentComparisonPlacement || savedMonitor is null;
+        var useDefaultPlacement = savedMonitor is null;
         var monitor = useDefaultPlacement ? GetPrimary(monitors) : savedMonitor!;
 
         var requestedLeft = useDefaultPlacement
@@ -32,7 +31,7 @@ public static class OverlayPlacementCalculator
         var requestedTop = useDefaultPlacement
             ? monitor.Bounds.Bottom
                 - DefaultBottomInset
-                - (physicalHeight * (useDevelopmentComparisonPlacement ? 2 : 1))
+                - physicalHeight
             : monitor.Bounds.Top + location.Y;
 
         var maximumLeft = Math.Max(monitor.Bounds.Left, monitor.Bounds.Right - physicalWidth);

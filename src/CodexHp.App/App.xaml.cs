@@ -21,7 +21,6 @@ public partial class App : System.Windows.Application
     private SettingsWindowController? settingsWindowController;
     private OverlayPositionController? positionController;
     private AppSettings activeSettings = AppSettings.Default;
-    private bool useDevelopmentComparisonPlacement;
     private UsageOverlayState currentUsageOverlayState = UsageOverlayStateReducer.Reduce(
         UsageProviderState.Waiting,
         TokenActivityProviderState.Waiting,
@@ -35,9 +34,6 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(System.Windows.StartupEventArgs eventArgs)
     {
         base.OnStartup(eventArgs);
-        this.useDevelopmentComparisonPlacement = eventArgs.Args.Contains(
-            "--compare-v1",
-            StringComparer.OrdinalIgnoreCase);
         this.singleInstance = SingleInstanceGuard.TryAcquire();
         if (this.singleInstance is null)
         {
@@ -88,9 +84,7 @@ public partial class App : System.Windows.Application
         this.usageOverlayWindow = new UsageOverlayWindow(
             new OverlayWindowHost(new TaskbarWindowLocator(), monitorService));
         this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activeSettings);
-        this.usageOverlayWindow.SetPlacement(this.positionController.Restore(
-            this.activeSettings,
-            this.useDevelopmentComparisonPlacement));
+        this.usageOverlayWindow.SetPlacement(this.positionController.Restore(this.activeSettings));
         this.usageOverlayWindow.OpenSettingsRequested += (_, _) => this.OpenSettings();
         this.usageOverlayWindow.OverlayPositionChanged += this.OnOverlayPositionChanged;
         this.usageOverlayWindow.Show();
@@ -174,9 +168,7 @@ public partial class App : System.Windows.Application
         }
 
         this.usageOverlayWindow.Apply(this.currentUsageOverlayState, settings);
-        this.usageOverlayWindow.SetPlacement(this.positionController.Restore(
-            settings,
-            this.useDevelopmentComparisonPlacement));
+        this.usageOverlayWindow.SetPlacement(this.positionController.Restore(settings));
     }
 
     private void OnOverlayPositionChanged(CodexHp.Core.Positioning.PhysicalRect overlayBounds)

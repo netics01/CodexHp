@@ -12,15 +12,12 @@ public sealed class OverlayPositionController
         this.monitorService = monitorService ?? throw new ArgumentNullException(nameof(monitorService));
     }
 
-    public OverlayPlacement Restore(
-        AppSettings settings,
-        bool useDevelopmentComparisonPlacement = false) =>
+    public OverlayPlacement Restore(AppSettings settings) =>
         OverlayPlacementCalculator.Restore(
             settings.Location,
             this.monitorService.GetMonitors(),
             settings.Appearance.OverlayWidth,
-            settings.Appearance.OverlayHeight,
-            useDevelopmentComparisonPlacement);
+            settings.Appearance.OverlayHeight);
 
     public OverlayLocationSettings Capture(PhysicalRect overlayBounds) =>
         OverlayPlacementCalculator.Capture(overlayBounds, this.monitorService.GetMonitors());

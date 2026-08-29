@@ -1,7 +1,5 @@
 [CmdletBinding()]
-param(
-    [switch]$ProductPlacement
-)
+param()
 
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
@@ -10,8 +8,7 @@ $projectPath = Join-Path $repositoryRoot 'src\CodexHp.App\CodexHp.App.csproj'
 
 Push-Location $repositoryRoot
 try {
-    [string[]]$applicationArguments = if ($ProductPlacement) { @() } else { @('--compare-v1') }
-    & dotnet run --project $projectPath -- @applicationArguments
+    & dotnet run --project $projectPath
     if ($LASTEXITCODE -ne 0) { throw "CodexHp development run failed with exit code $LASTEXITCODE." }
 }
 finally {

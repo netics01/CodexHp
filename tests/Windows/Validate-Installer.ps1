@@ -12,9 +12,12 @@ $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $outDirectory = [IO.Path]::GetFullPath((Join-Path $repositoryRoot 'out')).TrimEnd('\')
 $projectPath = Join-Path $repositoryRoot 'src\CodexHp.App\CodexHp.App.csproj'
 $publishedAppValidator = Join-Path $PSScriptRoot 'Validate-PublishedApp.ps1'
-$runKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-$applicationKeyPath = 'HKCU:\Software\netics01\CodexHp'
-$uninstallKeyPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{4B302CDD-065E-4C2F-A0CD-DC430E4B03A8}_is1'
+$outsidePackageInvoker = Join-Path $repositoryRoot 'scripts\Invoke-OutsidePackage.ps1'
+$hkeyUsers = [uint32]2147483651
+$userSid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+$runSubKey = "$userSid\Software\Microsoft\Windows\CurrentVersion\Run"
+$applicationSubKey = "$userSid\Software\netics01\CodexHp"
+$uninstallSubKey = "$userSid\Software\Microsoft\Windows\CurrentVersion\Uninstall\{4B302CDD-065E-4C2F-A0CD-DC430E4B03A8}_is1"
 $valueName = 'CodexHp'
 $settingsDirectory = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)) 'CodexHp'
 $settingsPath = Join-Path $settingsDirectory 'settings.json'
@@ -42,28 +45,86 @@ function Invoke-Setup {
         '/SP-',
         "/DIR=`"$testInstallDirectoryFull`""
     )
-    $process = Start-Process -FilePath $Path -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        throw "Installer exited with code $($process.ExitCode)."
+    & $outsidePackageInvoker -FilePath $Path -ArgumentList $arguments | Out-Null
+}
+
+function Get-RealRegistryString {
+    param(
+        [Parameter(Mandatory)][string]$SubKey,
+        [Parameter(Mandatory)][string]$Name
+    )
+
+    $result = Invoke-CimMethod `
+        -Namespace root/default `
+        -ClassName StdRegProv `
+        -MethodName GetStringValue `
+        -Arguments @{
+            hDefKey = $hkeyUsers
+            sSubKeyName = $SubKey
+            sValueName = $Name
+        }
+    if ($result.ReturnValue -in @(1, 2)) {
+        return $null
+    }
+    if ($result.ReturnValue -ne 0) {
+        throw "Unable to read real registry value '$SubKey\\$Name'. Return code: $($result.ReturnValue)."
+    }
+
+    return $result.sValue
+}
+
+function Set-RealRegistryString {
+    param(
+        [Parameter(Mandatory)][string]$SubKey,
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Value
+    )
+
+    $result = Invoke-CimMethod `
+        -Namespace root/default `
+        -ClassName StdRegProv `
+        -MethodName SetStringValue `
+        -Arguments @{
+            hDefKey = $hkeyUsers
+            sSubKeyName = $SubKey
+            sValueName = $Name
+            sValue = $Value
+        }
+    if ($result.ReturnValue -ne 0) {
+        throw "Unable to write real registry value '$SubKey\\$Name'. Return code: $($result.ReturnValue)."
+    }
+}
+
+function Remove-RealRegistryValue {
+    param(
+        [Parameter(Mandatory)][string]$SubKey,
+        [Parameter(Mandatory)][string]$Name
+    )
+
+    $result = Invoke-CimMethod `
+        -Namespace root/default `
+        -ClassName StdRegProv `
+        -MethodName DeleteValue `
+        -Arguments @{
+            hDefKey = $hkeyUsers
+            sSubKeyName = $SubKey
+            sValueName = $Name
+        }
+    if ($result.ReturnValue -notin @(0, 1, 2)) {
+        throw "Unable to remove real registry value '$SubKey\\$Name'. Return code: $($result.ReturnValue)."
     }
 }
 
 function Read-RunValue {
-    if (-not (Test-Path -LiteralPath $runKeyPath)) {
-        return $null
-    }
+    return Get-RealRegistryString $runSubKey $valueName
+}
 
-    $key = Get-Item -LiteralPath $runKeyPath
-    return $key.GetValue($valueName, $null)
+function Test-UninstallRegistration {
+    return $null -ne (Get-RealRegistryString $uninstallSubKey 'DisplayName')
 }
 
 function Read-InstallPath {
-    if (-not (Test-Path -LiteralPath $applicationKeyPath)) {
-        return $null
-    }
-
-    $key = Get-Item -LiteralPath $applicationKeyPath
-    return $key.GetValue('InstallPath', $null)
+    return Get-RealRegistryString $applicationSubKey 'InstallPath'
 }
 
 if (@(Get-Process -Name 'CodexHp' -ErrorAction SilentlyContinue).Count -gt 0) {
@@ -87,8 +148,7 @@ if (-not (Test-Path -LiteralPath $installerPathFull -PathType Leaf)) {
     throw "Installer was not found: $installerPathFull"
 }
 
-if ($null -ne (Read-InstallPath) -or
-    (Test-Path -LiteralPath $uninstallKeyPath)) {
+if ($null -ne (Read-InstallPath) -or (Test-UninstallRegistration)) {
     throw 'Installer validation cannot run while CodexHp is already registered as an installed application.'
 }
 
@@ -136,7 +196,7 @@ try {
 
     & $publishedAppValidator @validatorArguments | Out-Host
 
-    Remove-ItemProperty -LiteralPath $runKeyPath -Name $valueName -ErrorAction Stop
+    Remove-RealRegistryValue $runSubKey $valueName
     Invoke-Setup $installerPathFull
     if ($null -ne (Read-RunValue)) {
         throw 'Windows startup was re-enabled during upgrade after the user disabled it.'
@@ -146,20 +206,16 @@ try {
         throw "Uninstaller was not found: $uninstallerPath"
     }
 
-    $uninstallProcess = Start-Process -FilePath $uninstallerPath `
-        -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') `
-        -WindowStyle Hidden `
-        -Wait `
-        -PassThru
-    if ($uninstallProcess.ExitCode -ne 0) {
-        throw "Uninstaller exited with code $($uninstallProcess.ExitCode)."
-    }
+    & $outsidePackageInvoker `
+        -FilePath $uninstallerPath `
+        -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') |
+        Out-Null
 
     $installedByValidator = $false
     $cleanupDeadline = [DateTimeOffset]::Now.AddSeconds(10)
     while (((Test-Path -LiteralPath $installedExecutablePath) -or
             $null -ne (Read-InstallPath) -or
-            (Test-Path -LiteralPath $uninstallKeyPath)) -and
+            (Test-UninstallRegistration)) -and
         [DateTimeOffset]::Now -lt $cleanupDeadline) {
         Start-Sleep -Milliseconds 100
     }
@@ -167,8 +223,7 @@ try {
     if (Test-Path -LiteralPath $installedExecutablePath) {
         throw 'Uninstall did not remove CodexHp.exe.'
     }
-    if ($null -ne (Read-InstallPath) -or
-        (Test-Path -LiteralPath $uninstallKeyPath)) {
+    if ($null -ne (Read-InstallPath) -or (Test-UninstallRegistration)) {
         throw 'Uninstall did not remove CodexHp installer registration.'
     }
     if ($null -ne (Read-RunValue)) {
@@ -185,13 +240,14 @@ try {
 }
 finally {
     if ($installedByValidator -and (Test-Path -LiteralPath $uninstallerPath -PathType Leaf)) {
-        $cleanupProcess = Start-Process -FilePath $uninstallerPath `
-            -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') `
-            -WindowStyle Hidden `
-            -Wait `
-            -PassThru
-        if ($cleanupProcess.ExitCode -ne 0) {
-            Write-Warning "Cleanup uninstaller exited with code $($cleanupProcess.ExitCode)."
+        try {
+            & $outsidePackageInvoker `
+                -FilePath $uninstallerPath `
+                -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART') |
+                Out-Null
+        }
+        catch {
+            Write-Warning "Cleanup uninstaller failed: $($_.Exception.Message)"
         }
     }
 
@@ -200,11 +256,10 @@ finally {
     }
 
     if ($originalRunValueExists) {
-        New-Item -Path $runKeyPath -Force | Out-Null
-        Set-ItemProperty -LiteralPath $runKeyPath -Name $valueName -Value $originalRunValue -Type String
+        Set-RealRegistryString $runSubKey $valueName $originalRunValue
     }
-    elseif (Test-Path -LiteralPath $runKeyPath) {
-        Remove-ItemProperty -LiteralPath $runKeyPath -Name $valueName -ErrorAction SilentlyContinue
+    else {
+        Remove-RealRegistryValue $runSubKey $valueName
     }
 
     if ($settingsTemporarilyMoved) {

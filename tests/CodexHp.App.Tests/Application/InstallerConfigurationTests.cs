@@ -77,11 +77,15 @@ public sealed class InstallerConfigurationTests
 
         Assert.Contains("Assert-PathBelowOutDirectory", validator, StringComparison.Ordinal);
         Assert.Contains("$originalRunValue", validator, StringComparison.Ordinal);
-        Assert.Contains("Remove-ItemProperty", validator, StringComparison.Ordinal);
+        Assert.Contains("$outsidePackageInvoker", validator, StringComparison.Ordinal);
+        Assert.Contains("StdRegProv", validator, StringComparison.Ordinal);
+        Assert.Contains("& $outsidePackageInvoker -FilePath $Path", validator, StringComparison.Ordinal);
+        Assert.DoesNotContain("$process = Start-Process -FilePath $Path", validator, StringComparison.Ordinal);
         Assert.Contains("was re-enabled during upgrade", validator, StringComparison.Ordinal);
         Assert.Contains("unins000.exe", validator, StringComparison.Ordinal);
         Assert.Contains("finally", validator, StringComparison.Ordinal);
-        Assert.Contains("Set-ItemProperty", validator, StringComparison.Ordinal);
+        Assert.Contains("SetStringValue", validator, StringComparison.Ordinal);
+        Assert.Contains("DeleteValue", validator, StringComparison.Ordinal);
         Assert.Contains(".InnerText.Trim()", validator, StringComparison.Ordinal);
         Assert.Contains("$settingsBackupPath", validator, StringComparison.Ordinal);
         Assert.Contains(

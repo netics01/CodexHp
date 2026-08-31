@@ -11,6 +11,8 @@ $projectPath = Join-Path $repositoryRoot 'src\CodexHp.App\CodexHp.App.csproj'
 $verifyScript = Join-Path $repositoryRoot 'scripts\Verify-Core.ps1'
 $buildInstallerScript = Join-Path $repositoryRoot 'scripts\Build-Installer.ps1'
 $stageReleaseScript = Join-Path $repositoryRoot 'scripts\Stage-Release.ps1'
+$outsidePackageInvoker = Join-Path $repositoryRoot 'scripts\Invoke-OutsidePackage.ps1'
+$installationValidator = Join-Path $repositoryRoot 'scripts\Test-WindowsInstallation.ps1'
 $outDirectory = Join-Path $repositoryRoot 'out'
 $releaseDirectory = Join-Path $outDirectory 'release'
 $logDirectory = Join-Path $outDirectory 'release-logs'
@@ -179,11 +181,15 @@ function Start-And-VerifyInstalledApplication {
         throw 'Installed CodexHp.exe does not match the downloaded portable executable.'
     }
 
-    $startedProcess = Start-Process -FilePath $installedExecutablePath -WindowStyle Hidden -PassThru
+    & $outsidePackageInvoker -FilePath $installedExecutablePath -Detached | Out-Null
     $deadline = [DateTimeOffset]::Now.AddSeconds(15)
     do {
         Start-Sleep -Milliseconds 200
-        $runningProcess = Get-Process -Id $startedProcess.Id -ErrorAction SilentlyContinue
+        $runningProcess = Get-Process -Name 'CodexHp' -ErrorAction SilentlyContinue |
+            Where-Object {
+                [string]::Equals($_.Path, $installedExecutablePath, [StringComparison]::OrdinalIgnoreCase)
+            } |
+            Select-Object -First 1
     } while ($null -eq $runningProcess -and [DateTimeOffset]::Now -lt $deadline)
 
     if ($null -eq $runningProcess -or $runningProcess.HasExited) {
@@ -202,7 +208,7 @@ function Restore-InstalledApplicationAfterFailure {
     Stop-CodexHpProcesses
     if (Test-Path -LiteralPath $installedExecutablePath -PathType Leaf) {
         Write-Warning 'Release failed. Restarting the currently installed CodexHp build.'
-        Start-Process -FilePath $installedExecutablePath -WindowStyle Hidden | Out-Null
+        & $outsidePackageInvoker -FilePath $installedExecutablePath -Detached | Out-Null
     }
 }
 
@@ -396,15 +402,16 @@ CodexHp {version} for Windows 11.
 
     $applicationProcessesStopped = $true
     Stop-CodexHpProcesses
-    $installerProcess = Start-Process `
-        -FilePath (Join-Path $downloadDirectory $setupName) `
-        -ArgumentList @('/CURRENTUSER', '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-') `
-        -WindowStyle Hidden `
-        -Wait `
-        -PassThru
-    if ($installerProcess.ExitCode -ne 0) {
-        throw "Downloaded installer exited with code $($installerProcess.ExitCode)."
-    }
+    $downloadedInstallerPath = Join-Path $downloadDirectory $setupName
+    & $outsidePackageInvoker -FilePath $downloadedInstallerPath -ArgumentList @(
+        '/CURRENTUSER',
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        '/SP-'
+    ) | Out-Null
+
+    & $installationValidator -ExpectedVersion $version -RequireStartupEnabled | Out-Host
 
     Start-And-VerifyInstalledApplication $version $downloadedPortablePath
     Write-Host "Local release $tag completed successfully. Verification log: $logPath"

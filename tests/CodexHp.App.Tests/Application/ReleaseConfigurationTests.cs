@@ -49,7 +49,7 @@ public sealed class ReleaseConfigurationTests
         var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
 
         Assert.Contains(
-            "$applicationProcessesStopped = $true\r\n    Stop-CodexHpProcesses\r\n    $installerProcess",
+            "$applicationProcessesStopped = $true\r\n    Stop-CodexHpProcesses\r\n    $downloadedInstallerPath",
             localRelease,
             StringComparison.Ordinal);
         Assert.Contains(

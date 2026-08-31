@@ -83,6 +83,73 @@ public sealed class PublishConfigurationTests
     }
 
     [Fact]
+    public void Local_release_uses_an_interactive_scheduled_task_to_escape_packaged_host_virtualization()
+    {
+        var codexHpRoot = FindCodexHpRoot();
+        var releaseScript = File.ReadAllText(Path.Combine(
+            codexHpRoot,
+            "scripts",
+            "Publish-LocalRelease.ps1"));
+        var invokerPath = Path.Combine(codexHpRoot, "scripts", "Invoke-OutsidePackage.ps1");
+
+        Assert.True(File.Exists(invokerPath), $"Missing outside-package invoker: {invokerPath}");
+
+        var invoker = File.ReadAllText(invokerPath);
+        Assert.Contains("Schedule.Service", invoker, StringComparison.Ordinal);
+        Assert.Contains("$taskLogonInteractiveToken = 3", invoker, StringComparison.Ordinal);
+        Assert.Contains("RegisterTaskDefinition", invoker, StringComparison.Ordinal);
+        Assert.Contains("DeleteTask", invoker, StringComparison.Ordinal);
+        Assert.Contains("$successfulDetachedExitCodes = @(0, 1)", invoker, StringComparison.Ordinal);
+
+        Assert.Contains(
+            "$outsidePackageInvoker = Join-Path $repositoryRoot 'scripts\\Invoke-OutsidePackage.ps1'",
+            releaseScript,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "& $outsidePackageInvoker -FilePath $downloadedInstallerPath",
+            releaseScript,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "-FilePath (Join-Path $downloadDirectory $setupName)",
+            releaseScript,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "Start-Process -FilePath $installedExecutablePath",
+            releaseScript,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Local_release_verifies_installation_through_the_real_windows_service_view()
+    {
+        var codexHpRoot = FindCodexHpRoot();
+        var releaseScript = File.ReadAllText(Path.Combine(
+            codexHpRoot,
+            "scripts",
+            "Publish-LocalRelease.ps1"));
+        var validatorPath = Path.Combine(codexHpRoot, "scripts", "Test-WindowsInstallation.ps1");
+
+        Assert.True(File.Exists(validatorPath), $"Missing Windows installation validator: {validatorPath}");
+
+        var validator = File.ReadAllText(validatorPath);
+        Assert.Contains("StdRegProv", validator, StringComparison.Ordinal);
+        Assert.Contains("CIM_DataFile", validator, StringComparison.Ordinal);
+        Assert.Contains("Get-StartApps", validator, StringComparison.Ordinal);
+        Assert.Contains("StartupApproved", validator, StringComparison.Ordinal);
+        Assert.Contains("$missingRegistryValueReturnCodes = @(1, 2)", validator, StringComparison.Ordinal);
+        Assert.Contains("$startupEnabled = $null -eq $approval -or", validator, StringComparison.Ordinal);
+
+        Assert.Contains(
+            "$installationValidator = Join-Path $repositoryRoot 'scripts\\Test-WindowsInstallation.ps1'",
+            releaseScript,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "& $installationValidator -ExpectedVersion $version",
+            releaseScript,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Application_project_and_sources_do_not_reference_windows_forms()
     {
         var codexHpRoot = FindCodexHpRoot();

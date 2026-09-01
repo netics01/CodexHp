@@ -66,7 +66,7 @@ public sealed class TrayIconControllerTests
     }
 
     [Fact]
-    public void Context_menu_contains_options_then_exit_and_routes_each_action()
+    public void Context_menu_contains_settings_then_exit_and_routes_each_action()
     {
         var view = new FakeTrayIconView();
         var options = 0;
@@ -74,7 +74,7 @@ public sealed class TrayIconControllerTests
         using var controller = new TrayIconController(view, () => options++, () => exits++);
 
         Assert.Equal(
-            [new TrayMenuItem(TrayMenuCommand.Options, "Options"), new TrayMenuItem(TrayMenuCommand.Exit, "Exit")],
+            [new TrayMenuItem(TrayMenuCommand.Options, "Settings"), new TrayMenuItem(TrayMenuCommand.Exit, "Exit")],
             view.MenuItems);
         view.RaiseMenuCommand(TrayMenuCommand.Options);
         view.RaiseMenuCommand(TrayMenuCommand.Exit);

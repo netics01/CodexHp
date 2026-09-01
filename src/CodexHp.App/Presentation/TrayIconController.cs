@@ -61,7 +61,7 @@ public sealed class TrayIconController : IDisposable
 {
     public static IReadOnlyList<TrayMenuItem> DefaultMenuItems { get; } =
     [
-        new TrayMenuItem(TrayMenuCommand.Options, "Options"),
+        new TrayMenuItem(TrayMenuCommand.Options, "Settings"),
         new TrayMenuItem(TrayMenuCommand.Exit, "Exit"),
     ];
 

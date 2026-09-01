@@ -1,0 +1,20 @@
+# Changelog
+
+All notable user-facing changes to CodexHp are documented here.
+
+## [Unreleased]
+
+## [0.3.3] - 2026-09-02
+
+### Fixed
+
+- Preserve a chosen overlay position when the resolution changes on the same display.
+- Keep the existing overlay placement while Windows temporarily recreates the taskbar, then retry the display refresh.
+
+### Changed
+
+- Rename the tray-menu entry from `Options` to `Settings`.
+
+## Earlier releases
+
+Release notes before 0.3.3 were not maintained in this file. See the [GitHub Releases](https://github.com/netics01/CodexHp/releases) page for the published release history.

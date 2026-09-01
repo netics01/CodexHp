@@ -6,11 +6,11 @@ namespace CodexHp.App.Tests.Application;
 public sealed class PublishConfigurationTests
 {
     [Fact]
-    public void Application_project_declares_release_version_0_3_2()
+    public void Application_project_declares_release_version_0_3_3()
     {
         var properties = LoadApplicationProjectProperties();
 
-        Assert.Equal("0.3.2", properties["Version"]);
+        Assert.Equal("0.3.3", properties["Version"]);
     }
 
     [Fact]
@@ -19,7 +19,25 @@ public sealed class PublishConfigurationTests
         var codexHpRoot = FindCodexHpRoot();
         var installer = File.ReadAllText(Path.Combine(codexHpRoot, "installer", "CodexHp.iss"));
 
-        Assert.Contains("#define AppVersion \"0.3.2\"", installer, StringComparison.Ordinal);
+        Assert.Contains("#define AppVersion \"0.3.3\"", installer, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Local_release_requires_and_publishes_the_matching_changelog_section()
+    {
+        var codexHpRoot = FindCodexHpRoot();
+        var changelogPath = Path.Combine(codexHpRoot, "CHANGELOG.md");
+        var releaseScript = File.ReadAllText(Path.Combine(
+            codexHpRoot,
+            "scripts",
+            "Publish-LocalRelease.ps1"));
+
+        Assert.True(File.Exists(changelogPath), $"Missing changelog: {changelogPath}");
+        var changelog = File.ReadAllText(changelogPath);
+        Assert.Contains("## [0.3.3] - 2026-09-02", changelog, StringComparison.Ordinal);
+        Assert.Contains("$changelogPath = Join-Path $repositoryRoot 'CHANGELOG.md'", releaseScript, StringComparison.Ordinal);
+        Assert.Contains("Get-ChangelogSection", releaseScript, StringComparison.Ordinal);
+        Assert.Contains("$changelogSection", releaseScript, StringComparison.Ordinal);
     }
 
     [Fact]

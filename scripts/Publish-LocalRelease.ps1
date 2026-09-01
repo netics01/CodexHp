@@ -13,6 +13,7 @@ $buildInstallerScript = Join-Path $repositoryRoot 'scripts\Build-Installer.ps1'
 $stageReleaseScript = Join-Path $repositoryRoot 'scripts\Stage-Release.ps1'
 $outsidePackageInvoker = Join-Path $repositoryRoot 'scripts\Invoke-OutsidePackage.ps1'
 $installationValidator = Join-Path $repositoryRoot 'scripts\Test-WindowsInstallation.ps1'
+$changelogPath = Join-Path $repositoryRoot 'CHANGELOG.md'
 $outDirectory = Join-Path $repositoryRoot 'out'
 $releaseDirectory = Join-Path $outDirectory 'release'
 $logDirectory = Join-Path $outDirectory 'release-logs'
@@ -109,6 +110,45 @@ function Assert-Checksums {
             throw "SHA-256 verification failed for '$name'."
         }
     }
+}
+
+function Get-ChangelogSection {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Version
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Changelog was not found: $Path"
+    }
+
+    $lines = @(Get-Content -LiteralPath $Path)
+    $headerPattern = '^## \[' + [regex]::Escape($Version) + '\] - \d{4}-\d{2}-\d{2}\s*$'
+    $headerIndices = @(
+        for ($index = 0; $index -lt $lines.Count; $index++) {
+            if ($lines[$index] -match $headerPattern) {
+                $index
+            }
+        })
+    if ($headerIndices.Count -ne 1) {
+        throw "CHANGELOG.md must contain exactly one dated section for version $Version."
+    }
+
+    $sectionStart = $headerIndices[0] + 1
+    $sectionEnd = $lines.Count
+    for ($index = $sectionStart; $index -lt $lines.Count; $index++) {
+        if ($lines[$index] -match '^##\s+') {
+            $sectionEnd = $index
+            break
+        }
+    }
+
+    $section = ($lines[$sectionStart..($sectionEnd - 1)] -join "`n").Trim()
+    if ([string]::IsNullOrWhiteSpace($section)) {
+        throw "CHANGELOG.md section for version $Version must not be empty."
+    }
+
+    return $section
 }
 
 function Get-InnoSetupCompiler {
@@ -261,6 +301,7 @@ try {
         throw "Project Version '$version' must use numeric major.minor.patch format."
     }
     $tag = "v$version"
+    $changelogSection = Get-ChangelogSection -Path $changelogPath -Version $version
 
     $sdkConfiguration = Get-Content -LiteralPath (Join-Path $repositoryRoot 'global.json') -Raw | ConvertFrom-Json
     $requiredSdkVersion = $sdkConfiguration.sdk.version
@@ -349,11 +390,17 @@ try {
 
 CodexHp {version} for Windows 11.
 
+## Changes
+
+{changes}
+
+## Downloads
+
 - `CodexHp-Setup-{version}-x64.exe` is the recommended per-user installer.
 - `CodexHp-Portable-{version}-x64.exe` is the secondary portable build.
 - `SHA256SUMS.txt` contains the SHA-256 digest for both executables.
 - This release is not submitted to WinGet.
-'@.Replace('{version}', $version)
+'@.Replace('{version}', $version).Replace('{changes}', $changelogSection)
         $notesPath = Join-Path $outDirectory "release-notes-$tag.md"
         $notes | Set-Content -LiteralPath $notesPath -Encoding utf8NoBOM
 

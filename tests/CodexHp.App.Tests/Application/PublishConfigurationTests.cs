@@ -6,11 +6,11 @@ namespace CodexHp.App.Tests.Application;
 public sealed class PublishConfigurationTests
 {
     [Fact]
-    public void Application_project_declares_release_version_0_3_0()
+    public void Application_project_declares_release_version_0_3_1()
     {
         var properties = LoadApplicationProjectProperties();
 
-        Assert.Equal("0.3.0", properties["Version"]);
+        Assert.Equal("0.3.1", properties["Version"]);
     }
 
     [Fact]
@@ -19,7 +19,7 @@ public sealed class PublishConfigurationTests
         var codexHpRoot = FindCodexHpRoot();
         var installer = File.ReadAllText(Path.Combine(codexHpRoot, "installer", "CodexHp.iss"));
 
-        Assert.Contains("#define AppVersion \"0.3.0\"", installer, StringComparison.Ordinal);
+        Assert.Contains("#define AppVersion \"0.3.1\"", installer, StringComparison.Ordinal);
     }
 
     [Fact]

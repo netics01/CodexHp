@@ -1,7 +1,9 @@
 using System.Globalization;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using CodexHp.App.Application;
 using CodexHp.Core.Domain;
 
@@ -22,18 +24,25 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
 {
     private static readonly Uri DefaultStatusUri = new("https://status.openai.com/api/v2/status.json");
     private static readonly Uri DefaultComponentsUri = new("https://status.openai.com/api/v2/components.json");
+    private static readonly Uri DefaultStatusPageUri = new("https://status.openai.com/");
+    private static readonly Regex AffectedGroupPattern = new(
+        "<span\\b[^>]*>\\s*Affects\\s+(?<name>[^<]+?)\\s*</span>",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private readonly HttpMessageInvoker http;
     private readonly Uri statusUri;
     private readonly Uri componentsUri;
+    private readonly Uri statusPageUri;
 
     public OpenAiServiceStatusClient(
         HttpMessageInvoker http,
         Uri? statusUri = null,
-        Uri? componentsUri = null)
+        Uri? componentsUri = null,
+        Uri? statusPageUri = null)
     {
         this.http = http ?? throw new ArgumentNullException(nameof(http));
         this.statusUri = statusUri ?? DefaultStatusUri;
         this.componentsUri = componentsUri ?? DefaultComponentsUri;
+        this.statusPageUri = statusPageUri ?? DefaultStatusPageUri;
     }
 
     public async Task<OpenAiServiceStatusSnapshot> FetchAsync(CancellationToken cancellationToken = default)
@@ -46,7 +55,24 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
         }
 
         var componentsJson = await this.GetJsonAsync(this.componentsUri, cancellationToken);
-        return ParseStatusResponse(statusJson, componentsJson);
+        snapshot = ParseStatusResponse(statusJson, componentsJson);
+        if (snapshot.Health != ServiceHealthState.Issue)
+        {
+            return snapshot;
+        }
+
+        try
+        {
+            var statusPageHtml = await this.GetStatusPageHtmlAsync(cancellationToken);
+            var affectedGroups = ReadAffectedGroups(statusPageHtml);
+            return affectedGroups.Count == 0
+                ? snapshot
+                : snapshot with { AffectedComponents = affectedGroups };
+        }
+        catch (HttpRequestException)
+        {
+            return snapshot;
+        }
     }
 
     public static OpenAiServiceStatusSnapshot ParseStatusResponse(
@@ -76,6 +102,15 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, uri);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        using var response = await this.http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
+    private async Task<string> GetStatusPageHtmlAsync(CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, this.statusPageUri);
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
         using var response = await this.http.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync(cancellationToken);
@@ -154,6 +189,24 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
             }
 
             names.Add(componentName);
+        }
+
+        return names;
+    }
+
+    private static IReadOnlyList<string> ReadAffectedGroups(string statusPageHtml)
+    {
+        ArgumentNullException.ThrowIfNull(statusPageHtml);
+
+        var names = new List<string>();
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (Match match in AffectedGroupPattern.Matches(statusPageHtml))
+        {
+            var groupName = WebUtility.HtmlDecode(match.Groups["name"].Value).Trim();
+            if (!string.IsNullOrWhiteSpace(groupName) && seenNames.Add(groupName))
+            {
+                names.Add(groupName);
+            }
         }
 
         return names;

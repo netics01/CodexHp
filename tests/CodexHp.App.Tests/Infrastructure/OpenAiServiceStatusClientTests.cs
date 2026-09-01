@@ -139,6 +139,90 @@ public sealed class OpenAiServiceStatusClientTests
         Assert.All(handler.Accept, value => Assert.Contains("application/json", value));
     }
 
+    [Fact]
+    public async Task FetchAsync_prefers_the_status_pages_affected_group_label_over_an_underlying_component()
+    {
+        using var handler = new CapturingHandler(request => request.RequestUri?.AbsolutePath switch
+        {
+            "/api/v2/components.json" => JsonResponse("""
+                {
+                  "components": [
+                    { "name": "Responses", "status": "degraded_performance" }
+                  ]
+                }
+                """),
+            "/" => JsonResponse("""
+                <div>
+                  <span>Affects APIs</span>
+                </div>
+                """),
+            _ => JsonResponse("""
+                {
+                  "page": { "updated_at": "2026-05-27T05:31:12Z" },
+                  "status": {
+                    "description": "Partial System Degradation",
+                    "indicator": "minor"
+                  }
+                }
+                """),
+        });
+        var client = new OpenAiServiceStatusClient(
+            new HttpMessageInvoker(handler),
+            new Uri("https://status.openai.com/api/v2/status.json"),
+            new Uri("https://status.openai.com/api/v2/components.json"));
+
+        var snapshot = await client.FetchAsync();
+
+        Assert.Equal(["APIs"], snapshot.AffectedComponents);
+        Assert.Equal(
+            [
+                "https://status.openai.com/api/v2/status.json",
+                "https://status.openai.com/api/v2/components.json",
+                "https://status.openai.com/",
+            ],
+            handler.RequestUris);
+    }
+
+    [Fact]
+    public async Task FetchAsync_falls_back_to_underlying_components_when_the_status_page_cannot_be_read()
+    {
+        using var handler = new CapturingHandler(request => request.RequestUri?.AbsolutePath switch
+        {
+            "/api/v2/components.json" => JsonResponse("""
+                {
+                  "components": [
+                    { "name": "Responses", "status": "degraded_performance" }
+                  ]
+                }
+                """),
+            "/" => throw new HttpRequestException("Status page is unavailable."),
+            _ => JsonResponse("""
+                {
+                  "page": { "updated_at": "2026-05-27T05:31:12Z" },
+                  "status": {
+                    "description": "Partial System Degradation",
+                    "indicator": "minor"
+                  }
+                }
+                """),
+        });
+        var client = new OpenAiServiceStatusClient(
+            new HttpMessageInvoker(handler),
+            new Uri("https://status.openai.com/api/v2/status.json"),
+            new Uri("https://status.openai.com/api/v2/components.json"));
+
+        var snapshot = await client.FetchAsync();
+
+        Assert.Equal(["Responses"], snapshot.AffectedComponents);
+        Assert.Equal(
+            [
+                "https://status.openai.com/api/v2/status.json",
+                "https://status.openai.com/api/v2/components.json",
+                "https://status.openai.com/",
+            ],
+            handler.RequestUris);
+    }
+
     private static HttpResponseMessage JsonResponse(string json) => new(HttpStatusCode.OK)
     {
         Content = new StringContent(json),

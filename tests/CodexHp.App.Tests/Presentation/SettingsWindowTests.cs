@@ -89,12 +89,16 @@ public sealed class SettingsWindowTests
 
             var version = Assert.IsType<TextBlock>(window.FindName("AboutVersionText"));
             var commit = Assert.IsType<TextBlock>(window.FindName("AboutCommitText"));
+            var developer = Assert.IsType<TextBlock>(window.FindName("AboutDeveloperEmailText"));
             Assert.True(version.IsVisible);
             Assert.True(commit.IsVisible);
+            Assert.True(developer.IsVisible);
             Assert.Equal("Version 0.3.0", version.Text);
             Assert.Matches("^Commit [0-9a-f]{40}$", commit.Text);
+            Assert.Equal("Developer: netics01@gmail.com", developer.Text);
             var buildDetails = Assert.IsType<StackPanel>(LogicalTreeHelper.GetParent(version));
             Assert.Same(buildDetails, LogicalTreeHelper.GetParent(commit));
+            Assert.Same(buildDetails, LogicalTreeHelper.GetParent(developer));
             Assert.Equal(Orientation.Vertical, buildDetails.Orientation);
             Assert.Same(
                 window.TryFindResource("TextFillColorSecondaryBrush"),
@@ -102,6 +106,9 @@ public sealed class SettingsWindowTests
             Assert.Same(
                 window.TryFindResource("TextFillColorSecondaryBrush"),
                 commit.Foreground);
+            Assert.Same(
+                window.TryFindResource("TextFillColorSecondaryBrush"),
+                developer.Foreground);
             HoldForVisualProbe();
         }
         finally

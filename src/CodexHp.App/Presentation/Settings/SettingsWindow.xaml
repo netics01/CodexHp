@@ -382,6 +382,10 @@
                                    Margin="0,4,0,0"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    Text="{Binding ApplicationCommitText}" />
+                        <TextBlock x:Name="AboutDeveloperEmailText"
+                                   Margin="0,12,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="Developer: netics01@gmail.com" />
                     </StackPanel>
                 </Border>
             </Grid>

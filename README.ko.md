@@ -102,6 +102,10 @@ pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
 
 CodexHp는 OpenAI와 무관한 비공식 초기 단계 프로젝트입니다. OpenAI와 제휴·보증·지원 관계가 없으며 ChatGPT, Codex, Windows 또는 내부 연동 방식이 변경되면 일부 기능이 일시적으로 동작하지 않을 수 있습니다.
 
+## 피드백
+
+Windows에서 CodexHp가 더 유용해질 수 있는 아이디어가 있나요? 사용 사례나 기능 제안과 함께 [이슈를 등록해 주세요](https://github.com/netics01/codexhp/issues).
+
 ## 라이선스
 
 [Apache License, Version 2.0](LICENSE)로 배포됩니다.

@@ -94,7 +94,7 @@ public sealed class SettingsWindowTests
             Assert.True(version.IsVisible);
             Assert.True(commit.IsVisible);
             Assert.True(developer.IsVisible);
-            Assert.Equal("Version 0.3.1", version.Text);
+            Assert.Equal("Version 0.3.2", version.Text);
             Assert.Matches("^Commit [0-9a-f]{40}$", commit.Text);
             Assert.Equal("Developer: netics01@gmail.com", developer.Text);
             var buildDetails = Assert.IsType<StackPanel>(LogicalTreeHelper.GetParent(version));

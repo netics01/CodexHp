@@ -58,6 +58,8 @@ function Assert-VersionMatches {
         [Parameter(Mandatory)][string]$ArtifactName
     )
 
+    $ActualVersion = $ActualVersion.Trim()
+
     if (-not [string]::Equals($ActualVersion, $ExpectedVersion, [StringComparison]::OrdinalIgnoreCase) -and
         -not $ActualVersion.StartsWith($ExpectedVersion + '.', [StringComparison]::OrdinalIgnoreCase) -and
         -not $ActualVersion.StartsWith($ExpectedVersion + '+', [StringComparison]::OrdinalIgnoreCase)) {

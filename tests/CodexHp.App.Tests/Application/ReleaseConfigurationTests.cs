@@ -44,6 +44,14 @@ public sealed class ReleaseConfigurationTests
     }
 
     [Fact]
+    public void Local_release_normalizes_padded_installer_product_versions_before_validating_them()
+    {
+        var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
+
+        Assert.Contains("$ActualVersion = $ActualVersion.Trim()", localRelease, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Local_release_marks_process_shutdown_before_installation_so_failures_restore_the_installed_build()
     {
         var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");

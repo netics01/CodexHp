@@ -8,6 +8,7 @@ public sealed record ProviderState(
     ServiceHealthState ServiceHealth,
     string ServiceStatusDescription,
     IReadOnlyList<string> ServiceAffectedComponents,
+    IReadOnlyList<string> ServiceAffectedGroups,
     VisibilityState Visibility)
 {
     public static ProviderState Initial { get; } = new(
@@ -15,6 +16,7 @@ public sealed record ProviderState(
         TokenActivityProviderState.Waiting,
         ServiceHealthState.Unknown,
         string.Empty,
+        [],
         [],
         new VisibilityState(IsChatGptRunning: false, IsFullscreenOnOverlayMonitor: false));
 }

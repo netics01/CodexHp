@@ -12,7 +12,8 @@ public static class UsageOverlayStateReducer
         VisibilityState visibility,
         AppSettings settings,
         long nowUnixMs,
-        IReadOnlyList<string>? affectedServiceComponents = null)
+        IReadOnlyList<string>? affectedServiceComponents = null,
+        IReadOnlyList<string>? affectedServiceGroups = null)
     {
         ArgumentNullException.ThrowIfNull(usage);
         ArgumentNullException.ThrowIfNull(tokenActivity);
@@ -47,7 +48,10 @@ public static class UsageOverlayStateReducer
             _ => settings.Colors.ServiceUnknown,
         };
         var statusStripeTooltip = serviceHealth == ServiceHealthState.Issue
-            ? BuildServiceIssueTooltip(serviceStatusDescription, affectedServiceComponents)
+            ? BuildServiceIssueTooltip(
+                serviceStatusDescription,
+                affectedServiceComponents,
+                affectedServiceGroups)
             : null;
 
         return new UsageOverlayState(
@@ -61,7 +65,8 @@ public static class UsageOverlayStateReducer
 
     private static string BuildServiceIssueTooltip(
         string serviceStatusDescription,
-        IReadOnlyList<string>? affectedServiceComponents)
+        IReadOnlyList<string>? affectedServiceComponents,
+        IReadOnlyList<string>? affectedServiceGroups)
     {
         var issueText = string.IsNullOrWhiteSpace(serviceStatusDescription)
             ? "OpenAI service issue detected."
@@ -72,10 +77,36 @@ public static class UsageOverlayStateReducer
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray()
             ?? [];
+        var groupNames = affectedServiceGroups?
+            .Where(group => !string.IsNullOrWhiteSpace(group))
+            .Select(group => group.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+            ?? [];
 
-        return componentNames.Length == 0
-            ? issueText
-            : $"{issueText}\r\n{string.Join(", ", componentNames)}";
+        if (groupNames.Length == 1 && componentNames.Length > 0)
+        {
+            return $"{issueText}\r\n{groupNames[0]} — {string.Join(", ", componentNames)}";
+        }
+
+        if (groupNames.Length > 0 && componentNames.Length > 0)
+        {
+            return $"{issueText}\r\nAffected groups: {string.Join(", ", groupNames)}\r\nAffected components: {string.Join(", ", componentNames)}";
+        }
+
+        if (groupNames.Length == 1)
+        {
+            return $"{issueText}\r\n{groupNames[0]}";
+        }
+
+        if (groupNames.Length > 1)
+        {
+            return $"{issueText}\r\nAffected groups: {string.Join(", ", groupNames)}";
+        }
+
+        return componentNames.Length > 0
+            ? $"{issueText}\r\n{string.Join(", ", componentNames)}"
+            : $"{issueText}\r\nAffected component details unavailable";
     }
 
     private static GaugeDisplayState CreateGauge(

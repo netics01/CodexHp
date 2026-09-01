@@ -101,7 +101,7 @@ public sealed class OpenAiServiceStatusClientTests
     }
 
     [Fact]
-    public async Task FetchAsync_reads_components_only_when_global_status_is_issue()
+    public async Task FetchAsync_reads_detail_sources_when_global_status_is_issue()
     {
         using var handler = new CapturingHandler(request => JsonResponse(
             request.RequestUri?.AbsolutePath.EndsWith("/components.json", StringComparison.Ordinal) == true
@@ -134,9 +134,10 @@ public sealed class OpenAiServiceStatusClientTests
             [
                 "https://status.openai.com/api/v2/status.json",
                 "https://status.openai.com/api/v2/components.json",
+                "https://status.openai.com/",
             ],
             handler.RequestUris);
-        Assert.All(handler.Accept, value => Assert.Contains("application/json", value));
+        Assert.Equal(["application/json", "application/json", "text/html"], handler.Accept);
     }
 
     [Fact]
@@ -173,7 +174,8 @@ public sealed class OpenAiServiceStatusClientTests
 
         var snapshot = await client.FetchAsync();
 
-        Assert.Equal(["APIs"], snapshot.AffectedComponents);
+        Assert.Equal(["Responses"], snapshot.AffectedComponents);
+        Assert.Equal(["APIs"], GetAffectedGroups(snapshot));
         Assert.Equal(
             [
                 "https://status.openai.com/api/v2/status.json",
@@ -214,6 +216,7 @@ public sealed class OpenAiServiceStatusClientTests
         var snapshot = await client.FetchAsync();
 
         Assert.Equal(["Responses"], snapshot.AffectedComponents);
+        Assert.Empty(GetAffectedGroups(snapshot));
         Assert.Equal(
             [
                 "https://status.openai.com/api/v2/status.json",
@@ -222,6 +225,101 @@ public sealed class OpenAiServiceStatusClientTests
             ],
             handler.RequestUris);
     }
+
+    [Fact]
+    public async Task FetchAsync_uses_status_page_groups_when_components_endpoint_fails()
+    {
+        using var handler = new CapturingHandler(request => request.RequestUri?.AbsolutePath switch
+        {
+            "/api/v2/components.json" => throw new HttpRequestException("Components are unavailable."),
+            "/" => JsonResponse("<span>Affects APIs</span>"),
+            _ => JsonResponse("""
+                {
+                  "status": {
+                    "description": "Partial System Degradation",
+                    "indicator": "minor"
+                  }
+                }
+                """),
+        });
+        var client = new OpenAiServiceStatusClient(
+            new HttpMessageInvoker(handler),
+            new Uri("https://status.openai.com/api/v2/status.json"),
+            new Uri("https://status.openai.com/api/v2/components.json"));
+
+        var snapshot = await client.FetchAsync();
+
+        Assert.Empty(snapshot.AffectedComponents ?? []);
+        Assert.Equal(["APIs"], GetAffectedGroups(snapshot));
+    }
+
+    [Fact]
+    public async Task FetchAsync_keeps_an_issue_without_details_when_both_detail_sources_fail()
+    {
+        using var handler = new CapturingHandler(request => request.RequestUri?.AbsolutePath switch
+        {
+            "/api/v2/components.json" => throw new HttpRequestException("Components are unavailable."),
+            "/" => throw new HttpRequestException("Status page is unavailable."),
+            _ => JsonResponse("""
+                {
+                  "status": {
+                    "description": "Partial System Degradation",
+                    "indicator": "minor"
+                  }
+                }
+                """),
+        });
+        var client = new OpenAiServiceStatusClient(
+            new HttpMessageInvoker(handler),
+            new Uri("https://status.openai.com/api/v2/status.json"),
+            new Uri("https://status.openai.com/api/v2/components.json"));
+
+        var snapshot = await client.FetchAsync();
+
+        Assert.Equal(ServiceHealthState.Issue, snapshot.Health);
+        Assert.Empty(snapshot.AffectedComponents ?? []);
+        Assert.Empty(GetAffectedGroups(snapshot));
+    }
+
+    [Fact]
+    public async Task FetchAsync_keeps_multiple_groups_and_components_separate()
+    {
+        using var handler = new CapturingHandler(request => request.RequestUri?.AbsolutePath switch
+        {
+            "/api/v2/components.json" => JsonResponse("""
+                {
+                  "components": [
+                    { "name": "Responses", "status": "degraded_performance" },
+                    { "name": "Conversations", "status": "partial_outage" }
+                  ]
+                }
+                """),
+            "/" => JsonResponse("""
+                <span>Affects APIs</span>
+                <span>Affects ChatGPT</span>
+                """),
+            _ => JsonResponse("""
+                {
+                  "status": {
+                    "description": "Partial System Degradation",
+                    "indicator": "minor"
+                  }
+                }
+                """),
+        });
+        var client = new OpenAiServiceStatusClient(
+            new HttpMessageInvoker(handler),
+            new Uri("https://status.openai.com/api/v2/status.json"),
+            new Uri("https://status.openai.com/api/v2/components.json"));
+
+        var snapshot = await client.FetchAsync();
+
+        Assert.Equal(["Responses", "Conversations"], snapshot.AffectedComponents);
+        Assert.Equal(["APIs", "ChatGPT"], GetAffectedGroups(snapshot));
+    }
+
+    private static IReadOnlyList<string> GetAffectedGroups(OpenAiServiceStatusSnapshot snapshot)
+        => snapshot.AffectedGroups ?? [];
 
     private static HttpResponseMessage JsonResponse(string json) => new(HttpStatusCode.OK)
     {

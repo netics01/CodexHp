@@ -71,7 +71,9 @@ public sealed class UsageOverlayStateReducerTests
             NowUnixMs);
 
         Assert.Equal(AppSettings.Default.Colors.ServiceIssue, state.StatusStripeColor);
-        Assert.Equal("OpenAI service issue: Partial System Degradation", state.StatusStripeTooltip);
+        Assert.Equal(
+            "OpenAI service issue: Partial System Degradation\r\nAffected component details unavailable",
+            state.StatusStripeTooltip);
     }
 
     [Fact]
@@ -89,6 +91,63 @@ public sealed class UsageOverlayStateReducerTests
 
         Assert.Equal(
             "OpenAI service issue: Partial System Degradation\r\nChatGPT, Codex",
+            state.StatusStripeTooltip);
+    }
+
+    [Fact]
+    public void Reduce_combines_one_affected_group_with_its_components()
+    {
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Waiting,
+            TokenActivityProviderState.Failed,
+            ServiceHealthState.Issue,
+            "Partial System Degradation",
+            new VisibilityState(false, false),
+            AppSettings.Default,
+            NowUnixMs,
+            affectedServiceComponents: ["Responses"],
+            affectedServiceGroups: ["APIs"]);
+
+        Assert.Equal(
+            "OpenAI service issue: Partial System Degradation\r\nAPIs — Responses",
+            state.StatusStripeTooltip);
+    }
+
+    [Fact]
+    public void Reduce_displays_a_group_when_components_are_unavailable()
+    {
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Waiting,
+            TokenActivityProviderState.Failed,
+            ServiceHealthState.Issue,
+            "Partial System Degradation",
+            new VisibilityState(false, false),
+            AppSettings.Default,
+            NowUnixMs,
+            affectedServiceComponents: [],
+            affectedServiceGroups: ["APIs"]);
+
+        Assert.Equal(
+            "OpenAI service issue: Partial System Degradation\r\nAPIs",
+            state.StatusStripeTooltip);
+    }
+
+    [Fact]
+    public void Reduce_keeps_multiple_groups_and_components_on_separate_labeled_lines()
+    {
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Waiting,
+            TokenActivityProviderState.Failed,
+            ServiceHealthState.Issue,
+            "Partial System Degradation",
+            new VisibilityState(false, false),
+            AppSettings.Default,
+            NowUnixMs,
+            affectedServiceComponents: ["Responses", "Conversations"],
+            affectedServiceGroups: ["APIs", "ChatGPT"]);
+
+        Assert.Equal(
+            "OpenAI service issue: Partial System Degradation\r\nAffected groups: APIs, ChatGPT\r\nAffected components: Responses, Conversations",
             state.StatusStripeTooltip);
     }
 
@@ -125,7 +184,9 @@ public sealed class UsageOverlayStateReducerTests
             AppSettings.Default,
             NowUnixMs);
 
-        Assert.Equal("OpenAI service issue detected.", state.StatusStripeTooltip);
+        Assert.Equal(
+            "OpenAI service issue detected.\r\nAffected component details unavailable",
+            state.StatusStripeTooltip);
     }
 
     [Theory]

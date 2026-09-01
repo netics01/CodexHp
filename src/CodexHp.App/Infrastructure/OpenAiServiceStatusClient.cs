@@ -14,10 +14,11 @@ public sealed record OpenAiServiceStatusSnapshot(
     string Indicator,
     string Description,
     long UpdatedUnixMs,
-    IReadOnlyList<string>? AffectedComponents = null)
+    IReadOnlyList<string>? AffectedComponents = null,
+    IReadOnlyList<string>? AffectedGroups = null)
 {
     public static OpenAiServiceStatusSnapshot Unknown(long updatedUnixMs) =>
-        new(ServiceHealthState.Unknown, "unknown", string.Empty, updatedUnixMs, []);
+        new(ServiceHealthState.Unknown, "unknown", string.Empty, updatedUnixMs, [], []);
 }
 
 public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
@@ -54,25 +55,30 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
             return snapshot;
         }
 
-        var componentsJson = await this.GetJsonAsync(this.componentsUri, cancellationToken);
-        snapshot = ParseStatusResponse(statusJson, componentsJson);
+        var componentsTask = this.TryGetJsonAsync(this.componentsUri, cancellationToken);
+        var statusPageTask = this.TryGetStatusPageHtmlAsync(cancellationToken);
+        await Task.WhenAll(componentsTask, statusPageTask);
+
+        var componentsJson = await componentsTask;
+        if (componentsJson is not null)
+        {
+            try
+            {
+                snapshot = ParseStatusResponse(statusJson, componentsJson);
+            }
+            catch (JsonException)
+            {
+            }
+        }
+
         if (snapshot.Health != ServiceHealthState.Issue)
         {
             return snapshot;
         }
 
-        try
-        {
-            var statusPageHtml = await this.GetStatusPageHtmlAsync(cancellationToken);
-            var affectedGroups = ReadAffectedGroups(statusPageHtml);
-            return affectedGroups.Count == 0
-                ? snapshot
-                : snapshot with { AffectedComponents = affectedGroups };
-        }
-        catch (HttpRequestException)
-        {
-            return snapshot;
-        }
+        var statusPageHtml = await statusPageTask;
+        var affectedGroups = statusPageHtml is null ? [] : ReadAffectedGroups(statusPageHtml);
+        return snapshot with { AffectedGroups = affectedGroups };
     }
 
     public static OpenAiServiceStatusSnapshot ParseStatusResponse(
@@ -95,7 +101,7 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
             ? ReadAffectedComponents(componentsRoot)
             : [];
 
-        return new OpenAiServiceStatusSnapshot(health, indicator, description, updatedUnixMs, affectedComponents);
+        return new OpenAiServiceStatusSnapshot(health, indicator, description, updatedUnixMs, affectedComponents, []);
     }
 
     private async Task<string> GetJsonAsync(Uri uri, CancellationToken cancellationToken)
@@ -107,6 +113,18 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
         return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
+    private async Task<string?> TryGetJsonAsync(Uri uri, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await this.GetJsonAsync(uri, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
     private async Task<string> GetStatusPageHtmlAsync(CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, this.statusPageUri);
@@ -114,6 +132,18 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
         using var response = await this.http.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync(cancellationToken);
+    }
+
+    private async Task<string?> TryGetStatusPageHtmlAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await this.GetStatusPageHtmlAsync(cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
     }
 
     private static long ReadUpdatedUnixMs(JsonElement root)

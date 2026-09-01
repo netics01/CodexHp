@@ -386,6 +386,17 @@
                                    Margin="0,12,0,0"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    Text="Developer: netics01@gmail.com" />
+                        <StackPanel Margin="0,4,0,0"
+                                    HorizontalAlignment="Center"
+                                    Orientation="Horizontal">
+                            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="Repository: " />
+                            <TextBlock>
+                                <Hyperlink x:Name="AboutRepositoryLink"
+                                           NavigateUri="https://github.com/netics01/codexhp"
+                                           RequestNavigate="OnRepositoryRequestNavigate">https://github.com/netics01/codexhp</Hyperlink>
+                            </TextBlock>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
             </Grid>

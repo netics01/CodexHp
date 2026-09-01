@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -110,6 +111,35 @@ public sealed class SettingsWindowTests
                 window.TryFindResource("TextFillColorSecondaryBrush"),
                 developer.Foreground);
             HoldForVisualProbe();
+        }
+        finally
+        {
+            window.Close();
+            PumpDispatcher();
+        }
+    });
+
+    [Fact]
+    public void About_page_exposes_the_requested_clickable_repository_url() =>
+        StaTest.Run(() =>
+    {
+        var viewModel = new SettingsWindowViewModel(
+            AppSettings.Default,
+            _ => { },
+            _ => { },
+            settings => settings);
+        viewModel.SelectedGroup = viewModel.Groups[^1];
+        var window = new SettingsWindow(viewModel);
+        try
+        {
+            window.Show();
+            PumpDispatcher();
+
+            var link = Assert.IsType<Hyperlink>(window.FindName("AboutRepositoryLink"));
+            var expectedUri = new Uri("https://github.com/netics01/codexhp");
+            Assert.True(link.IsEnabled);
+            Assert.Equal(expectedUri, link.NavigateUri);
+            Assert.Equal(expectedUri.AbsoluteUri, new TextRange(link.ContentStart, link.ContentEnd).Text);
         }
         finally
         {

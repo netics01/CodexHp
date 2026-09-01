@@ -1,7 +1,9 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Navigation;
 using CodexHp.App.Infrastructure;
 using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
@@ -96,6 +98,15 @@ public partial class SettingsWindow : System.Windows.Window
         {
             this.ShowGroup(group.Kind);
         }
+    }
+
+    private void OnRepositoryRequestNavigate(object sender, RequestNavigateEventArgs eventArgs)
+    {
+        Process.Start(new ProcessStartInfo(eventArgs.Uri.AbsoluteUri)
+        {
+            UseShellExecute = true,
+        });
+        eventArgs.Handled = true;
     }
 
     private void ShowGroup(SettingsGroupKind group)

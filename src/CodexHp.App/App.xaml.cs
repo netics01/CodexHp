@@ -218,24 +218,34 @@ public partial class App : System.Windows.Application
         viewModel.PreviewLocation(this.positionController.Capture(overlayBounds));
     }
 
-    private void RefreshDisplayEnvironment()
+    private bool RefreshDisplayEnvironment()
     {
         if (Volatile.Read(ref this.shutdownStarted) != 0
             || this.usageOverlayWindow is null
             || this.positionController is null)
         {
-            return;
+            return false;
         }
 
         try
         {
             var resolution = this.positionController.Resolve(this.activeSettings);
+            if (resolution.TaskbarWasUnavailable)
+            {
+                this.logger?.Log(
+                    DiagnosticLevel.Information,
+                    "Display",
+                    "The taskbar was unavailable during a display refresh; keeping the current overlay placement and retrying.");
+                return true;
+            }
+
             this.activePresentation = new OverlayPresentationSettings(
                 this.activeSettings.Colors,
                 resolution.Appearance);
             this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
             this.usageOverlayWindow.SetPlacement(resolution.Placement);
             this.ConstrainSettingsWindow(resolution.Placement.MonitorId, center: false);
+            return false;
         }
         catch (Exception exception)
         {
@@ -244,6 +254,7 @@ public partial class App : System.Windows.Application
                 "Display",
                 "The display environment could not be refreshed.",
                 exception);
+            return false;
         }
     }
 

@@ -95,6 +95,84 @@ public sealed class OverlayDisplayResolverTests
     }
 
     [Fact]
+    public void Same_monitor_resolution_change_preserves_the_saved_physical_desktop_offset()
+    {
+        var resizedMonitor = Monitor(
+            "DISPLAY1",
+            "PRIMARY-KEY",
+            new PhysicalRect(0, 0, 2560, 1440),
+            new PhysicalRect(0, 0, 2560, 1392),
+            scale: 1,
+            isPrimary: true);
+        var settings = AppSettings.Default with
+        {
+            Appearance = new AppearanceSettings(200, 40, 50, 1, 0, 2),
+            Location = new OverlayLocationSettings(
+                "DISPLAY1",
+                360,
+                240,
+                "PRIMARY-KEY",
+                OverlayPlacementTarget.Desktop,
+                0.9,
+                0.8),
+        };
+
+        var result = OverlayDisplayResolver.Resolve(
+            settings,
+            [new DisplayEnvironment(resizedMonitor, new PhysicalRect(0, 1392, 2560, 48))]);
+
+        Assert.Equal(new PhysicalRect(360, 240, 200, 40), result.Placement.Bounds);
+    }
+
+    [Fact]
+    public void Missing_taskbar_is_reported_as_a_temporary_recovery_condition()
+    {
+        var monitor = Monitor(
+            "DISPLAY1",
+            "PRIMARY-KEY",
+            new PhysicalRect(0, 0, 1920, 1080),
+            new PhysicalRect(0, 0, 1920, 1032),
+            scale: 1,
+            isPrimary: true);
+
+        var result = OverlayDisplayResolver.Resolve(
+            AppSettings.Default,
+            [new DisplayEnvironment(monitor, TaskbarBounds: null)]);
+
+        Assert.True(result.TaskbarWasUnavailable);
+    }
+
+    [Fact]
+    public void Same_monitor_resolution_change_keeps_monitor_relative_offset_when_the_work_area_is_inset()
+    {
+        var resizedMonitor = Monitor(
+            "DISPLAY2",
+            "SECONDARY-KEY",
+            new PhysicalRect(-1920, 0, 2560, 1440),
+            new PhysicalRect(-1870, 0, 2510, 1440),
+            scale: 1,
+            isPrimary: false);
+        var settings = AppSettings.Default with
+        {
+            Appearance = new AppearanceSettings(200, 40, 50, 1, 0, 2),
+            Location = new OverlayLocationSettings(
+                "DISPLAY2",
+                300,
+                240,
+                "SECONDARY-KEY",
+                OverlayPlacementTarget.Desktop,
+                0.9,
+                0.8),
+        };
+
+        var result = OverlayDisplayResolver.Resolve(
+            settings,
+            [new DisplayEnvironment(resizedMonitor, new PhysicalRect(-1920, 0, 50, 1440))]);
+
+        Assert.Equal(new PhysicalRect(-1620, 240, 200, 40), result.Placement.Bounds);
+    }
+
+    [Fact]
     public void Persistent_monitor_key_and_normalized_position_survive_device_name_changes()
     {
         var primary = Monitor(

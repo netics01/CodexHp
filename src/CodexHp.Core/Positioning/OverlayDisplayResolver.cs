@@ -6,7 +6,8 @@ public sealed record OverlayDisplayResolution(
     EffectiveAppearanceSettings Appearance,
     OverlayPlacement Placement,
     OverlayPlacementTarget EffectiveTarget,
-    bool WasSizeAdjusted);
+    bool WasSizeAdjusted,
+    bool TaskbarWasUnavailable);
 
 public static class OverlayDisplayResolver
 {
@@ -23,6 +24,11 @@ public static class OverlayDisplayResolver
 
         var (display, matchedSavedMonitor) = SelectDisplay(settings.Location, displays);
         var monitor = display.Monitor;
+        var matchedSavedMonitorId = !string.IsNullOrWhiteSpace(settings.Location.MonitorId)
+            && string.Equals(
+                settings.Location.MonitorId,
+                monitor.Id,
+                StringComparison.OrdinalIgnoreCase);
         var preferred = Scale(settings.Appearance, monitor.ScaleX, monitor.ScaleY);
         var effectiveTarget = settings.Location.Target;
         var edgeInsetX = ScaleValue(EdgeInsetDip, monitor.ScaleX);
@@ -30,6 +36,8 @@ public static class OverlayDisplayResolver
         var width = Math.Min(preferred.OverlayWidth, monitor.Bounds.Width);
         var height = Math.Min(preferred.OverlayHeight, monitor.Bounds.Height);
         var taskbar = IntersectTaskbar(display.TaskbarBounds, monitor.Bounds);
+        var taskbarWasUnavailable = effectiveTarget == OverlayPlacementTarget.Taskbar
+            && taskbar is null;
 
         if (effectiveTarget == OverlayPlacementTarget.Taskbar && taskbar is { } taskbarBounds)
         {
@@ -74,13 +82,18 @@ public static class OverlayDisplayResolver
         width = Math.Clamp(width, 1, container.Width);
         height = Math.Clamp(height, 1, container.Height);
         var appearance = FitInternalAppearance(preferred, width, height, monitor.ScaleX);
+        var preservePhysicalOffset = matchedSavedMonitorId
+            && appearance.OverlayWidth == preferred.OverlayWidth
+            && appearance.OverlayHeight == preferred.OverlayHeight;
         var bounds = Place(
             settings.Location,
+            monitor.Bounds,
             container,
             appearance.OverlayWidth,
             appearance.OverlayHeight,
             effectiveTarget,
             matchedSavedMonitor,
+            preservePhysicalOffset,
             edgeInsetX,
             edgeInsetY);
         var placement = new OverlayPlacement(
@@ -97,7 +110,8 @@ public static class OverlayDisplayResolver
             placement,
             effectiveTarget,
             appearance.OverlayWidth != preferred.OverlayWidth
-                || appearance.OverlayHeight != preferred.OverlayHeight);
+                || appearance.OverlayHeight != preferred.OverlayHeight,
+            taskbarWasUnavailable);
     }
 
     public static OverlayLocationSettings Capture(
@@ -172,16 +186,27 @@ public static class OverlayDisplayResolver
 
     private static PhysicalRect Place(
         OverlayLocationSettings location,
+        PhysicalRect monitorBounds,
         PhysicalRect container,
         int width,
         int height,
         OverlayPlacementTarget target,
         bool matchedSavedMonitor,
+        bool preservePhysicalOffset,
         int edgeInsetX,
         int edgeInsetY)
     {
         var maximumLeftOffset = Math.Max(0, container.Width - width);
         var maximumTopOffset = Math.Max(0, container.Height - height);
+        if (preservePhysicalOffset)
+        {
+            return new PhysicalRect(
+                Math.Clamp(monitorBounds.Left + location.X, container.Left, container.Left + maximumLeftOffset),
+                Math.Clamp(monitorBounds.Top + location.Y, container.Top, container.Top + maximumTopOffset),
+                width,
+                height);
+        }
+
         if (matchedSavedMonitor
             && location.NormalizedX is { } normalizedX
             && location.NormalizedY is { } normalizedY)
@@ -200,8 +225,8 @@ public static class OverlayDisplayResolver
                 || !string.IsNullOrWhiteSpace(location.MonitorKey)))
         {
             return new PhysicalRect(
-                Math.Clamp(container.Left + location.X, container.Left, container.Left + maximumLeftOffset),
-                Math.Clamp(container.Top + location.Y, container.Top, container.Top + maximumTopOffset),
+                Math.Clamp(monitorBounds.Left + location.X, container.Left, container.Left + maximumLeftOffset),
+                Math.Clamp(monitorBounds.Top + location.Y, container.Top, container.Top + maximumTopOffset),
                 width,
                 height);
         }

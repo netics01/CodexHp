@@ -28,6 +28,27 @@ public sealed class DisplayEnvironmentWatcherTests
         });
     }
 
+    [Fact]
+    public void Temporary_display_recovery_condition_is_retried_until_it_clears()
+    {
+        StaTest.Run(() =>
+        {
+            var refreshCount = 0;
+            using var watcher = new DisplayEnvironmentWatcher(
+                Dispatcher.CurrentDispatcher,
+                () => ++refreshCount == 1,
+                TimeSpan.FromMilliseconds(10),
+                subscribeToSystemEvents: false,
+                retryInterval: TimeSpan.FromMilliseconds(10),
+                maximumRetries: 2);
+
+            watcher.RequestRefresh();
+            PumpDispatcher(TimeSpan.FromMilliseconds(100));
+
+            Assert.Equal(2, refreshCount);
+        });
+    }
+
     private static void PumpDispatcher(TimeSpan duration)
     {
         var frame = new DispatcherFrame();

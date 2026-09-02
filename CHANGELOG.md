@@ -4,6 +4,8 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-09-02
+
 ### Fixed
 
 - Use the complete configured graph area and report its actual visible duration without adding time-alignment padding.

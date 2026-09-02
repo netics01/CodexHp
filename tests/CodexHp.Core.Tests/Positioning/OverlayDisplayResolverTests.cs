@@ -27,7 +27,7 @@ public sealed class OverlayDisplayResolverTests
             [new DisplayEnvironment(monitor, taskbar)]);
 
         Assert.Equal(
-            new EffectiveAppearanceSettings(288, 68, 100, 2, 0, 4, 8, 12),
+            new EffectiveAppearanceSettings(288, 68, 100, 2, 0, 4),
             result.Appearance);
         Assert.Equal("DISPLAY2", result.Placement.MonitorId);
         Assert.Equal(new PhysicalRect(4, 2078, 288, 68), result.Placement.Bounds);

@@ -139,7 +139,7 @@ public sealed class ApplicationCoordinatorTests
         {
             Appearance = new AppearanceSettings(140, 34, 50, 1, 0, 2),
         };
-        var graphAppearance = new EffectiveAppearanceSettings(280, 68, 100, 2, 0, 4, 8, 12);
+        var graphAppearance = new EffectiveAppearanceSettings(280, 68, 100, 2, 0, 4);
         var coordinator = CreateCoordinator(
             readBuckets: (_, bucketSeconds, maxBuckets) =>
             {
@@ -164,7 +164,7 @@ public sealed class ApplicationCoordinatorTests
         await coordinator.PollTokenActivityOnceAsync(CancellationToken.None);
 
         Assert.Equal([15, 15], requestedBucketSeconds);
-        Assert.Equal([80, 41], requestedBucketCounts);
+        Assert.Equal([85, 41], requestedBucketCounts);
     }
 
     [Fact]

@@ -1,4 +1,6 @@
 using CodexHp.App.Presentation.Settings;
+using CodexHp.Core.Domain;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 using Xunit;
 
@@ -38,7 +40,7 @@ public sealed class SettingsWindowViewModelTests
     {
         var viewModel = CreateViewModel();
 
-        Assert.Equal("Visible token history: 21 min 0 sec", viewModel.VisibleTokenHistoryText);
+        Assert.Equal("Visible token history: 20 min 0 sec", viewModel.VisibleTokenHistoryText);
 
         viewModel.OverlayWidth = 400;
         viewModel.GraphBarWidth = 5;
@@ -48,7 +50,23 @@ public sealed class SettingsWindowViewModelTests
 
         viewModel.ResetAppearanceToDefaults();
 
-        Assert.Equal("Visible token history: 21 min 0 sec", viewModel.VisibleTokenHistoryText);
+        Assert.Equal("Visible token history: 20 min 0 sec", viewModel.VisibleTokenHistoryText);
+    }
+
+    [Fact]
+    public void Reset_appearance_uses_the_default_resolved_for_the_current_display()
+    {
+        var baseline = AppSettings.Default with
+        {
+            Appearance = AppSettings.Default.Appearance with { OverlayWidth = 400 },
+        };
+        var viewModel = CreateViewModel(
+            baseline,
+            resolveDefaultAppearance: _ => AppearanceSettings.Default with { OverlayWidth = 135 });
+
+        viewModel.ResetAppearanceToDefaults();
+
+        Assert.Equal(135, viewModel.OverlayWidth);
     }
 
     [Fact]
@@ -58,6 +76,31 @@ public sealed class SettingsWindowViewModelTests
             calculateVisibleTokenHistory: _ => TimeSpan.FromMinutes(15));
 
         Assert.Equal("Visible token history: 15 min 0 sec", viewModel.VisibleTokenHistoryText);
+    }
+
+    [Fact]
+    public void Visible_token_history_reports_the_unpadded_physical_viewport_at_two_hundred_percent()
+    {
+        var settings = AppSettings.Default with
+        {
+            Appearance = new AppearanceSettings(140, 34, 50, 1, 0, 2),
+        };
+        var monitor = new MonitorGeometry(
+            "DISPLAY2",
+            new PhysicalRect(0, 0, 3840, 2160),
+            new PhysicalRect(0, 0, 3840, 2064),
+            2,
+            2,
+            true,
+            "MONITOR-STABLE-2");
+        var resolution = OverlayDisplayResolver.Resolve(
+            settings,
+            [new DisplayEnvironment(monitor, new PhysicalRect(0, 2064, 3840, 96))]);
+        var viewModel = CreateViewModel(
+            settings,
+            calculateVisibleTokenHistory: _ => TokenGraphViewport.CalculateVisibleDuration(resolution.Appearance));
+
+        Assert.Equal("Visible token history: 21 min 15 sec", viewModel.VisibleTokenHistoryText);
     }
 
     [Fact]
@@ -208,12 +251,14 @@ public sealed class SettingsWindowViewModelTests
         List<bool>? positionModes = null,
         Func<AppSettings, AppSettings>? commit = null,
         bool canStartWithWindows = true,
-        Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null) =>
+        Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null,
+        Func<AppSettings, AppearanceSettings>? resolveDefaultAppearance = null) =>
         new(
             baseline ?? AppSettings.Default,
             settings => previews?.Add(settings),
             enabled => positionModes?.Add(enabled),
             commit ?? (settings => settings),
             canStartWithWindows,
-            calculateVisibleTokenHistory);
+            calculateVisibleTokenHistory,
+            resolveDefaultAppearance);
 }

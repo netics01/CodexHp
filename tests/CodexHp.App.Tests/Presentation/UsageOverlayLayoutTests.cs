@@ -92,7 +92,7 @@ public sealed class UsageOverlayLayoutTests
     }
 
     [Fact]
-    public void Two_hundred_percent_dpi_keeps_the_twenty_minute_grid_inside_the_visible_viewport()
+    public void Two_hundred_percent_dpi_uses_the_full_chart_area_without_time_alignment_padding()
     {
         var settings = AppSettings.Default with
         {
@@ -117,7 +117,10 @@ public sealed class UsageOverlayLayoutTests
             .Where(command => command.Role == OverlayElementRole.GraphGridDot)
             .Min(command => command.Bounds.Left);
 
-        Assert.Equal(baseline.Left, oldestGridLine);
+        Assert.Equal(104, baseline.Left);
+        Assert.Equal(274, baseline.Right);
+        Assert.Equal(114, oldestGridLine);
+        Assert.Equal(85, TokenGraphViewport.CalculateVisibleBucketCount(resolution.Appearance));
     }
 
     private static OverlayDrawCommand Single(UsageOverlayLayout layout, OverlayElementRole role) =>

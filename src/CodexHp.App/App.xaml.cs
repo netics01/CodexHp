@@ -117,7 +117,8 @@ public partial class App : System.Windows.Application
                 enabled => this.usageOverlayWindow.SetOverlayPositionChangeMode(enabled),
                 desired => settingsCommitService.Commit(desired),
                 canStartWithWindows: startupRegistration.CanEnable,
-                calculateVisibleTokenHistory: this.CalculateVisibleTokenHistory),
+                calculateVisibleTokenHistory: this.CalculateVisibleTokenHistory,
+                resolveDefaultAppearance: this.ResolveDefaultAppearance),
             this.ShowSettingsWindow,
             this.ActivateSettingsWindow);
 
@@ -205,6 +206,19 @@ public partial class App : System.Windows.Application
         return appearance is null
             ? TokenGraphViewport.CalculateVisibleDuration(settings.Appearance)
             : TokenGraphViewport.CalculateVisibleDuration(appearance);
+    }
+
+    private AppearanceSettings ResolveDefaultAppearance(AppSettings settings)
+    {
+        if (this.positionController is null)
+        {
+            return AppearanceSettings.Default;
+        }
+
+        var template = settings with { Appearance = AppearanceSettings.Default };
+        return DefaultAppearanceFactory.Create(
+            template,
+            candidate => this.positionController.Resolve(candidate).Appearance);
     }
 
     private void OnOverlayPositionChanged(CodexHp.Core.Positioning.PhysicalRect overlayBounds)

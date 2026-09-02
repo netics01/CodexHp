@@ -24,13 +24,13 @@ public static class TokenGraphViewport
     public static int ChartLeft(EffectiveAppearanceSettings appearance)
     {
         ArgumentNullException.ThrowIfNull(appearance);
-        return appearance.GaugePaneWidth + appearance.GraphLeftInset;
+        return appearance.GaugePaneWidth + ChartLeftInsetDip;
     }
 
     public static int ChartRight(EffectiveAppearanceSettings appearance)
     {
         ArgumentNullException.ThrowIfNull(appearance);
-        return appearance.OverlayWidth - appearance.GraphRightInset;
+        return appearance.OverlayWidth - ChartRightInsetDip;
     }
 
     public static int CalculateVisibleBucketCount(AppearanceSettings appearance)

@@ -273,7 +273,7 @@ public sealed class SettingsWindowTests
             Assert.Equal(new GridLength(48), valuesGrid.ColumnDefinitions[1].Width);
 
             var history = Assert.IsType<TextBlock>(window.FindName("VisibleTokenHistoryText"));
-            Assert.Equal("Visible token history: 21 min 0 sec", history.Text);
+            Assert.Equal("Visible token history: 20 min 0 sec", history.Text);
             Assert.Equal(6, Grid.GetRow(history));
             Assert.Equal(3, Grid.GetColumnSpan(history));
             HoldForVisualProbe();

@@ -1,4 +1,5 @@
 using CodexHp.App.Infrastructure;
+using CodexHp.Core.Domain;
 using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 using Xunit;
@@ -21,6 +22,34 @@ public sealed class JsonSettingsStoreTests : IDisposable
 
         Assert.Equal(AppSettings.Default, settings);
         Assert.True(File.Exists(Path.Combine(this.localAppData, "CodexHp", "settings.json")));
+    }
+
+    [Fact]
+    public void Load_creates_a_twenty_minute_default_for_the_primary_display_when_it_is_missing()
+    {
+        var monitor = new MonitorGeometry(
+            "DISPLAY2",
+            new PhysicalRect(0, 0, 3840, 2160),
+            new PhysicalRect(0, 0, 3840, 2064),
+            2,
+            2,
+            true,
+            "MONITOR-STABLE-2");
+        var taskbar = new PhysicalRect(0, 2064, 3840, 96);
+        var store = new JsonSettingsStore(
+            this.localAppData,
+            monitors: () => [monitor],
+            taskbarBounds: _ => taskbar);
+
+        var settings = store.Load();
+        var resolution = OverlayDisplayResolver.Resolve(
+            settings,
+            [new DisplayEnvironment(monitor, taskbar)]);
+
+        Assert.Equal(135, settings.Appearance.OverlayWidth);
+        Assert.Equal(
+            TimeSpan.FromMinutes(20),
+            TokenGraphViewport.CalculateVisibleDuration(resolution.Appearance));
     }
 
     [Fact]

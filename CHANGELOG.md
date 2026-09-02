@@ -4,6 +4,11 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Use the complete configured graph area and report its actual visible duration without adding time-alignment padding.
+- Target a 20-minute history only when creating or resetting default appearance settings; preserve existing user appearance values.
+
 ## [0.3.4] - 2026-09-02
 
 ### Fixed

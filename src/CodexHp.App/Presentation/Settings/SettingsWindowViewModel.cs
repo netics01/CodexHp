@@ -15,6 +15,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     private readonly Action<bool> changeOverlayPositionMode;
     private readonly Func<AppSettings, AppSettings> commit;
     private readonly Func<AppSettings, TimeSpan> calculateVisibleTokenHistory;
+    private readonly Func<AppSettings, AppearanceSettings> resolveDefaultAppearance;
     private readonly bool canEnableStartWithWindows;
     private SettingsGroup selectedGroup;
 
@@ -24,7 +25,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         Action<bool>? changeOverlayPositionMode,
         Func<AppSettings, AppSettings> commit,
         bool canStartWithWindows = true,
-        Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null)
+        Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null,
+        Func<AppSettings, AppearanceSettings>? resolveDefaultAppearance = null)
     {
         this.baseline = baseline ?? throw new ArgumentNullException(nameof(baseline));
         this.preview = preview ?? (_ => { });
@@ -32,6 +34,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
         this.calculateVisibleTokenHistory = calculateVisibleTokenHistory
             ?? (settings => TokenGraphViewport.CalculateVisibleDuration(settings.Appearance));
+        this.resolveDefaultAppearance = resolveDefaultAppearance ?? (_ => AppearanceSettings.Default);
         this.canEnableStartWithWindows = canStartWithWindows;
         this.editSession = new SettingsEditSession(baseline);
         this.Groups =
@@ -194,7 +197,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     }
 
     public void ResetAppearanceToDefaults() =>
-        this.UpdateAppearance(AppearanceSettings.Default);
+        this.UpdateAppearance(this.resolveDefaultAppearance(this.Working));
 
     public void PreviewLocation(OverlayLocationSettings location)
     {

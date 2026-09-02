@@ -13,10 +13,10 @@ public sealed class TokenGraphViewportTests
 
         Assert.Equal(15, TokenGraphViewport.BucketSeconds);
         Assert.Equal(54, TokenGraphViewport.ChartLeft(appearance));
-        Assert.Equal(138, TokenGraphViewport.ChartRight(appearance));
-        Assert.Equal(84, TokenGraphViewport.CalculateVisibleBucketCount(appearance));
+        Assert.Equal(134, TokenGraphViewport.ChartRight(appearance));
+        Assert.Equal(80, TokenGraphViewport.CalculateVisibleBucketCount(appearance));
         Assert.Equal(
-            TimeSpan.FromMinutes(21),
+            TimeSpan.FromMinutes(20),
             TokenGraphViewport.CalculateVisibleDuration(appearance));
     }
 

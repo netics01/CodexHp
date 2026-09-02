@@ -53,8 +53,9 @@ public sealed class JsonSettingsStore : ISettingsStore
         Directory.CreateDirectory(this.SettingsDirectory);
         if (!File.Exists(this.SettingsPath))
         {
-            this.Save(AppSettings.Default);
-            return AppSettings.Default;
+            var defaults = this.CreateDefaultSettings();
+            this.Save(defaults);
+            return defaults;
         }
 
         try
@@ -202,6 +203,23 @@ public sealed class JsonSettingsStore : ISettingsStore
             NormalizedY = normalizedY,
         };
         return (logicalAppearance, location);
+    }
+
+    private AppSettings CreateDefaultSettings()
+    {
+        var availableMonitors = this.monitors();
+        if (availableMonitors.Count == 0)
+        {
+            return AppSettings.Default;
+        }
+
+        var displays = availableMonitors
+            .Select(monitor => new DisplayEnvironment(monitor, this.TryGetTaskbarBounds(monitor.Id)))
+            .ToArray();
+        var appearance = DefaultAppearanceFactory.Create(
+            AppSettings.Default,
+            settings => OverlayDisplayResolver.Resolve(settings, displays).Appearance);
+        return AppSettings.Default with { Appearance = appearance };
     }
 
     private PhysicalRect? TryGetTaskbarBounds(string monitorId)

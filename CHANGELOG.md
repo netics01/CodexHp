@@ -4,6 +4,12 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-09-02
+
+### Fixed
+
+- Restore the exact taskbar overlay position after a Windows display-scaling change repositions the hosted window.
+
 ## [0.3.5] - 2026-09-02
 
 ### Fixed

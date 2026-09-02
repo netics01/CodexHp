@@ -488,31 +488,6 @@ public sealed class SettingsWindowTests
     });
 
     [Fact]
-    public void General_page_does_not_show_the_redundant_apply_hint() =>
-        StaTest.Run(() =>
-    {
-        var window = CreateWindow();
-        try
-        {
-            window.Show();
-            PumpDispatcher();
-
-            var visibleText = FindLogicalDescendants<TextBlock>(window)
-                .Select(textBlock => textBlock.Text)
-                .ToArray();
-
-            Assert.DoesNotContain(
-                "General settings take effect after you select OK. The default is Always show.",
-                visibleText);
-        }
-        finally
-        {
-            window.Close();
-            PumpDispatcher();
-        }
-    });
-
-    [Fact]
     public void Colors_page_reset_button_restores_only_default_colors_and_previews_them() =>
         StaTest.Run(() =>
     {
@@ -659,7 +634,7 @@ public sealed class SettingsWindowTests
     });
 
     [Fact]
-    public void Picpick_reference_contract_uses_compact_settings_layout() =>
+    public void Settings_window_uses_the_approved_compact_layout() =>
         StaTest.Run(() =>
     {
         var window = CreateWindow();

@@ -349,6 +349,21 @@ public sealed class UsageOverlayWindow
             || this.windowHost.RequiresRecreation(this.WindowHandle))
         {
             this.TryRecreateNativeWindow();
+            return;
+        }
+
+        if (this.windowHost.Mode == OverlayHostMode.TaskbarChild
+            && this.lastHostedOverlayBounds is { } expectedBounds
+            && this.GetOverlayBounds() != expectedBounds)
+        {
+            try
+            {
+                _ = this.ApplyHostedPlacement(expectedBounds, this.lastMonitorId);
+            }
+            catch
+            {
+                // The health timer retries after the taskbar display transition settles.
+            }
         }
     }
 

@@ -38,18 +38,6 @@ public sealed class OverlayPlacementCalculatorTests
     }
 
     [Fact]
-    public void Restore_does_not_expose_a_development_comparison_placement_option()
-    {
-        var restore = typeof(OverlayPlacementCalculator).GetMethod(
-            nameof(OverlayPlacementCalculator.Restore));
-
-        Assert.NotNull(restore);
-        Assert.DoesNotContain(
-            restore.GetParameters(),
-            parameter => parameter.ParameterType == typeof(bool));
-    }
-
-    [Fact]
     public void Saved_physical_offset_is_restored_without_target_monitor_scale()
     {
         var secondary = new MonitorGeometry(

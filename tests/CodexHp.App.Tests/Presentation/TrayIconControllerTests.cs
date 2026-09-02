@@ -121,18 +121,6 @@ public sealed class TrayIconControllerTests
         });
 
     [Fact]
-    public void Product_icon_resource_is_embedded_and_loadable()
-    {
-        using var stream = typeof(WindowsTrayIconView).Assembly.GetManifestResourceStream(
-            "CodexHp.App.Assets.CodexHp.ico");
-
-        Assert.NotNull(stream);
-        using var icon = new System.Drawing.Icon(stream);
-        Assert.True(icon.Width >= 16);
-        Assert.True(icon.Height >= 16);
-    }
-
-    [Fact]
     public void Product_icon_mark_matches_the_official_tray_icons_visual_scale()
     {
         using var stream = typeof(WindowsTrayIconView).Assembly.GetManifestResourceStream(

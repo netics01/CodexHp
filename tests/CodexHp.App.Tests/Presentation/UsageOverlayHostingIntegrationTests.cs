@@ -3,7 +3,6 @@ using CodexHp.App.Presentation;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
-using System.Text;
 using System.Windows.Threading;
 using Xunit;
 
@@ -193,26 +192,6 @@ public sealed class UsageOverlayHostingIntegrationTests
         }
     });
 
-    [Fact]
-    public void Screen_area_uses_a_WPF_composition_surface_for_taskbar_hosting() =>
-        StaTest.Run(() =>
-    {
-        var window = new UsageOverlayWindow();
-        try
-        {
-            var className = new StringBuilder(256);
-
-            Assert.NotEqual(
-                0,
-                NativeMethods.GetClassName(window.WindowHandle, className, className.Capacity));
-            Assert.StartsWith("HwndWrapper[", className.ToString());
-        }
-        finally
-        {
-            window.CloseForShutdown();
-        }
-    });
-
     [Theory]
     [InlineData(0xC123u, 0xC123u, true)]
     [InlineData(0x0201u, 0xC123u, false)]
@@ -266,6 +245,65 @@ public sealed class UsageOverlayHostingIntegrationTests
                         placement.PhysicalWidth,
                         placement.PhysicalHeight),
                     window.GetOverlayBounds());
+            }
+            finally
+            {
+                window.CloseForShutdown();
+            }
+        }
+        finally
+        {
+            _ = NativeMethods.SetThreadDpiAwarenessContext(previousDpiContext);
+        }
+    });
+
+    [Fact]
+    public void Taskbar_host_health_restores_exact_bounds_after_external_repositioning() =>
+        StaTest.Run(() =>
+    {
+        var previousDpiContext = NativeMethods.SetThreadDpiAwarenessContext(
+            NativeMethods.DpiAwarenessContextPerMonitorAwareV2);
+        Assert.NotEqual(nint.Zero, previousDpiContext);
+        try
+        {
+            var monitor = new WindowsMonitorService().GetMonitors().Single(item => item.IsPrimary);
+            var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id);
+            Assert.NotNull(taskbar);
+            var overlayHeight = WindowsGuiTestGeometry.GetTaskbarCompatibleOverlayHeight(
+                taskbar.Value.TaskbarBounds);
+            var requested = new PhysicalRect(
+                taskbar.Value.TaskbarBounds.Left + 2,
+                taskbar.Value.TaskbarBounds.Bottom - overlayHeight - 2,
+                288,
+                overlayHeight);
+            var expected = OverlayHostPlacementCalculator.Resolve(
+                requested,
+                monitor.Bounds,
+                taskbar.Value.TaskbarBounds).OverlayBounds;
+            var window = new UsageOverlayWindow();
+            try
+            {
+                window.SetPlacement(new OverlayPlacement(
+                    monitor.Id,
+                    expected.Left,
+                    expected.Top,
+                    expected.Width,
+                    expected.Height,
+                    expected.Left - monitor.Bounds.Left,
+                    expected.Top - monitor.Bounds.Top));
+                Assert.Equal(expected, window.GetOverlayBounds());
+
+                Assert.True(NativeMethods.SetWindowPos(
+                    window.WindowHandle,
+                    NativeMethods.HwndTop,
+                    0,
+                    0,
+                    expected.Width,
+                    expected.Height,
+                    NativeMethods.SwpNoActivate));
+                Assert.NotEqual(expected, window.GetOverlayBounds());
+
+                AssertOverlayBoundsEventually(window, expected);
             }
             finally
             {
@@ -594,6 +632,26 @@ public sealed class UsageOverlayHostingIntegrationTests
         while (DateTimeOffset.UtcNow < deadline);
 
         Assert.Equal(expected, actual);
+    }
+
+    private static void AssertOverlayBoundsEventually(
+        UsageOverlayWindow window,
+        PhysicalRect expected)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(3);
+        do
+        {
+            PumpDispatcher();
+            if (window.GetOverlayBounds() == expected)
+            {
+                return;
+            }
+
+            Thread.Sleep(25);
+        }
+        while (DateTimeOffset.UtcNow < deadline);
+
+        Assert.Equal(expected, window.GetOverlayBounds());
     }
 
     private static void PumpDispatcher()

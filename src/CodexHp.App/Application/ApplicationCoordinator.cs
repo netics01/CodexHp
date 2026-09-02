@@ -13,7 +13,7 @@ public sealed class ApplicationCoordinator
     private readonly Func<CancellationToken, Task<OpenAiServiceStatusSnapshot>> readServiceStatus;
     private readonly Func<VisibilityState> readVisibility;
     private readonly Func<AppSettings> readSettings;
-    private readonly Func<AppearanceSettings> readGraphAppearance;
+    private readonly Func<EffectiveAppearanceSettings> readGraphAppearance;
     private readonly IClock clock;
     private readonly IDiagnosticLogger logger;
     private readonly PollSchedule schedule;
@@ -29,7 +29,7 @@ public sealed class ApplicationCoordinator
         Func<AppSettings> readSettings,
         IClock clock,
         IDiagnosticLogger logger,
-        Func<AppearanceSettings>? readGraphAppearance = null,
+        Func<EffectiveAppearanceSettings>? readGraphAppearance = null,
         PollSchedule? schedule = null)
     {
         this.credentialSource = credentialSource ?? throw new ArgumentNullException(nameof(credentialSource));
@@ -38,7 +38,7 @@ public sealed class ApplicationCoordinator
         this.readServiceStatus = readServiceStatus ?? throw new ArgumentNullException(nameof(readServiceStatus));
         this.readVisibility = readVisibility ?? throw new ArgumentNullException(nameof(readVisibility));
         this.readSettings = readSettings ?? throw new ArgumentNullException(nameof(readSettings));
-        this.readGraphAppearance = readGraphAppearance ?? (() => this.readSettings().Appearance);
+        this.readGraphAppearance = readGraphAppearance ?? (() => ToEffectiveAppearance(this.readSettings().Appearance));
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.schedule = schedule ?? PollSchedule.Default;
@@ -128,6 +128,15 @@ public sealed class ApplicationCoordinator
 
         return Task.CompletedTask;
     }
+
+    private static EffectiveAppearanceSettings ToEffectiveAppearance(AppearanceSettings appearance) =>
+        new(
+            appearance.OverlayWidth,
+            appearance.OverlayHeight,
+            appearance.GaugePaneWidth,
+            appearance.GraphBarWidth,
+            appearance.GraphBarGap,
+            appearance.StatusStripeWidth);
 
     internal async Task PollServiceStatusOnceAsync(CancellationToken cancellationToken)
     {

@@ -1,3 +1,4 @@
+using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
 
 namespace CodexHp.Core.Positioning;
@@ -163,7 +164,9 @@ public static class OverlayDisplayResolver
             ScaleValue(appearance.GaugePaneWidth, scaleX),
             ScaleValue(appearance.GraphBarWidth, scaleX),
             appearance.GraphBarGap == 0 ? 0 : ScaleValue(appearance.GraphBarGap, scaleX),
-            ScaleValue(appearance.StatusStripeWidth, scaleX));
+            ScaleValue(appearance.StatusStripeWidth, scaleX),
+            ScaleValue(TokenGraphViewport.ChartLeftInsetDip, scaleX),
+            ScaleValue(TokenGraphViewport.ChartRightInsetDip, scaleX));
 
     private static EffectiveAppearanceSettings FitInternalAppearance(
         EffectiveAppearanceSettings appearance,

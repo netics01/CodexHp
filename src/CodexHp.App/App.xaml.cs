@@ -116,7 +116,8 @@ public partial class App : System.Windows.Application
                 this.ApplySettingsPreview,
                 enabled => this.usageOverlayWindow.SetOverlayPositionChangeMode(enabled),
                 desired => settingsCommitService.Commit(desired),
-                canStartWithWindows: startupRegistration.CanEnable),
+                canStartWithWindows: startupRegistration.CanEnable,
+                calculateVisibleTokenHistory: this.CalculateVisibleTokenHistory),
             this.ShowSettingsWindow,
             this.ActivateSettingsWindow);
 
@@ -144,8 +145,7 @@ public partial class App : System.Windows.Application
             () => Volatile.Read(ref this.activeSettings),
             clock,
             this.logger,
-            readGraphAppearance: () => ToAppearanceSettings(
-                Volatile.Read(ref this.activePresentation).Appearance));
+            readGraphAppearance: () => Volatile.Read(ref this.activePresentation).Appearance);
         coordinator.UsageOverlayStateChanged += this.OnUsageOverlayStateChanged;
         this.coordinatorTask = this.RunCoordinatorAsync(coordinator, this.lifetimeCancellation.Token);
         this.logger.Log(DiagnosticLevel.Information, "Lifecycle", "CodexHp started.");
@@ -183,15 +183,6 @@ public partial class App : System.Windows.Application
         });
     }
 
-    private static AppearanceSettings ToAppearanceSettings(EffectiveAppearanceSettings appearance) =>
-        new(
-            appearance.OverlayWidth,
-            appearance.OverlayHeight,
-            appearance.GaugePaneWidth,
-            appearance.GraphBarWidth,
-            appearance.GraphBarGap,
-            appearance.StatusStripeWidth);
-
     private void ApplySettingsPreview(AppSettings settings)
     {
         this.activeSettings = settings;
@@ -206,6 +197,14 @@ public partial class App : System.Windows.Application
             displayResolution.Appearance);
         this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
         this.usageOverlayWindow.SetPlacement(displayResolution.Placement);
+    }
+
+    private TimeSpan CalculateVisibleTokenHistory(AppSettings settings)
+    {
+        var appearance = this.positionController?.Resolve(settings).Appearance;
+        return appearance is null
+            ? TokenGraphViewport.CalculateVisibleDuration(settings.Appearance)
+            : TokenGraphViewport.CalculateVisibleDuration(appearance);
     }
 
     private void OnOverlayPositionChanged(CodexHp.Core.Positioning.PhysicalRect overlayBounds)

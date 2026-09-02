@@ -52,6 +52,15 @@ public sealed class SettingsWindowViewModelTests
     }
 
     [Fact]
+    public void Visible_token_history_uses_the_effective_display_viewport_when_available()
+    {
+        var viewModel = CreateViewModel(
+            calculateVisibleTokenHistory: _ => TimeSpan.FromMinutes(15));
+
+        Assert.Equal("Visible token history: 15 min 0 sec", viewModel.VisibleTokenHistoryText);
+    }
+
+    [Fact]
     public void General_options_are_not_applied_by_visual_preview_before_confirm()
     {
         var previews = new List<AppSettings>();
@@ -198,11 +207,13 @@ public sealed class SettingsWindowViewModelTests
         List<AppSettings>? previews = null,
         List<bool>? positionModes = null,
         Func<AppSettings, AppSettings>? commit = null,
-        bool canStartWithWindows = true) =>
+        bool canStartWithWindows = true,
+        Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null) =>
         new(
             baseline ?? AppSettings.Default,
             settings => previews?.Add(settings),
             enabled => positionModes?.Add(enabled),
             commit ?? (settings => settings),
-            canStartWithWindows);
+            canStartWithWindows,
+            calculateVisibleTokenHistory);
 }

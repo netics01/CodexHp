@@ -225,15 +225,8 @@ public static class UsageOverlayRenderer
         OverlayPresentationSettings settings,
         int overlayHeight)
     {
-        var chartAppearance = new AppearanceSettings(
-            settings.Appearance.OverlayWidth,
-            settings.Appearance.OverlayHeight,
-            settings.Appearance.GaugePaneWidth,
-            settings.Appearance.GraphBarWidth,
-            settings.Appearance.GraphBarGap,
-            settings.Appearance.StatusStripeWidth);
-        var chartLeft = TokenGraphViewport.ChartLeft(chartAppearance);
-        var chartRight = TokenGraphViewport.ChartRight(chartAppearance);
+        var chartLeft = TokenGraphViewport.ChartLeft(settings.Appearance);
+        var chartRight = TokenGraphViewport.ChartRight(settings.Appearance);
         var chartTop = 4;
         var baselineTop = overlayHeight - 6;
         var chartBottom = baselineTop;

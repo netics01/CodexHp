@@ -4,6 +4,12 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-09-02
+
+### Fixed
+
+- Keep the visible token history reported in Settings identical to the graph's actual time window across display scaling configurations.
+
 ## [0.3.3] - 2026-09-02
 
 ### Fixed

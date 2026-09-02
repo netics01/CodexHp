@@ -1,5 +1,6 @@
 using CodexHp.App.Presentation;
 using CodexHp.Core.Domain;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 using Xunit;
 
@@ -88,6 +89,35 @@ public sealed class UsageOverlayLayoutTests
         Assert.Equal(68, layout.Height);
         Assert.Equal(100, Single(layout, OverlayElementRole.GraphBaseline).Bounds.Left - 4);
         Assert.Equal(2, layout.Commands.First(command => command.Role == OverlayElementRole.TokenBar).Bounds.Width);
+    }
+
+    [Fact]
+    public void Two_hundred_percent_dpi_keeps_the_twenty_minute_grid_inside_the_visible_viewport()
+    {
+        var settings = AppSettings.Default with
+        {
+            Appearance = new AppearanceSettings(140, 34, 50, 1, 0, 2),
+        };
+        var monitor = new MonitorGeometry(
+            "DISPLAY2",
+            new PhysicalRect(0, 0, 3840, 2160),
+            new PhysicalRect(0, 0, 3840, 2064),
+            2,
+            2,
+            true,
+            "MONITOR-STABLE-2");
+        var resolution = OverlayDisplayResolver.Resolve(
+            settings,
+            [new DisplayEnvironment(monitor, new PhysicalRect(0, 2064, 3840, 96))]);
+        var presentation = new OverlayPresentationSettings(settings.Colors, resolution.Appearance);
+
+        var layout = UsageOverlayRenderer.CreateLayout(SampleState(), presentation, false);
+        var baseline = Single(layout, OverlayElementRole.GraphBaseline).Bounds;
+        var oldestGridLine = layout.Commands
+            .Where(command => command.Role == OverlayElementRole.GraphGridDot)
+            .Min(command => command.Bounds.Left);
+
+        Assert.Equal(baseline.Left, oldestGridLine);
     }
 
     private static OverlayDrawCommand Single(UsageOverlayLayout layout, OverlayElementRole role) =>

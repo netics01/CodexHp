@@ -23,4 +23,6 @@ public sealed record EffectiveAppearanceSettings(
     int GaugePaneWidth,
     int GraphBarWidth,
     int GraphBarGap,
-    int StatusStripeWidth);
+    int StatusStripeWidth,
+    int GraphLeftInset = 4,
+    int GraphRightInset = 6);

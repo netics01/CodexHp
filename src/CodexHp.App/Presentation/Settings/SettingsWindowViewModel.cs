@@ -14,6 +14,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     private readonly Action<AppSettings> preview;
     private readonly Action<bool> changeOverlayPositionMode;
     private readonly Func<AppSettings, AppSettings> commit;
+    private readonly Func<AppSettings, TimeSpan> calculateVisibleTokenHistory;
     private readonly bool canEnableStartWithWindows;
     private SettingsGroup selectedGroup;
 
@@ -22,12 +23,15 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         Action<AppSettings>? preview,
         Action<bool>? changeOverlayPositionMode,
         Func<AppSettings, AppSettings> commit,
-        bool canStartWithWindows = true)
+        bool canStartWithWindows = true,
+        Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null)
     {
         this.baseline = baseline ?? throw new ArgumentNullException(nameof(baseline));
         this.preview = preview ?? (_ => { });
         this.changeOverlayPositionMode = changeOverlayPositionMode ?? (_ => { });
         this.commit = commit ?? throw new ArgumentNullException(nameof(commit));
+        this.calculateVisibleTokenHistory = calculateVisibleTokenHistory
+            ?? (settings => TokenGraphViewport.CalculateVisibleDuration(settings.Appearance));
         this.canEnableStartWithWindows = canStartWithWindows;
         this.editSession = new SettingsEditSession(baseline);
         this.Groups =
@@ -184,7 +188,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     {
         get
         {
-            var duration = TokenGraphViewport.CalculateVisibleDuration(this.Working.Appearance);
+            var duration = this.calculateVisibleTokenHistory(this.Working);
             return $"Visible token history: {(int)duration.TotalMinutes} min {duration.Seconds} sec";
         }
     }

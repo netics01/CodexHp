@@ -135,8 +135,11 @@ public sealed class ApplicationCoordinatorTests
     {
         var requestedBucketSeconds = new List<int>();
         var requestedBucketCounts = new List<int>();
-        var settings = AppSettings.Default;
-        var graphAppearance = new AppearanceSettings(288, 68, 100, 2, 0, 4);
+        var settings = AppSettings.Default with
+        {
+            Appearance = new AppearanceSettings(140, 34, 50, 1, 0, 2),
+        };
+        var graphAppearance = new EffectiveAppearanceSettings(280, 68, 100, 2, 0, 4, 8, 12);
         var coordinator = CreateCoordinator(
             readBuckets: (_, bucketSeconds, maxBuckets) =>
             {
@@ -157,11 +160,11 @@ public sealed class ApplicationCoordinatorTests
                 GraphBarGap = 2,
             },
         };
-        graphAppearance = new AppearanceSettings(400, 68, 100, 5, 2, 4);
+        graphAppearance = new EffectiveAppearanceSettings(400, 68, 100, 5, 2, 4);
         await coordinator.PollTokenActivityOnceAsync(CancellationToken.None);
 
         Assert.Equal([15, 15], requestedBucketSeconds);
-        Assert.Equal([89, 41], requestedBucketCounts);
+        Assert.Equal([80, 41], requestedBucketCounts);
     }
 
     [Fact]
@@ -212,7 +215,7 @@ public sealed class ApplicationCoordinatorTests
         Func<CancellationToken, Task<OpenAiServiceStatusSnapshot>>? readService = null,
         Func<VisibilityState>? readVisibility = null,
         Func<AppSettings>? readSettings = null,
-        Func<AppearanceSettings>? readGraphAppearance = null)
+        Func<EffectiveAppearanceSettings>? readGraphAppearance = null)
     {
         return new ApplicationCoordinator(
             new DelegateCredentialSource(loadCredentials ?? (() => new CodexCredentials("access", null))),

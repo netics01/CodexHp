@@ -15,15 +15,25 @@ public sealed class UsageOverlayLayoutTests
 
         Assert.Equal(288, layout.Width);
         Assert.Equal(68, layout.Height);
-        Assert.Equal(new LayoutRect(4, 2, 93, 27), Single(layout, OverlayElementRole.ManaTrack).Bounds);
-        Assert.Equal(new LayoutRect(4, 2, 69, 27), Single(layout, OverlayElementRole.ManaFill).Bounds);
+        Assert.Equal(new LayoutRect(4, 2, 93, 29), Single(layout, OverlayElementRole.ManaTrack).Bounds);
+        Assert.Equal(new LayoutRect(4, 2, 69, 29), Single(layout, OverlayElementRole.ManaFill).Bounds);
         Assert.Equal(new LayoutRect(4, 31, 93, 2), Single(layout, OverlayElementRole.ManaRefreshTrack).Bounds);
         Assert.Equal(new LayoutRect(4, 31, 46, 2), Single(layout, OverlayElementRole.ManaRefreshFill).Bounds);
-        Assert.Equal(new LayoutRect(4, 35, 93, 27), Single(layout, OverlayElementRole.HpTrack).Bounds);
-        Assert.Equal(new LayoutRect(4, 35, 37, 27), Single(layout, OverlayElementRole.HpFill).Bounds);
+        Assert.Equal(new LayoutRect(4, 35, 93, 29), Single(layout, OverlayElementRole.HpTrack).Bounds);
+        Assert.Equal(new LayoutRect(4, 35, 37, 29), Single(layout, OverlayElementRole.HpFill).Bounds);
         Assert.Equal(new LayoutRect(4, 64, 93, 2), Single(layout, OverlayElementRole.HpRefreshTrack).Bounds);
         Assert.Equal(new LayoutRect(4, 64, 23, 2), Single(layout, OverlayElementRole.HpRefreshFill).Bounds);
-        Assert.Equal(16, Single(layout, OverlayElementRole.ManaText).FontSize);
+        Assert.Equal(17, Single(layout, OverlayElementRole.ManaText).FontSize);
+        Assert.Equal(
+            Single(layout, OverlayElementRole.ManaTrack).Bounds.Bottom,
+            Single(layout, OverlayElementRole.ManaRefreshTrack).Bounds.Top);
+        Assert.Equal(
+            Single(layout, OverlayElementRole.HpTrack).Bounds.Bottom,
+            Single(layout, OverlayElementRole.HpRefreshTrack).Bounds.Top);
+        Assert.Equal(
+            2,
+            Single(layout, OverlayElementRole.HpTrack).Bounds.Top
+                - Single(layout, OverlayElementRole.ManaRefreshTrack).Bounds.Bottom);
         Assert.Equal(new LayoutRect(104, 62, 178, 1), Single(layout, OverlayElementRole.GraphBaseline).Bounds);
         Assert.All(
             layout.Commands.Where(command => command.Role is OverlayElementRole.TokenBar or OverlayElementRole.GraphGridDot),
@@ -37,11 +47,11 @@ public sealed class UsageOverlayLayoutTests
     }
 
     [Theory]
-    [InlineData(34, 1.00, 10, 8)]
-    [InlineData(43, 1.25, 14, 10)]
-    [InlineData(51, 1.50, 18, 12)]
-    [InlineData(68, 2.00, 27, 16)]
-    [InlineData(85, 2.50, 35, 21)]
+    [InlineData(34, 1.00, 12, 8)]
+    [InlineData(43, 1.25, 16, 10)]
+    [InlineData(51, 1.50, 20, 12)]
+    [InlineData(68, 2.00, 29, 17)]
+    [InlineData(85, 2.50, 37, 22)]
     public void Gauge_text_keeps_the_reference_proportion_without_dropping_below_eight_dip(
         int overlayHeight,
         double displayScale,

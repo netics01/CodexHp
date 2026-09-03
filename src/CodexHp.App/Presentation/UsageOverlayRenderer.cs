@@ -76,7 +76,7 @@ public sealed record OverlayPresentationSettings(
 public static class UsageOverlayRenderer
 {
     private const int RefreshHeight = 2;
-    private const int RowGap = 2;
+    private const int GaugeGroupGap = 2;
     private const int ReferenceGaugeRowHeight = 27;
     private const int ReferenceGaugeFontHeight = 16;
     private const int MinimumGaugeFontDip = 8;
@@ -145,20 +145,20 @@ public static class UsageOverlayRenderer
         var gaugeHeight = Math.Max(1, gaugeBottom - gaugeTop);
         var quotaHeight = Math.Max(
             1,
-            (gaugeHeight - (RefreshHeight * 2) - (RowGap * 3)) / 2);
+            (gaugeHeight - (RefreshHeight * 2) - GaugeGroupGap) / 2);
         var gaugeWidth = Math.Max(1, gaugeRight - gaugeLeft);
         var manaBounds = new LayoutRect(gaugeLeft, gaugeTop, gaugeWidth, quotaHeight);
         var manaRefreshBounds = new LayoutRect(
             gaugeLeft,
-            manaBounds.Bottom + RowGap,
+            manaBounds.Bottom,
             gaugeWidth,
             RefreshHeight);
         var hpBounds = new LayoutRect(
             gaugeLeft,
-            manaRefreshBounds.Bottom + RowGap,
+            manaRefreshBounds.Bottom + GaugeGroupGap,
             gaugeWidth,
             quotaHeight);
-        var hpRefreshTop = hpBounds.Bottom + RowGap;
+        var hpRefreshTop = hpBounds.Bottom;
         var hpRefreshBounds = new LayoutRect(
             gaugeLeft,
             hpRefreshTop,

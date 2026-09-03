@@ -95,7 +95,8 @@ public partial class App : System.Windows.Application
         var displayResolution = this.positionController.Resolve(this.activeSettings);
         this.activePresentation = new OverlayPresentationSettings(
             this.activeSettings.Colors,
-            displayResolution.Appearance);
+            displayResolution.Appearance,
+            displayResolution.DisplayScaleY);
 
         this.usageOverlayWindow = new UsageOverlayWindow(
             new OverlayWindowHost(taskbarLocator, monitorService));
@@ -196,7 +197,8 @@ public partial class App : System.Windows.Application
         var displayResolution = this.positionController.Resolve(settings);
         this.activePresentation = new OverlayPresentationSettings(
             settings.Colors,
-            displayResolution.Appearance);
+            displayResolution.Appearance,
+            displayResolution.DisplayScaleY);
         this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
         this.usageOverlayWindow.SetPlacement(displayResolution.Placement);
     }
@@ -255,7 +257,8 @@ public partial class App : System.Windows.Application
 
             this.activePresentation = new OverlayPresentationSettings(
                 this.activeSettings.Colors,
-                resolution.Appearance);
+                resolution.Appearance,
+                resolution.DisplayScaleY);
             this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
             this.usageOverlayWindow.SetPlacement(resolution.Placement);
             this.ConstrainSettingsWindow(resolution.Placement.MonitorId, center: false);

@@ -37,19 +37,21 @@ public sealed class UsageOverlayLayoutTests
     }
 
     [Theory]
-    [InlineData(34, 10, 6)]
-    [InlineData(43, 14, 8)]
-    [InlineData(51, 18, 11)]
-    [InlineData(68, 27, 16)]
-    [InlineData(85, 35, 21)]
-    public void Gauge_text_keeps_the_current_two_hundred_percent_proportion(
+    [InlineData(34, 1.00, 10, 8)]
+    [InlineData(43, 1.25, 14, 10)]
+    [InlineData(51, 1.50, 18, 12)]
+    [InlineData(68, 2.00, 27, 16)]
+    [InlineData(85, 2.50, 35, 21)]
+    public void Gauge_text_keeps_the_reference_proportion_without_dropping_below_eight_dip(
         int overlayHeight,
+        double displayScale,
         int expectedRowHeight,
         int expectedFontHeight)
     {
         var presentation = new OverlayPresentationSettings(
             AppSettings.Default.Colors,
-            new EffectiveAppearanceSettings(266, overlayHeight, 96, 2, 0, 4));
+            new EffectiveAppearanceSettings(266, overlayHeight, 96, 2, 0, 4),
+            displayScale);
 
         var layout = UsageOverlayRenderer.CreateLayout(SampleState(), presentation, false);
 
@@ -132,7 +134,10 @@ public sealed class UsageOverlayLayoutTests
         var resolution = OverlayDisplayResolver.Resolve(
             settings,
             [new DisplayEnvironment(monitor, new PhysicalRect(0, 2064, 3840, 96))]);
-        var presentation = new OverlayPresentationSettings(settings.Colors, resolution.Appearance);
+        var presentation = new OverlayPresentationSettings(
+            settings.Colors,
+            resolution.Appearance,
+            resolution.DisplayScaleY);
 
         var layout = UsageOverlayRenderer.CreateLayout(SampleState(), presentation, false);
         var baseline = Single(layout, OverlayElementRole.GraphBaseline).Bounds;

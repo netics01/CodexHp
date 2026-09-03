@@ -32,6 +32,7 @@ public sealed class OverlayDisplayResolverTests
         Assert.Equal("DISPLAY2", result.Placement.MonitorId);
         Assert.Equal(new PhysicalRect(4, 2078, 288, 68), result.Placement.Bounds);
         Assert.Equal(OverlayPlacementTarget.Taskbar, result.EffectiveTarget);
+        Assert.Equal(2, result.DisplayScaleY);
         Assert.False(result.WasSizeAdjusted);
     }
 

@@ -7,7 +7,8 @@ public sealed record OverlayDisplayResolution(
     OverlayPlacement Placement,
     OverlayPlacementTarget EffectiveTarget,
     bool WasSizeAdjusted,
-    bool TaskbarWasUnavailable);
+    bool TaskbarWasUnavailable,
+    double DisplayScaleY);
 
 public static class OverlayDisplayResolver
 {
@@ -111,7 +112,8 @@ public static class OverlayDisplayResolver
             effectiveTarget,
             appearance.OverlayWidth != preferred.OverlayWidth
                 || appearance.OverlayHeight != preferred.OverlayHeight,
-            taskbarWasUnavailable);
+            taskbarWasUnavailable,
+            monitor.ScaleY);
     }
 
     public static OverlayLocationSettings Capture(

@@ -53,7 +53,8 @@ public sealed record UsageOverlayLayout(
 
 public sealed record OverlayPresentationSettings(
     ColorSettings Colors,
-    EffectiveAppearanceSettings Appearance)
+    EffectiveAppearanceSettings Appearance,
+    double DisplayScaleY = 1)
 {
     public static OverlayPresentationSettings FromUnscaled(AppSettings settings)
     {
@@ -67,7 +68,8 @@ public sealed record OverlayPresentationSettings(
                 appearance.GaugePaneWidth,
                 appearance.GraphBarWidth,
                 appearance.GraphBarGap,
-                appearance.StatusStripeWidth));
+                appearance.StatusStripeWidth),
+            DisplayScaleY: 1);
     }
 }
 
@@ -77,6 +79,7 @@ public static class UsageOverlayRenderer
     private const int RowGap = 2;
     private const int ReferenceGaugeRowHeight = 27;
     private const int ReferenceGaugeFontHeight = 16;
+    private const int MinimumGaugeFontDip = 8;
     private const double StaleOpacity = 0.55;
     private static readonly ColorValue BackgroundColor = ColorValue.Parse("#18181C");
     private static readonly ColorValue GaugeTrackColor = ColorValue.Parse("#3E3E44");
@@ -161,7 +164,7 @@ public static class UsageOverlayRenderer
             hpRefreshTop,
             gaugeWidth,
             Math.Max(1, Math.Min(RefreshHeight, gaugeBottom - hpRefreshTop)));
-        var fontSize = CalculateGaugeFontHeight(quotaHeight);
+        var fontSize = CalculateGaugeFontHeight(quotaHeight, settings.DisplayScaleY);
 
         AddGauge(
             commands,
@@ -200,12 +203,21 @@ public static class UsageOverlayRenderer
         return new UsageOverlayLayout(width, height, commands);
     }
 
-    private static int CalculateGaugeFontHeight(int gaugeRowHeight) =>
-        Math.Max(
+    private static int CalculateGaugeFontHeight(int gaugeRowHeight, double displayScaleY)
+    {
+        var proportionalHeight = Math.Max(
             1,
             (int)Math.Round(
                 gaugeRowHeight * ReferenceGaugeFontHeight / (double)ReferenceGaugeRowHeight,
                 MidpointRounding.AwayFromZero));
+        var validDisplayScale = double.IsFinite(displayScaleY) && displayScaleY > 0
+            ? displayScaleY
+            : 1;
+        var minimumHeight = (int)Math.Round(
+            MinimumGaugeFontDip * validDisplayScale,
+            MidpointRounding.AwayFromZero);
+        return Math.Max(proportionalHeight, minimumHeight);
+    }
 
     private static void AddGauge(
         ICollection<OverlayDrawCommand> commands,

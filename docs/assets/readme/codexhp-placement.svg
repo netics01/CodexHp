@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title description">
   <title id="title">CodexHp placement and appearance controls</title>
-  <desc id="description">Three diagrams show CodexHp on the Windows taskbar, moved anywhere on the desktop, and customized with colors and dimensions.</desc>
+  <desc id="description">Three diagrams show CodexHp on the Windows taskbar, moved anywhere on the desktop, and customized with colors and independently editable element dimensions.</desc>
   <defs>
     <linearGradient id="page" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#11141A" /><stop offset="1" stop-color="#222630" /></linearGradient>
     <linearGradient id="screen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#303644" /><stop offset="1" stop-color="#1C2028" /></linearGradient>
     <filter id="shadow" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#000000" flood-opacity="0.4" /></filter>
   </defs>
   <rect width="1200" height="560" rx="28" fill="url(#page)" />
-  <g font-family="Segoe UI, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#F4F6FA"><text x="210" y="55">Taskbar</text><text x="600" y="55">Anywhere</text><text x="990" y="55">Your colors and size</text></g>
+  <g font-family="Segoe UI, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="#F4F6FA"><text x="210" y="55">Taskbar</text><text x="600" y="55">Anywhere</text><text x="990" y="55">Your colors and sizes</text></g>
   <g filter="url(#shadow)">
     <rect x="40" y="82" width="340" height="330" rx="18" fill="url(#screen)" stroke="#48505F" stroke-width="3" /><rect x="40" y="360" width="340" height="52" rx="0 0 16 16" fill="#17191E" />
     <rect x="57" y="369" width="182" height="34" rx="4" fill="#18181C" /><rect x="63" y="374" width="70" height="11" rx="2" fill="#3A8EFF" /><rect x="63" y="385" width="70" height="2" fill="#FFFFFF" /><rect x="63" y="390" width="48" height="10" rx="2" fill="#DC4856" /><rect x="63" y="400" width="48" height="2" fill="#FFFFFF" /><line x1="145" y1="400" x2="228" y2="400" stroke="#FFFFFF" stroke-width="1.5" />
@@ -17,8 +17,14 @@
     <g fill="none" stroke="#B9C0CC" stroke-width="3" stroke-linecap="round"><path d="M497 236 H465" /><path d="M473 228 L465 236 L473 244" /><path d="M733 236 H748" /><path d="M740 228 L748 236 L740 244" /><path d="M615 188 V164" /><path d="M607 172 L615 164 L623 172" /><path d="M615 283 V307" /><path d="M607 299 L615 307 L623 299" /></g>
     <rect x="820" y="82" width="340" height="330" rx="18" fill="#20242D" stroke="#48505F" stroke-width="3" /><rect x="844" y="114" width="292" height="48" rx="8" fill="#18181C" /><rect x="858" y="124" width="105" height="18" rx="3" fill="#3A8EFF" /><rect x="858" y="142" width="105" height="2" fill="#FFFFFF" /><rect x="978" y="124" width="73" height="18" rx="3" fill="#DC4856" /><rect x="978" y="142" width="73" height="2" fill="#FFFFFF" /><line x1="1066" y1="144" x2="1120" y2="144" stroke="#FFFFFF" stroke-width="2" />
     <text x="850" y="202" font-family="Segoe UI, sans-serif" font-size="17" fill="#D9DEEA">Colors</text><rect x="917" y="185" width="34" height="24" rx="5" fill="#3A8EFF" /><rect x="959" y="185" width="34" height="24" rx="5" fill="#DC4856" /><rect x="1001" y="185" width="34" height="24" rx="5" fill="#F5A623" /><rect x="1043" y="185" width="34" height="24" rx="5" fill="#9B66E5" />
-    <text x="850" y="255" font-family="Segoe UI, sans-serif" font-size="17" fill="#D9DEEA">Overlay size</text><rect x="850" y="270" width="230" height="8" rx="4" fill="#4A5160" /><rect x="850" y="270" width="158" height="8" rx="4" fill="#3A8EFF" /><circle cx="1008" cy="274" r="11" fill="#F4F6FA" />
-    <text x="850" y="326" font-family="Segoe UI, sans-serif" font-size="17" fill="#D9DEEA">Graph density</text><rect x="850" y="341" width="230" height="8" rx="4" fill="#4A5160" /><rect x="850" y="341" width="118" height="8" rx="4" fill="#9B66E5" /><circle cx="968" cy="345" r="11" fill="#F4F6FA" />
+    <text x="850" y="246" font-family="Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#D9DEEA">Independent element sizes</text>
+    <g font-family="Segoe UI, sans-serif" font-size="14" fill="#D9DEEA">
+      <text x="850" y="276">Overlay width</text><rect x="1014" y="257" width="54" height="26" rx="4" fill="#151820" stroke="#667080" /><text x="1041" y="276" text-anchor="middle" fill="#F4F6FA">140</text><text x="1080" y="276" fill="#9DA6B5">DIP</text>
+      <text x="850" y="306">Overlay height</text><rect x="1014" y="287" width="54" height="26" rx="4" fill="#151820" stroke="#667080" /><text x="1041" y="306" text-anchor="middle" fill="#F4F6FA">34</text><text x="1080" y="306" fill="#9DA6B5">DIP</text>
+      <text x="850" y="336">Gauge area</text><rect x="1014" y="317" width="54" height="26" rx="4" fill="#151820" stroke="#667080" /><text x="1041" y="336" text-anchor="middle" fill="#F4F6FA">50</text><text x="1080" y="336" fill="#9DA6B5">DIP</text>
+      <text x="850" y="366">Graph bar / gap</text><rect x="1014" y="347" width="54" height="26" rx="4" fill="#151820" stroke="#667080" /><text x="1041" y="366" text-anchor="middle" fill="#F4F6FA">1 / 0</text><text x="1080" y="366" fill="#9DA6B5">DIP</text>
+      <text x="850" y="396">Status stripe</text><rect x="1014" y="377" width="54" height="26" rx="4" fill="#151820" stroke="#667080" /><text x="1041" y="396" text-anchor="middle" fill="#F4F6FA">2</text><text x="1080" y="396" fill="#9DA6B5">DIP</text>
+    </g>
   </g>
   <g font-family="Segoe UI, sans-serif" font-size="27" font-weight="700" text-anchor="middle"><circle cx="210" cy="465" r="27" fill="#3A8EFF" /><text x="210" y="475" fill="#FFFFFF">1</text><circle cx="600" cy="465" r="27" fill="#9B66E5" /><text x="600" y="475" fill="#FFFFFF">2</text><circle cx="990" cy="465" r="27" fill="#F5A623" /><text x="990" y="475" fill="#17191E">3</text></g>
 </svg>

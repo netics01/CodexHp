@@ -6,7 +6,7 @@
 
 CodexHp는 Windows 11의 ChatGPT 데스크톱 앱에서 Codex를 사용하는 사람들을 위한 작은 작업 표시줄 오버레이입니다. 다른 창을 열지 않아도 5시간·주간 한도의 남은 사용량, 초기화까지 남은 시간, 로컬 Codex 세션의 최근 활동, OpenAI 서비스 상태를 확인할 수 있습니다.
 
-![Windows 11 작업 표시줄에서 세션·주간 한도 게이지와 토큰 활동 그래프를 보여주는 CodexHp](docs/assets/readme/codexhp-taskbar.png)
+![Windows 11 작업 표시줄에서 정상 상태와 주황색 OpenAI 서비스 장애 표시등 및 영향 컴포넌트 툴팁을 함께 보여주는 CodexHp](docs/assets/readme/codexhp-taskbar.png)
 
 **[최신 릴리스에서 설치 프로그램 받기](https://github.com/netics01/CodexHp/releases/latest)**
 

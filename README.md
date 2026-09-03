@@ -6,7 +6,7 @@
 
 CodexHp is a compact taskbar overlay for people who use Codex in the ChatGPT desktop app on Windows 11. Without opening another window, you can see what remains in your 5-hour and weekly limits, when they reset, recent activity from local Codex sessions, and OpenAI service status.
 
-![CodexHp showing session and weekly limit gauges plus a token activity graph directly on the Windows 11 taskbar](docs/assets/readme/codexhp-taskbar.png)
+![CodexHp on the Windows 11 taskbar in normal operation and with an orange OpenAI service-issue stripe plus its affected-component tooltip](docs/assets/readme/codexhp-taskbar.png)
 
 **[Get the latest release](https://github.com/netics01/CodexHp/releases/latest)**
 

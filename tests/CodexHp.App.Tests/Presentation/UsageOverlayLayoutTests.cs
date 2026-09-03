@@ -47,12 +47,12 @@ public sealed class UsageOverlayLayoutTests
     }
 
     [Theory]
-    [InlineData(34, 1.00, 12, 8)]
-    [InlineData(43, 1.25, 16, 10)]
-    [InlineData(51, 1.50, 20, 12)]
+    [InlineData(34, 1.00, 12, 9)]
+    [InlineData(43, 1.25, 16, 11)]
+    [InlineData(51, 1.50, 20, 13)]
     [InlineData(68, 2.00, 29, 17)]
     [InlineData(85, 2.50, 37, 22)]
-    public void Gauge_text_keeps_the_reference_proportion_without_dropping_below_eight_dip(
+    public void Gauge_text_keeps_the_reference_proportion_without_dropping_below_eight_point_five_dip(
         int overlayHeight,
         double displayScale,
         int expectedRowHeight,

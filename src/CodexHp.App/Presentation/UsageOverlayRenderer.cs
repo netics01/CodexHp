@@ -79,7 +79,7 @@ public static class UsageOverlayRenderer
     private const int GaugeGroupGap = 2;
     private const int ReferenceGaugeRowHeight = 27;
     private const int ReferenceGaugeFontHeight = 16;
-    private const int MinimumGaugeFontDip = 8;
+    private const double MinimumGaugeFontDip = 8.5;
     private const double StaleOpacity = 0.55;
     private static readonly ColorValue BackgroundColor = ColorValue.Parse("#18181C");
     private static readonly ColorValue GaugeTrackColor = ColorValue.Parse("#3E3E44");

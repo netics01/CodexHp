@@ -4,6 +4,8 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.3.7] - 2026-09-03
+
 ### Added
 
 - Show clear loading, sign-in, reconnect, and temporary-unavailability messages in the overlay and tray tooltip when Codex usage is not yet available.

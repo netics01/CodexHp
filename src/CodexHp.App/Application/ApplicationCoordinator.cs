@@ -179,6 +179,7 @@ public sealed class ApplicationCoordinator
                     ServiceStatusDescription = snapshot.Description,
                     ServiceAffectedComponents = snapshot.AffectedComponents ?? [],
                     ServiceAffectedGroups = snapshot.AffectedGroups ?? [],
+                    ServiceAffectedComponentGroups = snapshot.AffectedComponentGroups ?? [],
                 },
                 cancellationToken);
         }
@@ -196,6 +197,7 @@ public sealed class ApplicationCoordinator
                     ServiceStatusDescription = string.Empty,
                     ServiceAffectedComponents = [],
                     ServiceAffectedGroups = [],
+                    ServiceAffectedComponentGroups = [],
                 },
                 cancellationToken);
         }
@@ -299,7 +301,8 @@ public sealed class ApplicationCoordinator
                     this.readSettings(),
                     this.clock.UnixTimeMilliseconds,
                     this.providerState.ServiceAffectedComponents,
-                    this.providerState.ServiceAffectedGroups);
+                    this.providerState.ServiceAffectedGroups,
+                    this.providerState.ServiceAffectedComponentGroups);
             }
         }
         catch (Exception exception)

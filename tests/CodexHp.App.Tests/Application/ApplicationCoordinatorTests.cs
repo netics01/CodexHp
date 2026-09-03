@@ -160,7 +160,12 @@ public sealed class ApplicationCoordinatorTests
                 "minor",
                 "Partial System Degradation",
                 NowUnixMs,
-                ["ChatGPT", "Codex"])));
+                ["Search", "Codex Web", "Sites", "CLI"],
+                ["ChatGPT", "Codex"],
+                [
+                    new ServiceStatusComponentGroup("ChatGPT", ["Search", "Sites"]),
+                    new ServiceStatusComponentGroup("Codex", ["Codex Web", "CLI"]),
+                ])));
         var published = new List<UsageOverlayState>();
         coordinator.UsageOverlayStateChanged += published.Add;
 
@@ -168,7 +173,7 @@ public sealed class ApplicationCoordinatorTests
 
         var state = Assert.Single(published);
         Assert.Equal(
-            "OpenAI service issue: Partial System Degradation\r\nChatGPT, Codex",
+            "OpenAI service issue: Partial System Degradation\r\nChatGPT - Search, Sites\r\nCodex - Codex Web, CLI",
             state.StatusStripeTooltip);
     }
 

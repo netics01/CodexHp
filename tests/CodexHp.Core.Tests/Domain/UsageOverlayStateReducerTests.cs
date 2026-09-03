@@ -171,6 +171,30 @@ public sealed class UsageOverlayStateReducerTests
             state.StatusStripeTooltip);
     }
 
+    [Fact]
+    public void Reduce_displays_each_affected_product_group_on_its_own_line()
+    {
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Waiting,
+            TokenActivityProviderState.Failed,
+            ServiceHealthState.Issue,
+            "Partial System Degradation",
+            new VisibilityState(false, false),
+            AppSettings.Default,
+            NowUnixMs,
+            affectedServiceComponents: ["Search", "Codex Web", "Sites", "CLI"],
+            affectedServiceGroups: ["ChatGPT", "Codex"],
+            affectedServiceComponentGroups:
+            [
+                new ServiceStatusComponentGroup("ChatGPT", ["Search", "Sites"]),
+                new ServiceStatusComponentGroup("Codex", ["Codex Web", "CLI"]),
+            ]);
+
+        Assert.Equal(
+            "OpenAI service issue: Partial System Degradation\r\nChatGPT - Search, Sites\r\nCodex - Codex Web, CLI",
+            state.StatusStripeTooltip);
+    }
+
     [Theory]
     [InlineData(ServiceHealthState.Operational, "All Systems Operational")]
     [InlineData(ServiceHealthState.Unknown, "")]

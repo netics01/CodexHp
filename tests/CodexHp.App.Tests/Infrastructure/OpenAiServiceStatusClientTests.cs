@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using CodexHp.App.Infrastructure;
 using CodexHp.Core.Domain;
 using Xunit;
@@ -318,8 +319,69 @@ public sealed class OpenAiServiceStatusClientTests
         Assert.Equal(["APIs", "ChatGPT"], GetAffectedGroups(snapshot));
     }
 
+    [Fact]
+    public async Task FetchAsync_groups_affected_components_from_the_status_page_when_components_endpoint_fails()
+    {
+        using var handler = new CapturingHandler(request => request.RequestUri?.AbsolutePath switch
+        {
+            "/api/v2/components.json" => throw new HttpRequestException("Components are unavailable."),
+            "/" => JsonResponse(CreateStatusPageHtml()),
+            _ => JsonResponse("""
+                {
+                  "status": {
+                    "description": "Partial System Degradation",
+                    "indicator": "minor"
+                  }
+                }
+                """),
+        });
+        var client = new OpenAiServiceStatusClient(
+            new HttpMessageInvoker(handler),
+            new Uri("https://status.openai.com/api/v2/status.json"),
+            new Uri("https://status.openai.com/api/v2/components.json"));
+
+        var snapshot = await client.FetchAsync();
+
+        Assert.Equal(["Search", "Sites", "Codex Web", "CLI"], snapshot.AffectedComponents);
+        Assert.Collection(
+            snapshot.AffectedComponentGroups ?? [],
+            group =>
+            {
+                Assert.Equal("ChatGPT", group.Name);
+                Assert.Equal(["Search", "Sites"], group.Components);
+            },
+            group =>
+            {
+                Assert.Equal("Codex", group.Name);
+                Assert.Equal(["Codex Web", "CLI"], group.Components);
+            });
+    }
+
     private static IReadOnlyList<string> GetAffectedGroups(OpenAiServiceStatusSnapshot snapshot)
         => snapshot.AffectedGroups ?? [];
+
+    private static string CreateStatusPageHtml()
+    {
+        const string flightPayload = """
+            21:["$","component",null,{"summary":{"affected_components":[
+              {"component_id":"chat-search","status":"degraded_performance"},
+              {"component_id":"codex-web","status":"degraded_performance"},
+              {"component_id":"chat-sites","status":"degraded_performance"},
+              {"component_id":"codex-cli","status":"degraded_performance"}
+            ],"structure":{"items":[
+              {"group":{"name":"ChatGPT","components":[
+                {"component_id":"chat-search","name":"Search"},
+                {"component_id":"chat-sites","name":"Sites"}
+              ]}},
+              {"group":{"name":"Codex","components":[
+                {"component_id":"codex-web","name":"Codex Web"},
+                {"component_id":"codex-cli","name":"CLI"}
+              ]}}
+            ]}}}]
+            """;
+        var pushArguments = JsonSerializer.Serialize(new object[] { 1, flightPayload });
+        return $"<script>self.__next_f.push({pushArguments})</script><span>Affects ChatGPT</span><span>Affects Codex</span>";
+    }
 
     private static HttpResponseMessage JsonResponse(string json) => new(HttpStatusCode.OK)
     {

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CodexHp.App.Application;
@@ -15,10 +16,11 @@ public sealed record OpenAiServiceStatusSnapshot(
     string Description,
     long UpdatedUnixMs,
     IReadOnlyList<string>? AffectedComponents = null,
-    IReadOnlyList<string>? AffectedGroups = null)
+    IReadOnlyList<string>? AffectedGroups = null,
+    IReadOnlyList<ServiceStatusComponentGroup>? AffectedComponentGroups = null)
 {
     public static OpenAiServiceStatusSnapshot Unknown(long updatedUnixMs) =>
-        new(ServiceHealthState.Unknown, "unknown", string.Empty, updatedUnixMs, [], []);
+        new(ServiceHealthState.Unknown, "unknown", string.Empty, updatedUnixMs, [], [], []);
 }
 
 public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
@@ -29,6 +31,10 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
     private static readonly Regex AffectedGroupPattern = new(
         "<span\\b[^>]*>\\s*Affects\\s+(?<name>[^<]+?)\\s*</span>",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex ScriptPattern = new(
+        "<script\\b[^>]*>(?<body>[\\s\\S]*?)</script>",
+        RegexOptions.CultureInvariant | RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private const string NextFlightPushPrefix = "self.__next_f.push(";
     private readonly HttpMessageInvoker http;
     private readonly Uri statusUri;
     private readonly Uri componentsUri;
@@ -77,8 +83,23 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
         }
 
         var statusPageHtml = await statusPageTask;
-        var affectedGroups = statusPageHtml is null ? [] : ReadAffectedGroups(statusPageHtml);
-        return snapshot with { AffectedGroups = affectedGroups };
+        var affectedComponentGroups = statusPageHtml is null
+            ? []
+            : ReadAffectedComponentGroups(statusPageHtml);
+        var affectedGroups = affectedComponentGroups.Count > 0
+            ? affectedComponentGroups.Select(group => group.Name).ToArray()
+            : statusPageHtml is null
+                ? []
+                : ReadAffectedGroups(statusPageHtml);
+        var affectedComponents = snapshot.AffectedComponents?.Count > 0
+            ? snapshot.AffectedComponents
+            : affectedComponentGroups.SelectMany(group => group.Components).ToArray();
+        return snapshot with
+        {
+            AffectedComponents = affectedComponents,
+            AffectedGroups = affectedGroups,
+            AffectedComponentGroups = affectedComponentGroups,
+        };
     }
 
     public static OpenAiServiceStatusSnapshot ParseStatusResponse(
@@ -101,7 +122,7 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
             ? ReadAffectedComponents(componentsRoot)
             : [];
 
-        return new OpenAiServiceStatusSnapshot(health, indicator, description, updatedUnixMs, affectedComponents, []);
+        return new OpenAiServiceStatusSnapshot(health, indicator, description, updatedUnixMs, affectedComponents, [], []);
     }
 
     private async Task<string> GetJsonAsync(Uri uri, CancellationToken cancellationToken)
@@ -240,5 +261,189 @@ public sealed class OpenAiServiceStatusClient : IOpenAiServiceStatusClient
         }
 
         return names;
+    }
+
+    private static IReadOnlyList<ServiceStatusComponentGroup> ReadAffectedComponentGroups(
+        string statusPageHtml)
+    {
+        ArgumentNullException.ThrowIfNull(statusPageHtml);
+
+        foreach (Match script in ScriptPattern.Matches(statusPageHtml))
+        {
+            var body = script.Groups["body"].Value.Trim();
+            if (!body.StartsWith(NextFlightPushPrefix, StringComparison.Ordinal)
+                || !body.EndsWith(')'))
+            {
+                continue;
+            }
+
+            var argumentsJson = body[NextFlightPushPrefix.Length..^1];
+            try
+            {
+                using var arguments = JsonDocument.Parse(argumentsJson);
+                if (arguments.RootElement.ValueKind != JsonValueKind.Array
+                    || arguments.RootElement.GetArrayLength() < 2
+                    || arguments.RootElement[1].ValueKind != JsonValueKind.String)
+                {
+                    continue;
+                }
+
+                var payload = arguments.RootElement[1].GetString();
+                if (string.IsNullOrWhiteSpace(payload)
+                    || !TryParseFlightPayload(payload, out var payloadDocument))
+                {
+                    continue;
+                }
+
+                using (payloadDocument)
+                {
+                    if (TryReadAffectedComponentGroups(
+                        payloadDocument.RootElement,
+                        out var affectedGroups))
+                    {
+                        return affectedGroups;
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+            }
+        }
+
+        return [];
+    }
+
+    private static bool TryParseFlightPayload(string payload, out JsonDocument document)
+    {
+        document = null!;
+        var separatorIndex = payload.IndexOf(':');
+        if (separatorIndex < 0 || separatorIndex == payload.Length - 1)
+        {
+            return false;
+        }
+
+        try
+        {
+            var json = Encoding.UTF8.GetBytes(payload[(separatorIndex + 1)..]);
+            var reader = new Utf8JsonReader(json);
+            document = JsonDocument.ParseValue(ref reader);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadAffectedComponentGroups(
+        JsonElement element,
+        out IReadOnlyList<ServiceStatusComponentGroup> affectedGroups)
+    {
+        if (element.ValueKind == JsonValueKind.Object
+            && element.TryGetProperty("affected_components", out var affectedComponents)
+            && element.TryGetProperty("structure", out var structure))
+        {
+            affectedGroups = CreateAffectedComponentGroups(affectedComponents, structure);
+            if (affectedGroups.Count > 0)
+            {
+                return true;
+            }
+        }
+
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var property in element.EnumerateObject())
+            {
+                if (TryReadAffectedComponentGroups(property.Value, out affectedGroups))
+                {
+                    return true;
+                }
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in element.EnumerateArray())
+            {
+                if (TryReadAffectedComponentGroups(item, out affectedGroups))
+                {
+                    return true;
+                }
+            }
+        }
+
+        affectedGroups = [];
+        return false;
+    }
+
+    private static IReadOnlyList<ServiceStatusComponentGroup> CreateAffectedComponentGroups(
+        JsonElement affectedComponents,
+        JsonElement structure)
+    {
+        if (affectedComponents.ValueKind != JsonValueKind.Array
+            || structure.ValueKind != JsonValueKind.Object
+            || !structure.TryGetProperty("items", out var items)
+            || items.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var affectedIds = affectedComponents
+            .EnumerateArray()
+            .Where(component => component.TryGetProperty("component_id", out var id)
+                && id.ValueKind == JsonValueKind.String
+                && !string.IsNullOrWhiteSpace(id.GetString()))
+            .Select(component => component.GetProperty("component_id").GetString()!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (affectedIds.Count == 0)
+        {
+            return [];
+        }
+
+        var groups = new List<ServiceStatusComponentGroup>();
+        foreach (var item in items.EnumerateArray())
+        {
+            if (!item.TryGetProperty("group", out var group)
+                || group.ValueKind != JsonValueKind.Object
+                || !group.TryGetProperty("name", out var groupNameElement)
+                || string.IsNullOrWhiteSpace(groupNameElement.GetString())
+                || !group.TryGetProperty("components", out var components)
+                || components.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            var groupName = groupNameElement.GetString()!.Trim();
+            if (string.Equals(groupName, "FedRAMP", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var componentNames = new List<string>();
+            var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var component in components.EnumerateArray())
+            {
+                if (!component.TryGetProperty("component_id", out var componentId)
+                    || componentId.ValueKind != JsonValueKind.String
+                    || !affectedIds.Contains(componentId.GetString()!)
+                    || !component.TryGetProperty("name", out var componentNameElement)
+                    || string.IsNullOrWhiteSpace(componentNameElement.GetString()))
+                {
+                    continue;
+                }
+
+                var componentName = componentNameElement.GetString()!.Trim();
+                if (seenNames.Add(componentName))
+                {
+                    componentNames.Add(componentName);
+                }
+            }
+
+            if (componentNames.Count > 0)
+            {
+                groups.Add(new ServiceStatusComponentGroup(groupName, componentNames));
+            }
+        }
+
+        return groups;
     }
 }

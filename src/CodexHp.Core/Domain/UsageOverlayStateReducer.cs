@@ -13,7 +13,8 @@ public static class UsageOverlayStateReducer
         AppSettings settings,
         long nowUnixMs,
         IReadOnlyList<string>? affectedServiceComponents = null,
-        IReadOnlyList<string>? affectedServiceGroups = null)
+        IReadOnlyList<string>? affectedServiceGroups = null,
+        IReadOnlyList<ServiceStatusComponentGroup>? affectedServiceComponentGroups = null)
     {
         ArgumentNullException.ThrowIfNull(usage);
         ArgumentNullException.ThrowIfNull(tokenActivity);
@@ -51,7 +52,8 @@ public static class UsageOverlayStateReducer
             ? BuildServiceIssueTooltip(
                 serviceStatusDescription,
                 affectedServiceComponents,
-                affectedServiceGroups)
+                affectedServiceGroups,
+                affectedServiceComponentGroups)
             : null;
         var contentStatus = CreateContentStatus(usage);
 
@@ -97,7 +99,8 @@ public static class UsageOverlayStateReducer
     private static string BuildServiceIssueTooltip(
         string serviceStatusDescription,
         IReadOnlyList<string>? affectedServiceComponents,
-        IReadOnlyList<string>? affectedServiceGroups)
+        IReadOnlyList<string>? affectedServiceGroups,
+        IReadOnlyList<ServiceStatusComponentGroup>? affectedServiceComponentGroups)
     {
         var issueText = string.IsNullOrWhiteSpace(serviceStatusDescription)
             ? "OpenAI service issue detected."
@@ -114,6 +117,38 @@ public static class UsageOverlayStateReducer
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray()
             ?? [];
+        var componentGroups = affectedServiceComponentGroups?
+            .Where(group => !string.IsNullOrWhiteSpace(group.Name))
+            .Select(group => new ServiceStatusComponentGroup(
+                group.Name.Trim(),
+                group.Components
+                    .Where(component => !string.IsNullOrWhiteSpace(component))
+                    .Select(component => component.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray()))
+            .Where(group => group.Components.Count > 0)
+            .DistinctBy(group => group.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+            ?? [];
+
+        if (componentGroups.Length > 0)
+        {
+            var lines = componentGroups
+                .Select(group => $"{group.Name} - {string.Join(", ", group.Components)}")
+                .ToList();
+            var groupedComponentNames = componentGroups
+                .SelectMany(group => group.Components)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var ungroupedComponentNames = componentNames
+                .Where(component => !groupedComponentNames.Contains(component))
+                .ToArray();
+            if (ungroupedComponentNames.Length > 0)
+            {
+                lines.Add($"Affected components: {string.Join(", ", ungroupedComponentNames)}");
+            }
+
+            return $"{issueText}\r\n{string.Join("\r\n", lines)}";
+        }
 
         if (groupNames.Length == 1 && componentNames.Length > 0)
         {

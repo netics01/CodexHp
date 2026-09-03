@@ -6,3 +6,7 @@ public enum ServiceHealthState
     Issue,
     Unknown,
 }
+
+public sealed record ServiceStatusComponentGroup(
+    string Name,
+    IReadOnlyList<string> Components);

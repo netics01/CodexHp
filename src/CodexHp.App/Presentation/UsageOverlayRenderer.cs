@@ -75,6 +75,8 @@ public static class UsageOverlayRenderer
 {
     private const int RefreshHeight = 2;
     private const int RowGap = 2;
+    private const int ReferenceGaugeRowHeight = 27;
+    private const int ReferenceGaugeFontHeight = 16;
     private const double StaleOpacity = 0.55;
     private static readonly ColorValue BackgroundColor = ColorValue.Parse("#18181C");
     private static readonly ColorValue GaugeTrackColor = ColorValue.Parse("#3E3E44");
@@ -159,7 +161,7 @@ public static class UsageOverlayRenderer
             hpRefreshTop,
             gaugeWidth,
             Math.Max(1, Math.Min(RefreshHeight, gaugeBottom - hpRefreshTop)));
-        var fontSize = Math.Clamp(quotaHeight + 5, 10, 16);
+        var fontSize = CalculateGaugeFontHeight(quotaHeight);
 
         AddGauge(
             commands,
@@ -197,6 +199,13 @@ public static class UsageOverlayRenderer
 
         return new UsageOverlayLayout(width, height, commands);
     }
+
+    private static int CalculateGaugeFontHeight(int gaugeRowHeight) =>
+        Math.Max(
+            1,
+            (int)Math.Round(
+                gaugeRowHeight * ReferenceGaugeFontHeight / (double)ReferenceGaugeRowHeight,
+                MidpointRounding.AwayFromZero));
 
     private static void AddGauge(
         ICollection<OverlayDrawCommand> commands,

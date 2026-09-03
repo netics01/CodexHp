@@ -9,6 +9,10 @@ All notable user-facing changes to CodexHp are documented here.
 - Show clear loading, sign-in, reconnect, and temporary-unavailability messages in the overlay and tray tooltip when Codex usage is not yet available.
 - Detect newly available Codex credentials on the regular usage poll without requiring a CodexHp restart.
 
+### Changed
+
+- Scale gauge percentage text in proportion to its row height, using the current 200% appearance as the reference.
+
 ## [0.3.6] - 2026-09-02
 
 ### Fixed

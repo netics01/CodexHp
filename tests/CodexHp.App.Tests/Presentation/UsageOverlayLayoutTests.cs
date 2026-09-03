@@ -36,6 +36,29 @@ public sealed class UsageOverlayLayoutTests
             });
     }
 
+    [Theory]
+    [InlineData(34, 10, 6)]
+    [InlineData(43, 14, 8)]
+    [InlineData(51, 18, 11)]
+    [InlineData(68, 27, 16)]
+    [InlineData(85, 35, 21)]
+    public void Gauge_text_keeps_the_current_two_hundred_percent_proportion(
+        int overlayHeight,
+        int expectedRowHeight,
+        int expectedFontHeight)
+    {
+        var presentation = new OverlayPresentationSettings(
+            AppSettings.Default.Colors,
+            new EffectiveAppearanceSettings(266, overlayHeight, 96, 2, 0, 4));
+
+        var layout = UsageOverlayRenderer.CreateLayout(SampleState(), presentation, false);
+
+        Assert.Equal(expectedRowHeight, Single(layout, OverlayElementRole.ManaTrack).Bounds.Height);
+        Assert.Equal(expectedFontHeight, Single(layout, OverlayElementRole.ManaText).FontSize);
+        Assert.Equal(expectedRowHeight, Single(layout, OverlayElementRole.HpTrack).Bounds.Height);
+        Assert.Equal(expectedFontHeight, Single(layout, OverlayElementRole.HpText).FontSize);
+    }
+
     [Fact]
     public void Configured_shape_values_change_each_affected_region()
     {

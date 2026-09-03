@@ -373,7 +373,7 @@
                                 TextBlock.TextAlignment="Center">
                         <TextBlock FontSize="22"
                                    FontWeight="SemiBold"
-                                   Text="CodexHp" />
+                                   Text="{Binding ApplicationTitleText}" />
                         <TextBlock x:Name="AboutVersionText"
                                    Margin="0,8,0,0"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"

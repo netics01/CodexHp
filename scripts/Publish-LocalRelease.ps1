@@ -358,7 +358,7 @@ try {
     $executableNames = @($setupName, $portableName)
 
     if (-not $releaseExists) {
-        & $verifyScript
+        & $verifyScript -BuildFlavor Official
         if ($LASTEXITCODE -ne 0) { throw "Verify-Core.ps1 failed with exit code $LASTEXITCODE." }
 
         & $buildInstallerScript -CompilerPath $resolvedCompilerPath -UseExistingVerifiedPublish

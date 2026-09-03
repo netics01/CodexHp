@@ -5,6 +5,7 @@
     <AssemblyName>CodexHp</AssemblyName>
     <RootNamespace>CodexHp.App</RootNamespace>
     <Version>0.3.6</Version>
+    <CodexHpBuildFlavor Condition="'$(CodexHpBuildFlavor)' == ''">Development</CodexHpBuildFlavor>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -19,6 +20,7 @@
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyMetadata Include="CodexHpBuildFlavor" Value="$(CodexHpBuildFlavor)" />
     <ProjectReference Include="..\CodexHp.Core\CodexHp.Core.csproj" />
   </ItemGroup>
   <ItemGroup>

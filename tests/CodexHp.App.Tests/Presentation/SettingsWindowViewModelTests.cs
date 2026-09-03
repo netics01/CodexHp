@@ -8,6 +8,19 @@ namespace CodexHp.App.Tests.Presentation;
 
 public sealed class SettingsWindowViewModelTests
 {
+    [Theory]
+    [InlineData("Development", "CodexHp-Dev")]
+    [InlineData("Official", "CodexHp")]
+    [InlineData("Unknown", "CodexHp-Dev")]
+    public void Build_flavor_selects_the_about_application_title(string buildFlavor, string expectedTitle)
+    {
+        var build = ApplicationBuildInfo.FromMetadata("0.3.6+abc123", buildFlavor);
+
+        Assert.Equal(expectedTitle, build.ApplicationTitle);
+        Assert.Equal("0.3.6", build.Version);
+        Assert.Equal("abc123", build.CommitHash);
+    }
+
     [Fact]
     public void Groups_are_ordered_general_color_appearance_position_and_about()
     {

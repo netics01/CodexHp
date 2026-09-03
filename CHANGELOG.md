@@ -13,6 +13,7 @@ All notable user-facing changes to CodexHp are documented here.
 
 - Scale gauge percentage text in proportion to its row height, using the current 200% appearance as the reference while keeping it at least 8.5 DIP tall.
 - Remove the blank space between each quota gauge and its refresh track while preserving separation between the two gauge groups.
+- Identify local development builds as `CodexHp-Dev` in About while official release builds remain `CodexHp`.
 
 ## [0.3.6] - 2026-09-02
 

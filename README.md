@@ -25,16 +25,17 @@ CodexHp is a compact taskbar overlay for people who use Codex in the ChatGPT des
 
 The activity graph adds context to the remaining limits. Idle periods, steady work, and sudden bursts are easy to distinguish at a glance.
 
-## On the taskbar—or anywhere you want
+## Put it anywhere. Make it yours.
 
-![CodexHp placed directly in the Windows taskbar and at a custom desktop position](docs/assets/readme/codexhp-placement.svg)
+![CodexHp on the taskbar, positioned freely on the desktop, and customized with colors and size controls](docs/assets/readme/codexhp-placement.svg)
 
-| No. | Placement |
+| No. | Make it yours |
 | --- | --- |
-| **1** | Attach CodexHp to the Windows taskbar for a native-feeling, at-a-glance display |
-| **2** | Move it anywhere on a connected display when the taskbar is not the best fit |
+| **1** | Keep CodexHp on the Windows taskbar for a native-feeling, at-a-glance display |
+| **2** | Drag it to any position on any connected display when the taskbar is not the best fit |
+| **3** | Tune the gauge colors, overlay dimensions, graph density, and status indicator to suit your setup |
 
-Open **Overlay Position** in settings and drag the outlined overlay to place it.
+Open **Overlay Position** in Settings and drag the outlined overlay to place it. Use **Colors** and **Appearance** to make the display fit your taskbar, monitor, and taste.
 
 ## Fits your Windows setup
 
@@ -44,7 +45,6 @@ CodexHp keeps saved placement usable across monitor bounds, taskbar layouts, and
 - Can stay visible all the time or appear only while ChatGPT is running.
 - Hides automatically when a full-screen app is active on the same monitor.
 - Opens settings when you double-click the overlay or click its notification-area icon.
-- Lets you customize gauge colors, size, graph density, placement, and the service-status indicator.
 
 > Once CodexHp becomes part of your Windows setup, you may wonder how you ever used Codex without it.
 
@@ -93,6 +93,8 @@ pwsh -NoProfile -File .\scripts\Build-Installer.ps1
 ```
 
 The development publish is written to `out\win-x64`, and installer output is written to `out\installer`. Both are intentionally untracked. For maintainers, official release assets are built only by this local command; GitHub Actions remains an independent CI check and does not create a second set of binaries.
+
+Regular local builds identify themselves as **CodexHp-Dev** in About. The official build created by the release command identifies itself as **CodexHp**.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease

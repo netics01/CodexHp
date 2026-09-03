@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
@@ -8,7 +7,8 @@ namespace CodexHp.App.Presentation.Settings;
 
 public sealed class SettingsWindowViewModel : INotifyPropertyChanged
 {
-    private static readonly ApplicationBuildInfo CurrentBuild = ResolveApplicationBuild();
+    private static readonly ApplicationBuildInfo CurrentBuild = ApplicationBuildInfo.FromAssembly(
+        typeof(SettingsWindowViewModel).Assembly);
     private readonly AppSettings baseline;
     private readonly SettingsEditSession editSession;
     private readonly Action<AppSettings> preview;
@@ -53,6 +53,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     public event Action<SettingsCloseRequest>? CloseRequested;
 
     public IReadOnlyList<SettingsGroup> Groups { get; }
+
+    public string ApplicationTitleText { get; } = CurrentBuild.ApplicationTitle;
 
     public string ApplicationVersionText { get; } = $"Version {CurrentBuild.Version}";
 
@@ -278,33 +280,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         }
     }
 
-    private static ApplicationBuildInfo ResolveApplicationBuild()
-    {
-        var assembly = typeof(SettingsWindowViewModel).Assembly;
-        var informationalVersion = assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-            .InformationalVersion;
-        var assemblyVersion = assembly.GetName().Version?.ToString(3) ?? "Unknown";
-        if (string.IsNullOrWhiteSpace(informationalVersion))
-        {
-            return new ApplicationBuildInfo(assemblyVersion, "Unknown");
-        }
-
-        var separator = informationalVersion.IndexOf('+', StringComparison.Ordinal);
-        if (separator <= 0 || separator == informationalVersion.Length - 1)
-        {
-            return new ApplicationBuildInfo(informationalVersion, "Unknown");
-        }
-
-        return new ApplicationBuildInfo(
-            informationalVersion[..separator],
-            informationalVersion[(separator + 1)..]);
-    }
-
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-    private sealed record ApplicationBuildInfo(string Version, string CommitHash);
 }
 
 public sealed class SettingsWindowController

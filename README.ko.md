@@ -25,16 +25,17 @@ CodexHp는 Windows 11의 ChatGPT 데스크톱 앱에서 Codex를 사용하는 �
 
 활동 그래프를 함께 보면 남은 한도뿐 아니라 최근 사용 패턴도 파악할 수 있습니다. 사용하지 않은 구간, 꾸준히 작업한 구간, 갑작스럽게 사용량이 늘어난 구간을 한눈에 구분할 수 있습니다.
 
-## 작업 표시줄에도, 원하는 곳 어디에나
+## 어디에나 놓고, 내 환경에 맞추세요
 
-![Windows 작업 표시줄 안과 데스크톱 사용자 지정 위치에 각각 배치한 CodexHp](docs/assets/readme/codexhp-placement.svg)
+![작업 표시줄, 자유로운 데스크톱 위치, 색상과 크기 설정으로 각각 표현한 CodexHp](docs/assets/readme/codexhp-placement.svg)
 
-| 번호 | 배치 방식 |
+| 번호 | 내 환경에 맞추기 |
 | --- | --- |
 | **1** | 작업 표시줄에 붙여 언제든 바로 확인 |
-| **2** | 작업 표시줄이 불편하다면 연결된 디스플레이의 원하는 위치로 이동 |
+| **2** | 작업 표시줄이 불편하다면 연결된 디스플레이 어디로든 자유롭게 이동 |
+| **3** | 게이지 색상, 오버레이 크기, 그래프 밀도, 상태 표시를 내 환경에 맞게 조절 |
 
-설정에서 **Overlay Position(오버레이 위치)**을 열고 나타나는 배치 프레임을 드래그하세요.
+설정에서 **Overlay Position(오버레이 위치)**을 열고 나타나는 배치 프레임을 드래그하세요. **Colors(색상)**와 **Appearance(모양)**에서 작업 표시줄, 모니터, 취향에 맞는 표시로 조절할 수 있습니다.
 
 ## 내 Windows 환경에 맞게
 
@@ -44,7 +45,6 @@ CodexHp는 Windows 11의 ChatGPT 데스크톱 앱에서 Codex를 사용하는 �
 - 항상 표시하거나 ChatGPT가 실행되는 동안에만 표시할 수 있습니다.
 - 같은 모니터에서 전체 화면 앱이 실행되면 자동으로 숨깁니다.
 - 오버레이를 두 번 클릭하거나 알림 영역 아이콘을 클릭하면 설정을 엽니다.
-- 게이지 색상, 크기, 그래프 밀도, 위치, 서비스 상태 표시를 사용자 지정할 수 있습니다.
 
 > CodexHp가 Windows 환경의 일부가 되고 나면, 그동안 이 프로그램 없이 어떻게 Codex를 썼는지 의아해질지도 모릅니다.
 
@@ -93,6 +93,8 @@ pwsh -NoProfile -File .\scripts\Build-Installer.ps1
 ```
 
 개발 게시 결과는 `out\win-x64`에, 설치 프로그램은 `out\installer`에 생성됩니다. 두 위치 모두 의도적으로 추적하지 않습니다. 관리자용 공식 릴리스 자산은 이 로컬 명령으로만 빌드합니다. GitHub Actions는 독립적인 CI 검증만 수행하며 별도의 바이너리를 만들지 않습니다.
+
+일반 로컬 빌드는 About에서 **CodexHp-Dev**로 표시됩니다. 릴리스 명령으로 만든 공식 빌드는 **CodexHp**로 표시됩니다.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease

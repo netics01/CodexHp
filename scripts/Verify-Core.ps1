@@ -1,5 +1,7 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet('Development', 'Official')][string]$BuildFlavor = 'Development'
+)
 
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
@@ -35,6 +37,7 @@ try {
     & dotnet publish $projectPath -c Release -r win-x64 --self-contained true `
         -p:PublishSingleFile=true `
         -p:IncludeNativeLibrariesForSelfExtract=true `
+        -p:CodexHpBuildFlavor=$BuildFlavor `
         -p:DebugType=None `
         -p:DebugSymbols=false `
         -o $temporaryPublishDirectoryFull

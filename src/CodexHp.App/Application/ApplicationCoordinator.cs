@@ -1,3 +1,4 @@
+using System.Net.Http;
 using CodexHp.App.Infrastructure;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
@@ -89,6 +90,33 @@ public sealed class ApplicationCoordinator
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (CodexCredentialException exception)
+        {
+            this.logger.Log(DiagnosticLevel.Warning, "Usage", "The usage provider failed.", exception);
+            var failureReason = exception.Failure is
+                CodexCredentialFailure.MissingFile or CodexCredentialFailure.MissingAccessToken
+                    ? UsageFailureReason.SignInRequired
+                    : UsageFailureReason.ReconnectRequired;
+            this.UpdateState(
+                state => state with
+                {
+                    Usage = UsageProviderState.Failed(state.Usage.LastSuccessful, failureReason),
+                },
+                cancellationToken);
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode is
+            System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        {
+            this.logger.Log(DiagnosticLevel.Warning, "Usage", "The usage provider rejected the Codex credentials.", exception);
+            this.UpdateState(
+                state => state with
+                {
+                    Usage = UsageProviderState.Failed(
+                        state.Usage.LastSuccessful,
+                        UsageFailureReason.ReconnectRequired),
+                },
+                cancellationToken);
         }
         catch (Exception exception)
         {

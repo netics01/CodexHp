@@ -9,7 +9,7 @@ public sealed class UsageOverlayStateReducerTests
     private const long NowUnixMs = 1_000_000;
 
     [Fact]
-    public void Reduce_shows_placeholders_without_usage_but_keeps_current_graph()
+    public void Reduce_shows_loading_without_usage_but_keeps_current_graph_state()
     {
         var state = UsageOverlayStateReducer.Reduce(
             UsageProviderState.Waiting,
@@ -26,6 +26,7 @@ public sealed class UsageOverlayStateReducerTests
         Assert.False(state.ManaBar.IsStale);
         Assert.Equal([10, 20], state.TokenBuckets);
         Assert.Null(state.StatusStripeColor);
+        Assert.Equal("Loading…", state.ContentMessage);
     }
 
     [Fact]
@@ -56,6 +57,25 @@ public sealed class UsageOverlayStateReducerTests
         Assert.Equal(0.75, state.HpBar.RefreshFraction, 6);
         Assert.Empty(state.TokenBuckets);
         Assert.Equal(AppSettings.Default.Colors.ServiceUnknown, state.StatusStripeColor);
+        Assert.Null(state.ContentMessage);
+    }
+
+    [Fact]
+    public void Reduce_explains_that_missing_Codex_auth_can_follow_installation_or_sign_in()
+    {
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Failed(failureReason: UsageFailureReason.SignInRequired),
+            TokenActivityProviderState.Failed,
+            ServiceHealthState.Operational,
+            string.Empty,
+            new VisibilityState(false, false),
+            AppSettings.Default,
+            NowUnixMs);
+
+        Assert.Equal("Sign in to Codex", state.ContentMessage);
+        Assert.Equal(
+            "Codex authentication was not found. Install or open Codex, then sign in. CodexHp will detect the sign-in automatically.",
+            state.ContentTooltip);
     }
 
     [Fact]

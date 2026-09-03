@@ -53,6 +53,7 @@ public static class UsageOverlayStateReducer
                 affectedServiceComponents,
                 affectedServiceGroups)
             : null;
+        var contentStatus = CreateContentStatus(usage);
 
         return new UsageOverlayState(
             isVisible,
@@ -60,7 +61,37 @@ public static class UsageOverlayStateReducer
             hpBar,
             buckets,
             stripeColor,
-            statusStripeTooltip);
+            statusStripeTooltip,
+            contentStatus.Message,
+            contentStatus.Tooltip);
+    }
+
+    private static (string? Message, string? Tooltip) CreateContentStatus(UsageProviderState usage)
+    {
+        if (usage.LastSuccessful is not null)
+        {
+            return (null, null);
+        }
+
+        return usage.Availability switch
+        {
+            ProviderAvailability.Waiting => (
+                "Loading…",
+                "CodexHp is checking Codex usage."),
+            ProviderAvailability.Failed => usage.FailureReason switch
+            {
+                UsageFailureReason.SignInRequired => (
+                    "Sign in to Codex",
+                    "Codex authentication was not found. Install or open Codex, then sign in. CodexHp will detect the sign-in automatically."),
+                UsageFailureReason.ReconnectRequired => (
+                    "Reconnect Codex",
+                    "Codex authentication could not be read. Open Codex and sign in again. CodexHp will retry automatically."),
+                _ => (
+                    "Usage unavailable",
+                    "Codex usage is temporarily unavailable. CodexHp will retry automatically."),
+            },
+            _ => (null, null),
+        };
     }
 
     private static string BuildServiceIssueTooltip(

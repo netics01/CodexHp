@@ -4,6 +4,11 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Show clear loading, sign-in, reconnect, and temporary-unavailability messages in the overlay and tray tooltip when Codex usage is not yet available.
+- Detect newly available Codex credentials on the regular usage poll without requiring a CodexHp restart.
+
 ## [0.3.6] - 2026-09-02
 
 ### Fixed

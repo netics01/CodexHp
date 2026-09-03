@@ -6,12 +6,13 @@ namespace CodexHp.App.Presentation;
 public sealed class WindowsTrayIconView : ITrayIconView
 {
     private const string IconResourceName = "CodexHp.App.Assets.CodexHp.ico";
-    private const string ToolTip = "CodexHp";
+    private const string DefaultToolTip = "CodexHp";
     private const int WindowStylePopup = unchecked((int)0x80000000);
     private const int WindowStyleExToolWindow = 0x00000080;
     private const int WindowStyleExNoActivate = 0x08000000;
     private const int TrayCallbackMessage = 0x8001;
     private const uint NotifyIconAdd = 0x00000000;
+    private const uint NotifyIconModify = 0x00000001;
     private const uint NotifyIconDelete = 0x00000002;
     private const uint NotifyIconMessage = 0x00000001;
     private const uint NotifyIconIcon = 0x00000002;
@@ -25,6 +26,7 @@ public sealed class WindowsTrayIconView : ITrayIconView
     private readonly System.Drawing.Icon icon;
     private readonly HwndSource messageSource;
     private readonly uint taskbarCreatedMessage;
+    private string toolTipText = DefaultToolTip;
     private bool visible;
     private bool disposed;
 
@@ -87,7 +89,27 @@ public sealed class WindowsTrayIconView : ITrayIconView
 
     public TrayIconAsset IconAsset => TrayIconAsset.CodexHpGauge;
 
-    public string ToolTipText => ToolTip;
+    public string ToolTipText
+    {
+        get => this.toolTipText;
+        set
+        {
+            ObjectDisposedException.ThrowIf(this.disposed, this);
+            var normalized = string.IsNullOrWhiteSpace(value)
+                ? DefaultToolTip
+                : value.Trim();
+            if (string.Equals(this.toolTipText, normalized, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            this.toolTipText = normalized;
+            if (this.visible)
+            {
+                _ = this.UpdateIcon();
+            }
+        }
+    }
 
     public IReadOnlyList<TrayMenuItem> MenuItems => TrayIconController.DefaultMenuItems;
 
@@ -126,6 +148,12 @@ public sealed class WindowsTrayIconView : ITrayIconView
         return NativeMethods.ShellNotifyIcon(NotifyIconAdd, ref data);
     }
 
+    private bool UpdateIcon()
+    {
+        var data = this.CreateNotifyIconData();
+        return NativeMethods.ShellNotifyIcon(NotifyIconModify, ref data);
+    }
+
     private void DeleteIcon()
     {
         var data = this.CreateNotifyIconData();
@@ -140,7 +168,7 @@ public sealed class WindowsTrayIconView : ITrayIconView
         Flags = NotifyIconMessage | NotifyIconIcon | NotifyIconTip,
         CallbackMessage = TrayCallbackMessage,
         IconHandle = this.icon.Handle,
-        Tip = ToolTip,
+        Tip = this.toolTipText,
         Info = string.Empty,
         InfoTitle = string.Empty,
     };

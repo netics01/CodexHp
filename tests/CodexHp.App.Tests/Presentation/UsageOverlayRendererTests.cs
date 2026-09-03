@@ -57,22 +57,26 @@ public sealed class UsageOverlayRendererTests
     }
 
     [Fact]
-    public void Missing_usage_is_rendered_as_placeholder_text()
+    public void Loading_usage_is_rendered_as_one_full_overlay_message()
     {
-        var state = new UsageOverlayState(
-            true,
-            new GaugeDisplayState(null, 0, false),
-            new GaugeDisplayState(null, 0, false),
-            [],
-            null,
-            null);
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Waiting,
+            TokenActivityProviderState.Waiting,
+            ServiceHealthState.Issue,
+            "Partial System Degradation",
+            new VisibilityState(false, false),
+            AppSettings.Default,
+            nowUnixMs: 1_000_000);
 
-        var texts = UsageOverlayRenderer.CreateLayout(state, ReferencePhysicalSettings, false)
-            .Commands
-            .Where(command => command.Role is OverlayElementRole.ManaText or OverlayElementRole.HpText)
+        var commands = UsageOverlayRenderer.CreateLayout(state, ReferencePhysicalSettings, false).Commands;
+        var texts = commands
+            .Where(command => command.Kind == OverlayDrawKind.Text)
             .ToArray();
 
-        Assert.Equal(["--%", "--%"], texts.Select(command => command.Text));
+        Assert.Equal("Loading…", Assert.Single(texts).Text);
+        Assert.Contains(
+            commands,
+            command => command.Role == OverlayElementRole.StatusStripe);
     }
 
     [Fact]

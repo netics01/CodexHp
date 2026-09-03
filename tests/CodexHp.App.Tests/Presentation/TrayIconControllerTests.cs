@@ -84,6 +84,19 @@ public sealed class TrayIconControllerTests
     }
 
     [Fact]
+    public void Controller_updates_the_tray_tooltip_for_overlay_messages()
+    {
+        var view = new FakeTrayIconView();
+        using var controller = new TrayIconController(view, () => { }, () => { });
+
+        controller.SetStatusMessage("Sign in to Codex");
+        Assert.Equal("CodexHp — Sign in to Codex", view.ToolTipText);
+
+        controller.SetStatusMessage(null);
+        Assert.Equal("CodexHp", view.ToolTipText);
+    }
+
+    [Fact]
     public void Controller_shows_icon_then_hides_and_disposes_it_on_shutdown()
     {
         var view = new FakeTrayIconView();
@@ -159,7 +172,7 @@ public sealed class TrayIconControllerTests
 
         public TrayIconAsset IconAsset => TrayIconAsset.CodexHpGauge;
 
-        public string ToolTipText => "CodexHp";
+        public string ToolTipText { get; set; } = "CodexHp";
 
         public IReadOnlyList<TrayMenuItem> MenuItems { get; } = TrayIconController.DefaultMenuItems;
 

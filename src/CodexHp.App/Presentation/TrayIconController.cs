@@ -52,7 +52,7 @@ public interface ITrayIconView : IDisposable
 
     TrayIconAsset IconAsset { get; }
 
-    string ToolTipText { get; }
+    string ToolTipText { get; set; }
 
     IReadOnlyList<TrayMenuItem> MenuItems { get; }
 }
@@ -83,6 +83,14 @@ public sealed class TrayIconController : IDisposable
         this.view.MouseClicked += this.OnMouseClicked;
         this.view.MenuCommandInvoked += this.OnMenuCommandInvoked;
         this.view.Visible = true;
+    }
+
+    public void SetStatusMessage(string? message)
+    {
+        ObjectDisposedException.ThrowIf(this.disposed, this);
+        this.view.ToolTipText = string.IsNullOrWhiteSpace(message)
+            ? "CodexHp"
+            : $"CodexHp — {message.Trim()}";
     }
 
     public void Dispose()

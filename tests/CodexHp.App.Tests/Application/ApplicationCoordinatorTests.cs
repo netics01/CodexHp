@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Net;
 using CodexHp.App.Application;
 using CodexHp.App.Infrastructure;
+using CodexHp.App.Presentation;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
 using Xunit;
@@ -78,6 +80,75 @@ public sealed class ApplicationCoordinatorTests
 
         cancellation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => runTask);
+    }
+
+    [Theory]
+    [InlineData(CodexCredentialFailure.MissingFile, "Sign in to Codex")]
+    [InlineData(CodexCredentialFailure.MissingAccessToken, "Sign in to Codex")]
+    [InlineData(CodexCredentialFailure.InvalidFile, "Reconnect Codex")]
+    [InlineData(CodexCredentialFailure.UnreadableFile, "Reconnect Codex")]
+    public async Task Credential_failure_publishes_a_specific_full_overlay_message(
+        CodexCredentialFailure failure,
+        string expectedMessage)
+    {
+        var coordinator = CreateCoordinator(
+            loadCredentials: () => throw new CodexCredentialException(failure, "test failure"));
+        var published = new List<UsageOverlayState>();
+        coordinator.UsageOverlayStateChanged += published.Add;
+
+        await coordinator.PollUsageOnceAsync(CancellationToken.None);
+
+        var layout = UsageOverlayRenderer.CreateLayout(
+            Assert.Single(published),
+            AppSettings.Default,
+            false);
+        Assert.Equal(
+            expectedMessage,
+            Assert.Single(layout.Commands, command => command.Role == OverlayElementRole.ContentMessage).Text);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task Rejected_usage_credentials_request_a_Codex_reconnect(HttpStatusCode statusCode)
+    {
+        var coordinator = CreateCoordinator(
+            fetchUsage: (_, _) => throw new HttpRequestException("rejected", null, statusCode));
+        var published = new List<UsageOverlayState>();
+        coordinator.UsageOverlayStateChanged += published.Add;
+
+        await coordinator.PollUsageOnceAsync(CancellationToken.None);
+
+        Assert.Equal("Reconnect Codex", Assert.Single(published).ContentMessage);
+    }
+
+    [Fact]
+    public async Task Successful_usage_poll_clears_the_sign_in_message_without_a_restart()
+    {
+        var credentialLoads = 0;
+        var coordinator = CreateCoordinator(
+            loadCredentials: () => ++credentialLoads == 1
+                ? throw new CodexCredentialException(CodexCredentialFailure.MissingFile, "missing")
+                : new CodexCredentials("access", "account"));
+        var published = new List<UsageOverlayState>();
+        coordinator.UsageOverlayStateChanged += published.Add;
+
+        await coordinator.PollUsageOnceAsync(CancellationToken.None);
+        await coordinator.PollUsageOnceAsync(CancellationToken.None);
+
+        var signInLayout = UsageOverlayRenderer.CreateLayout(published[0], AppSettings.Default, false);
+        var currentLayout = UsageOverlayRenderer.CreateLayout(published[1], AppSettings.Default, false);
+        Assert.Equal(
+            "Sign in to Codex",
+            Assert.Single(signInLayout.Commands, command => command.Role == OverlayElementRole.ContentMessage).Text);
+        Assert.DoesNotContain(
+            currentLayout.Commands,
+            command => command.Role == OverlayElementRole.ContentMessage);
+        Assert.Equal(
+            ["80%", "60%"],
+            currentLayout.Commands
+                .Where(command => command.Role is OverlayElementRole.ManaText or OverlayElementRole.HpText)
+                .Select(command => command.Text));
     }
 
     [Fact]

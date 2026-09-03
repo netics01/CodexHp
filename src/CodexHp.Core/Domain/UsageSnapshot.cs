@@ -15,13 +15,25 @@ public enum ProviderAvailability
     Failed,
 }
 
-public sealed record UsageProviderState(ProviderAvailability Availability, UsageSnapshot? LastSuccessful)
+public enum UsageFailureReason
 {
-    public static UsageProviderState Waiting { get; } = new(ProviderAvailability.Waiting, null);
+    Unavailable,
+    SignInRequired,
+    ReconnectRequired,
+}
+
+public sealed record UsageProviderState(
+    ProviderAvailability Availability,
+    UsageSnapshot? LastSuccessful,
+    UsageFailureReason? FailureReason)
+{
+    public static UsageProviderState Waiting { get; } = new(ProviderAvailability.Waiting, null, null);
 
     public static UsageProviderState Current(UsageSnapshot snapshot) =>
-        new(ProviderAvailability.Current, snapshot ?? throw new ArgumentNullException(nameof(snapshot)));
+        new(ProviderAvailability.Current, snapshot ?? throw new ArgumentNullException(nameof(snapshot)), null);
 
-    public static UsageProviderState Failed(UsageSnapshot? lastSuccessful = null) =>
-        new(ProviderAvailability.Failed, lastSuccessful);
+    public static UsageProviderState Failed(
+        UsageSnapshot? lastSuccessful = null,
+        UsageFailureReason failureReason = UsageFailureReason.Unavailable) =>
+        new(ProviderAvailability.Failed, lastSuccessful, failureReason);
 }

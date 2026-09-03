@@ -33,6 +33,7 @@ public enum OverlayElementRole
     GraphGridDot,
     GraphBaseline,
     TokenBar,
+    ContentMessage,
     OverlayPositionOutline,
 }
 
@@ -113,6 +114,23 @@ public static class UsageOverlayRenderer
             var stripeBounds = new LayoutRect(4, 2, appearance.StatusStripeWidth, Math.Max(1, height - 4));
             commands.Add(Rectangle(OverlayElementRole.StatusStripe, stripeBounds, stripeColor));
             stripeOffset = appearance.StatusStripeWidth + 2;
+        }
+
+        if (!string.IsNullOrWhiteSpace(state.ContentMessage))
+        {
+            commands.Add(new OverlayDrawCommand(
+                OverlayDrawKind.Text,
+                OverlayElementRole.ContentMessage,
+                new LayoutRect(4 + stripeOffset, 0, Math.Max(1, width - 8 - stripeOffset), height),
+                White,
+                Text: state.ContentMessage,
+                FontSize: Math.Clamp(height / 3, 10, 16)));
+            if (isOverlayPositionChangeMode)
+            {
+                AddOverlayPositionOutline(commands, width, height);
+            }
+
+            return new UsageOverlayLayout(width, height, commands);
         }
 
         var gaugeLeft = 4 + stripeOffset;

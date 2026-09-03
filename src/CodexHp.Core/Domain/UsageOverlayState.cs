@@ -13,4 +13,6 @@ public sealed record UsageOverlayState(
     GaugeDisplayState HpBar,
     IReadOnlyList<int> TokenBuckets,
     ColorValue? StatusStripeColor,
-    string? StatusStripeTooltip);
+    string? StatusStripeTooltip,
+    string? ContentMessage = null,
+    string? ContentTooltip = null);

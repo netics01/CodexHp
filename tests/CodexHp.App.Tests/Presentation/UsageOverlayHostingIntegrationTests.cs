@@ -192,6 +192,32 @@ public sealed class UsageOverlayHostingIntegrationTests
         }
     });
 
+    [Fact]
+    public void Loading_message_enables_the_whole_overlay_tooltip() =>
+        StaTest.Run(() =>
+    {
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Waiting,
+            TokenActivityProviderState.Waiting,
+            ServiceHealthState.Operational,
+            string.Empty,
+            new VisibilityState(false, false),
+            AppSettings.Default,
+            nowUnixMs: 1_000_000);
+        var window = new UsageOverlayWindow();
+        try
+        {
+            window.Apply(state, AppSettings.Default);
+            window.Show();
+
+            Assert.True(window.IsStatusStripeTooltipEnabled);
+        }
+        finally
+        {
+            window.CloseForShutdown();
+        }
+    });
+
     [Theory]
     [InlineData(0xC123u, 0xC123u, true)]
     [InlineData(0x0201u, 0xC123u, false)]

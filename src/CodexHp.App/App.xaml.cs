@@ -180,6 +180,7 @@ public partial class App : System.Windows.Application
             }
 
             this.currentUsageOverlayState = state;
+            this.trayIcon?.SetStatusMessage(state.ContentMessage);
             this.usageOverlayWindow.Apply(state, this.activePresentation);
         });
     }

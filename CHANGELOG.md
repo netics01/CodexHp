@@ -4,6 +4,18 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.3.8] - 2026-09-17
+
+### Added
+
+- Show time remaining until the weekly and 5-hour usage limits reset when hovering over the overlay, including when OpenAI services are operational.
+- List the weekly reset first and hide the 5-hour reset when the blue usage bar shows 100% remaining.
+
+### Changed
+
+- Separate reset times from service issue details with a blank line in the tooltip.
+- Group affected service components by product using the OpenAI status page's group structure, with each product on its own line.
+
 ## [0.3.7] - 2026-09-03
 
 ### Added

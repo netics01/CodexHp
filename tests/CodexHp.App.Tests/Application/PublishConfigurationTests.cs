@@ -6,11 +6,12 @@ namespace CodexHp.App.Tests.Application;
 public sealed class PublishConfigurationTests
 {
     [Fact]
-    public void Application_project_declares_release_version_0_3_7()
+    public void Application_project_declares_a_numeric_release_version_matching_the_binary()
     {
         var properties = LoadApplicationProjectProperties();
 
-        Assert.Equal("0.3.7", properties["Version"]);
+        Assert.Matches(@"^\d+\.\d+\.\d+$", properties["Version"]);
+        Assert.Equal(typeof(CodexHp.App.App).Assembly.GetName().Version!.ToString(3), properties["Version"]);
     }
 
     [Fact]
@@ -19,7 +20,8 @@ public sealed class PublishConfigurationTests
         var codexHpRoot = FindCodexHpRoot();
         var installer = File.ReadAllText(Path.Combine(codexHpRoot, "installer", "CodexHp.iss"));
 
-        Assert.Contains("#define AppVersion \"0.3.7\"", installer, StringComparison.Ordinal);
+        var version = LoadApplicationProjectProperties()["Version"];
+        Assert.Contains($"#define AppVersion \"{version}\"", installer, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -34,7 +36,10 @@ public sealed class PublishConfigurationTests
 
         Assert.True(File.Exists(changelogPath), $"Missing changelog: {changelogPath}");
         var changelog = File.ReadAllText(changelogPath);
-        Assert.Contains("## [0.3.7] - 2026-09-03", changelog, StringComparison.Ordinal);
+        var version = LoadApplicationProjectProperties()["Version"];
+        Assert.Matches(
+            @"(?m)^## \[" + System.Text.RegularExpressions.Regex.Escape(version) + @"\] - \d{4}-\d{2}-\d{2}\r?$",
+            changelog);
         Assert.Contains("$changelogPath = Join-Path $repositoryRoot 'CHANGELOG.md'", releaseScript, StringComparison.Ordinal);
         Assert.Contains("Get-ChangelogSection", releaseScript, StringComparison.Ordinal);
         Assert.Contains("$changelogSection", releaseScript, StringComparison.Ordinal);

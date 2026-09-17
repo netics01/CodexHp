@@ -15,4 +15,17 @@ public sealed record UsageOverlayState(
     ColorValue? StatusStripeColor,
     string? StatusStripeTooltip,
     string? ContentMessage = null,
-    string? ContentTooltip = null);
+    string? ContentTooltip = null)
+{
+    public string? Tooltip
+    {
+        get
+        {
+            var sections = new[] { ContentTooltip, StatusStripeTooltip }
+                .Where(section => !string.IsNullOrWhiteSpace(section))
+                .Select(section => section!.Trim())
+                .ToArray();
+            return sections.Length == 0 ? null : string.Join("\r\n\r\n", sections);
+        }
+    }
+}

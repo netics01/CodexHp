@@ -133,7 +133,7 @@ public sealed class UsageOverlayHostingIntegrationTests
     });
 
     [Fact]
-    public void WPF_surface_owns_a_non_activating_status_tooltip_only_while_an_issue_description_exists() =>
+    public void WPF_surface_owns_a_non_activating_tooltip_while_tooltip_text_exists() =>
         StaTest.Run(() =>
     {
         var surface = new WpfOverlaySurface(32, 16, NoOpHook);
@@ -211,6 +211,35 @@ public sealed class UsageOverlayHostingIntegrationTests
             window.Show();
 
             Assert.True(window.IsStatusStripeTooltipEnabled);
+        }
+        finally
+        {
+            window.CloseForShutdown();
+        }
+    });
+
+    [Fact]
+    public void Healthy_usage_enables_the_tooltip_and_keeps_it_enabled_when_5H_becomes_full() =>
+        StaTest.Run(() =>
+    {
+        const long now = 1_000_000;
+        var usage = new UsageSnapshot(70, 40, now + 3_600_000, 18_000, now + 86_400_000, 604_800);
+        var window = new UsageOverlayWindow();
+        try
+        {
+            foreach (var percent in new[] { 70, 100 })
+            {
+                var state = UsageOverlayStateReducer.Reduce(
+                    UsageProviderState.Current(usage with { SessionRemainingPercent = percent }),
+                    TokenActivityProviderState.Waiting, ServiceHealthState.Operational,
+                    string.Empty, new VisibilityState(true, false), AppSettings.Default, now);
+                window.Apply(state, AppSettings.Default);
+                window.Show();
+
+                Assert.Null(state.StatusStripeColor);
+                Assert.True(window.IsStatusStripeTooltipEnabled);
+                Assert.True(NativeMethods.IsWindow(window.StatusStripeTooltipWindowHandle));
+            }
         }
         finally
         {

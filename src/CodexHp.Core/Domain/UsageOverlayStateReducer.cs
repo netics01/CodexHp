@@ -55,7 +55,7 @@ public static class UsageOverlayStateReducer
                 affectedServiceGroups,
                 affectedServiceComponentGroups)
             : null;
-        var contentStatus = CreateContentStatus(usage);
+        var contentStatus = CreateContentStatus(usage, nowUnixMs);
 
         return new UsageOverlayState(
             isVisible,
@@ -68,11 +68,27 @@ public static class UsageOverlayStateReducer
             contentStatus.Tooltip);
     }
 
-    private static (string? Message, string? Tooltip) CreateContentStatus(UsageProviderState usage)
+    private static (string? Message, string? Tooltip) CreateContentStatus(
+        UsageProviderState usage,
+        long nowUnixMs)
     {
-        if (usage.LastSuccessful is not null)
+        if (usage.LastSuccessful is { } snapshot)
         {
-            return (null, null);
+            var lines = new List<string>
+            {
+                FormatResetTime("Week", snapshot.WeeklyResetUnixMs, nowUnixMs),
+            };
+            if (Math.Clamp(snapshot.SessionRemainingPercent, 0, 100) < 100)
+            {
+                lines.Add(FormatResetTime("5H", snapshot.SessionResetUnixMs, nowUnixMs));
+            }
+
+            if (usage.Availability == ProviderAvailability.Failed)
+            {
+                lines.Add("Reset times based on last successful update.");
+            }
+
+            return (null, string.Join("\r\n", lines));
         }
 
         return usage.Availability switch
@@ -94,6 +110,44 @@ public static class UsageOverlayStateReducer
             },
             _ => (null, null),
         };
+    }
+
+    private static string FormatResetTime(string label, long resetUnixMs, long nowUnixMs)
+    {
+        // A missing 5H window is represented by long.MaxValue in the usage client.
+        if (resetUnixMs <= 0 || resetUnixMs > DateTimeOffset.MaxValue.ToUnixTimeMilliseconds())
+        {
+            return $"{label} reset time unavailable";
+        }
+
+        if (resetUnixMs <= nowUnixMs)
+        {
+            return $"{label} reset pending";
+        }
+
+        var remaining = TimeSpan.FromMilliseconds(resetUnixMs - nowUnixMs);
+        if (remaining.TotalMinutes < 1)
+        {
+            return $"{label} resets in <1m";
+        }
+
+        var duration = new List<string>();
+        if (remaining.Days > 0)
+        {
+            duration.Add($"{remaining.Days}d");
+        }
+
+        if (remaining.Hours > 0)
+        {
+            duration.Add($"{remaining.Hours}h");
+        }
+
+        if (remaining.Minutes > 0)
+        {
+            duration.Add($"{remaining.Minutes}m");
+        }
+
+        return $"{label} resets in {string.Join(" ", duration)}";
     }
 
     private static string BuildServiceIssueTooltip(

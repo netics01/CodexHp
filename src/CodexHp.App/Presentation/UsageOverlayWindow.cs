@@ -276,19 +276,8 @@ public sealed class UsageOverlayWindow
             this.usageOverlayState,
             this.presentationSettings,
             this.IsOverlayPositionChangeMode);
-        this.overlaySurface?.UpdateStatusStripeTooltip(CombineTooltips(
-            this.usageOverlayState.ContentTooltip,
-            this.usageOverlayState.StatusStripeTooltip));
+        this.overlaySurface?.UpdateStatusStripeTooltip(this.usageOverlayState.Tooltip);
         this.SubmitLayeredSurface();
-    }
-
-    private static string? CombineTooltips(string? contentTooltip, string? statusStripeTooltip)
-    {
-        var items = new[] { contentTooltip, statusStripeTooltip }
-            .Where(item => !string.IsNullOrWhiteSpace(item))
-            .Select(item => item!.Trim())
-            .ToArray();
-        return items.Length == 0 ? null : string.Join("\r\n\r\n", items);
     }
 
     private void SubmitLayeredSurface()

@@ -8,6 +8,127 @@ public sealed class UsageOverlayStateReducerTests
 {
     private const long NowUnixMs = 1_000_000;
 
+    [Theory]
+    [InlineData(ServiceHealthState.Operational)]
+    [InlineData(ServiceHealthState.Unknown)]
+    public void Reset_tooltip_shows_week_before_5H_without_a_service_issue(ServiceHealthState health)
+    {
+        var state = ReduceResetTooltip(SampleResetUsage(), health: health);
+
+        Assert.Equal("Week resets in 3d 4h 12m\r\n5H resets in 2h 18m", state.Tooltip);
+        Assert.Null(state.StatusStripeTooltip);
+        Assert.Null(state.ContentMessage);
+    }
+
+    [Fact]
+    public void Reset_tooltip_omits_only_5H_when_both_usage_bars_are_full()
+    {
+        var usage = SampleResetUsage() with { SessionRemainingPercent = 100, WeeklyRemainingPercent = 100 };
+
+        Assert.Equal("Week resets in 3d 4h 12m", ReduceResetTooltip(usage).Tooltip);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(99)]
+    public void Reset_tooltip_does_not_hide_5H_when_the_refresh_gauge_is_full(int remainingPercent)
+    {
+        var usage = SampleResetUsage() with
+        {
+            SessionRemainingPercent = remainingPercent,
+            SessionResetUnixMs = NowUnixMs + 18_000_000,
+        };
+        var state = ReduceResetTooltip(usage);
+
+        Assert.Equal(1d, state.ManaBar.RefreshFraction);
+        Assert.EndsWith("5H resets in 5h", state.Tooltip);
+    }
+
+    [Theory]
+    [InlineData(70, "Week resets in 3d 4h 12m\r\n5H resets in 2h 18m")]
+    [InlineData(100, "Week resets in 3d 4h 12m")]
+    public void Service_issue_follows_reset_times_after_one_blank_line(int remainingPercent, string resetText)
+    {
+        var usage = SampleResetUsage() with { SessionRemainingPercent = remainingPercent };
+        var state = ReduceResetTooltip(usage, health: ServiceHealthState.Issue);
+
+        Assert.Equal(
+            resetText + "\r\n\r\nOpenAI service issue: Partial System Degradation\r\nChatGPT - Search\r\nCodex - CLI",
+            state.Tooltip);
+    }
+
+    [Theory]
+    [InlineData(86_400_000, "1d")]
+    [InlineData(3_600_000, "1h")]
+    [InlineData(60_000, "1m")]
+    [InlineData(59_999, "<1m")]
+    [InlineData(1, "<1m")]
+    public void Reset_tooltip_formats_time_boundaries(long remainingMs, string expected)
+    {
+        var usage = SampleResetUsage() with
+        {
+            SessionRemainingPercent = 100,
+            WeeklyResetUnixMs = NowUnixMs + remainingMs,
+        };
+
+        Assert.Equal($"Week resets in {expected}", ReduceResetTooltip(usage).Tooltip);
+    }
+
+    [Theory]
+    [InlineData(0, "Week reset time unavailable")]
+    [InlineData(long.MaxValue, "Week reset time unavailable")]
+    [InlineData(NowUnixMs, "Week reset pending")]
+    [InlineData(NowUnixMs - 1, "Week reset pending")]
+    public void Reset_tooltip_handles_missing_or_elapsed_reset_times(long resetUnixMs, string expected)
+    {
+        var usage = SampleResetUsage() with
+        {
+            SessionRemainingPercent = 100,
+            WeeklyResetUnixMs = resetUnixMs,
+        };
+
+        Assert.Equal(expected, ReduceResetTooltip(usage).Tooltip);
+    }
+
+    [Fact]
+    public void Reset_tooltip_recalculates_from_current_time_without_a_new_usage_snapshot()
+    {
+        var usage = SampleResetUsage();
+
+        Assert.Equal(
+            "Week resets in 3d 4h 11m\r\n5H resets in 2h 17m",
+            ReduceResetTooltip(usage, nowUnixMs: NowUnixMs + 60_000).Tooltip);
+    }
+
+    [Fact]
+    public void Failed_usage_poll_keeps_countdown_but_identifies_last_known_reset_times()
+    {
+        var state = UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Failed(SampleResetUsage()), TokenActivityProviderState.Waiting,
+            ServiceHealthState.Operational, string.Empty, new VisibilityState(true, false),
+            AppSettings.Default, NowUnixMs);
+
+        Assert.Equal(
+            "Week resets in 3d 4h 12m\r\n5H resets in 2h 18m\r\nReset times based on last successful update.",
+            state.Tooltip);
+    }
+
+    private static UsageSnapshot SampleResetUsage() => new(
+        70, 40, NowUnixMs + 8_280_000, 18_000, NowUnixMs + 274_320_000, 604_800);
+
+    private static UsageOverlayState ReduceResetTooltip(
+        UsageSnapshot usage,
+        ServiceHealthState health = ServiceHealthState.Operational,
+        long nowUnixMs = NowUnixMs) => UsageOverlayStateReducer.Reduce(
+            UsageProviderState.Current(usage), TokenActivityProviderState.Waiting,
+            health, "Partial System Degradation", new VisibilityState(true, false),
+            AppSettings.Default, nowUnixMs,
+            affectedServiceComponentGroups:
+            [
+                new ServiceStatusComponentGroup("ChatGPT", ["Search"]),
+                new ServiceStatusComponentGroup("Codex", ["CLI"]),
+            ]);
+
     [Fact]
     public void Reduce_shows_loading_without_usage_but_keeps_current_graph_state()
     {

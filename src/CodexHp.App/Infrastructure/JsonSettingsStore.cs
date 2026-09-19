@@ -150,7 +150,19 @@ public sealed class JsonSettingsStore : ISettingsStore
             ShowOnlyWhenChatGptRunning: document.ShowOnlyWhenChatGptRunning ?? defaults.ShowOnlyWhenChatGptRunning,
             Colors: colors,
             Appearance: appearance,
-            Location: location);
+            Location: location)
+        {
+            ColorMode = Enum.TryParse<OverlayColorMode>(document.ColorMode, true, out var mode)
+                && Enum.IsDefined(mode) ? mode : OverlayColorMode.System,
+            LightColors = new ColorSettings(
+                ParseColor(document.LightColors?.ManaBar, ColorSettings.LightDefault.ManaBar),
+                ParseColor(document.LightColors?.HpBar, ColorSettings.LightDefault.HpBar),
+                ParseColor(document.LightColors?.RefreshGauge, ColorSettings.LightDefault.RefreshGauge),
+                ParseColor(document.LightColors?.ServiceIssue, ColorSettings.LightDefault.ServiceIssue),
+                ParseColor(document.LightColors?.ServiceUnknown, ColorSettings.LightDefault.ServiceUnknown),
+                ParseColor(document.LightColors?.TokenLow, ColorSettings.LightDefault.TokenLow),
+                ParseColor(document.LightColors?.TokenHigh, ColorSettings.LightDefault.TokenHigh)),
+        };
         return SettingsValidator.Validate(settings).Settings;
     }
 
@@ -305,6 +317,10 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public ColorSettingsDocument? Colors { get; set; }
 
+        public string? ColorMode { get; set; }
+
+        public ColorSettingsDocument? LightColors { get; set; }
+
         public AppearanceSettingsDocument? Appearance { get; set; }
 
         public OverlayLocationDocument? Location { get; set; }
@@ -314,6 +330,17 @@ public sealed class JsonSettingsStore : ISettingsStore
             SchemaVersion = settings.SchemaVersion,
             StartWithWindows = settings.StartWithWindows,
             ShowOnlyWhenChatGptRunning = settings.ShowOnlyWhenChatGptRunning,
+            ColorMode = settings.ColorMode.ToString(),
+            LightColors = new ColorSettingsDocument
+            {
+                ManaBar = settings.LightColors.ManaBar.ToHex(),
+                HpBar = settings.LightColors.HpBar.ToHex(),
+                RefreshGauge = settings.LightColors.RefreshGauge.ToHex(),
+                ServiceIssue = settings.LightColors.ServiceIssue.ToHex(),
+                ServiceUnknown = settings.LightColors.ServiceUnknown.ToHex(),
+                TokenLow = settings.LightColors.TokenLow.ToHex(),
+                TokenHigh = settings.LightColors.TokenHigh.ToHex(),
+            },
             Colors = new ColorSettingsDocument
             {
                 ManaBar = settings.Colors.ManaBar.ToHex(),

@@ -1,11 +1,13 @@
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using CodexHp.App.Infrastructure;
 
 namespace CodexHp.App.Presentation;
 
 public sealed class WindowsTrayIconView : ITrayIconView
 {
     private const string IconResourceName = "CodexHp.App.Assets.CodexHp.ico";
+    private const string LightIconResourceName = "CodexHp.App.Assets.CodexHp.Light.ico";
     private const string DefaultToolTip = "CodexHp";
     private const int WindowStylePopup = unchecked((int)0x80000000);
     private const int WindowStyleExToolWindow = 0x00000080;
@@ -18,12 +20,16 @@ public sealed class WindowsTrayIconView : ITrayIconView
     private const uint NotifyIconIcon = 0x00000002;
     private const uint NotifyIconTip = 0x00000004;
     private const uint MenuString = 0x00000000;
+    private const uint MenuSeparator = 0x00000800;
     private const uint TrackRightButton = 0x00000002;
     private const uint TrackReturnCommand = 0x00000100;
     private const uint OptionsCommandId = 1;
     private const uint ExitCommandId = 2;
+    private const uint RepositoryCommandId = 3;
     private const uint WindowMessageNull = 0x0000;
-    private readonly System.Drawing.Icon icon;
+    private readonly System.Drawing.Icon darkIcon;
+    private readonly System.Drawing.Icon lightIcon;
+    private readonly Func<TrayIconTheme?> readTheme;
     private readonly HwndSource messageSource;
     private readonly uint taskbarCreatedMessage;
     private string toolTipText = DefaultToolTip;
@@ -31,10 +37,18 @@ public sealed class WindowsTrayIconView : ITrayIconView
     private bool disposed;
 
     public WindowsTrayIconView()
+        : this(WindowsShellTheme.Read)
     {
-        this.icon = LoadIcon();
+    }
+
+    internal WindowsTrayIconView(Func<TrayIconTheme?> readTheme)
+    {
+        this.readTheme = readTheme ?? throw new ArgumentNullException(nameof(readTheme));
+        this.darkIcon = LoadIcon(IconResourceName);
         try
         {
+            this.lightIcon = LoadIcon(LightIconResourceName);
+            this.CurrentTheme = this.readTheme() ?? TrayIconTheme.Dark;
             var parameters = new HwndSourceParameters("CodexHp.TrayIconMessageWindow")
             {
                 Width = 0,
@@ -50,7 +64,9 @@ public sealed class WindowsTrayIconView : ITrayIconView
         }
         catch
         {
-            this.icon.Dispose();
+            this.messageSource?.Dispose();
+            this.lightIcon?.Dispose();
+            this.darkIcon.Dispose();
             throw;
         }
     }
@@ -72,6 +88,7 @@ public sealed class WindowsTrayIconView : ITrayIconView
 
             if (value)
             {
+                this.RefreshTheme(updateVisibleIcon: false);
                 if (!this.AddIcon())
                 {
                     throw new InvalidOperationException(
@@ -88,6 +105,31 @@ public sealed class WindowsTrayIconView : ITrayIconView
     }
 
     public TrayIconAsset IconAsset => TrayIconAsset.CodexHpGauge;
+
+    internal TrayIconTheme CurrentTheme { get; private set; }
+
+    internal nint MessageWindowHandle => this.messageSource.Handle;
+
+    internal nint CurrentIconHandle =>
+        (this.CurrentTheme == TrayIconTheme.Light ? this.lightIcon : this.darkIcon).Handle;
+
+    internal void RefreshTheme(bool updateVisibleIcon = true)
+    {
+        ObjectDisposedException.ThrowIf(this.disposed, this);
+        var nextTheme = this.readTheme() ?? this.CurrentTheme;
+        if (nextTheme == this.CurrentTheme)
+        {
+            return;
+        }
+
+        var previous = this.CurrentTheme;
+        this.CurrentTheme = nextTheme;
+        if (updateVisibleIcon && this.visible && !this.UpdateIcon())
+        {
+            // Both handles stay alive; retry on the next setting/Explorer event.
+            this.CurrentTheme = previous;
+        }
+    }
 
     public string ToolTipText
     {
@@ -129,15 +171,16 @@ public sealed class WindowsTrayIconView : ITrayIconView
         this.disposed = true;
         this.messageSource.RemoveHook(this.OnWindowMessage);
         this.messageSource.Dispose();
-        this.icon.Dispose();
+        this.lightIcon.Dispose();
+        this.darkIcon.Dispose();
     }
 
-    private static System.Drawing.Icon LoadIcon()
+    private static System.Drawing.Icon LoadIcon(string resourceName)
     {
         using var iconStream = typeof(WindowsTrayIconView).Assembly.GetManifestResourceStream(
-            IconResourceName)
+            resourceName)
             ?? throw new InvalidOperationException(
-                $"The embedded icon resource is unavailable: {IconResourceName}");
+                $"The embedded icon resource is unavailable: {resourceName}");
         using var embeddedIcon = new System.Drawing.Icon(iconStream);
         return (System.Drawing.Icon)embeddedIcon.Clone();
     }
@@ -167,7 +210,7 @@ public sealed class WindowsTrayIconView : ITrayIconView
         IconId = 1,
         Flags = NotifyIconMessage | NotifyIconIcon | NotifyIconTip,
         CallbackMessage = TrayCallbackMessage,
-        IconHandle = this.icon.Handle,
+        IconHandle = this.CurrentIconHandle,
         Tip = this.toolTipText,
         Info = string.Empty,
         InfoTitle = string.Empty,
@@ -180,8 +223,15 @@ public sealed class WindowsTrayIconView : ITrayIconView
         nint longParameter,
         ref bool handled)
     {
+        if (message is 0x001A or 0x031A) // WM_SETTINGCHANGE / WM_THEMECHANGED
+        {
+            this.RefreshTheme();
+            return 0;
+        }
+
         if (this.taskbarCreatedMessage != 0 && unchecked((uint)message) == this.taskbarCreatedMessage)
         {
+            this.RefreshTheme(updateVisibleIcon: false);
             if (this.visible)
             {
                 _ = this.AddIcon();
@@ -221,20 +271,9 @@ public sealed class WindowsTrayIconView : ITrayIconView
 
         try
         {
-            foreach (var item in TrayIconController.DefaultMenuItems)
+            if (!AppendContextMenu(menuHandle))
             {
-                var commandId = item.Command switch
-                {
-                    TrayMenuCommand.Options => OptionsCommandId,
-                    TrayMenuCommand.Exit => ExitCommandId,
-                    _ => 0u,
-                };
-                var appended = commandId != 0 &&
-                    NativeMethods.AppendMenu(menuHandle, MenuString, commandId, item.Text);
-                if (!appended)
-                {
-                    return;
-                }
+                return;
             }
 
             var gotCursor = NativeMethods.GetCursorPosition(out var point);
@@ -265,6 +304,31 @@ public sealed class WindowsTrayIconView : ITrayIconView
         {
             _ = NativeMethods.DestroyMenu(menuHandle);
         }
+    }
+
+    internal static bool AppendContextMenu(nint menuHandle)
+    {
+        foreach (var item in TrayIconController.DefaultMenuItems)
+        {
+            if (item.SeparatorBefore && !NativeMethods.AppendMenu(menuHandle, MenuSeparator, 0, string.Empty))
+            {
+                return false;
+            }
+
+            var commandId = item.Command switch
+            {
+                TrayMenuCommand.Options => OptionsCommandId,
+                TrayMenuCommand.Repository => RepositoryCommandId,
+                TrayMenuCommand.Exit => ExitCommandId,
+                _ => 0u,
+            };
+            if (commandId == 0 || !NativeMethods.AppendMenu(menuHandle, MenuString, commandId, item.Text))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

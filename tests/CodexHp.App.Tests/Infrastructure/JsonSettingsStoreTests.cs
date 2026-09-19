@@ -8,6 +8,50 @@ namespace CodexHp.App.Tests.Infrastructure;
 
 public sealed class JsonSettingsStoreTests : IDisposable
 {
+    [Theory]
+    [InlineData(OverlayColorMode.Light)]
+    [InlineData(OverlayColorMode.Dark)]
+    [InlineData(OverlayColorMode.System)]
+    public void Color_mode_and_both_custom_palettes_round_trip(OverlayColorMode mode)
+    {
+        var store = new JsonSettingsStore(this.localAppData);
+        var settings = AppSettings.Default with
+        {
+            ColorMode = mode,
+            Colors = ColorSettings.Default with { ManaBar = ColorValue.Parse("#010203") },
+            LightColors = ColorSettings.LightDefault with { RefreshGauge = ColorValue.Parse("#445566") },
+        };
+        store.Save(settings);
+        Assert.Equal(settings, store.Load());
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("invalid")]
+    [InlineData("99")]
+    public void Old_or_invalid_mode_preserves_existing_colors_and_location(string? mode)
+    {
+        var store = new JsonSettingsStore(this.localAppData);
+        Directory.CreateDirectory(store.SettingsDirectory);
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            schemaVersion = 4,
+            colorMode = mode,
+            colors = new { manaBar = "#123456" },
+            lightColors = new { hpBar = "bad-color" },
+            location = new { x = 34, y = 56, target = "desktop" },
+        });
+        File.WriteAllText(store.SettingsPath, json);
+        var settings = store.Load();
+        Assert.Equal(OverlayColorMode.System, settings.ColorMode);
+        Assert.Equal(ColorSettings.LightDefault, settings.LightColors);
+        Assert.Equal(ColorValue.Parse("#123456"), settings.Colors.ManaBar);
+        Assert.Equal(34, settings.Location.X);
+        Assert.Equal(56, settings.Location.Y);
+        Assert.Equal(OverlayPlacementTarget.Desktop, settings.Location.Target);
+        Assert.Empty(Directory.GetFiles(store.SettingsDirectory, "settings.invalid-*"));
+    }
+
     private readonly string localAppData = Path.Combine(
         Path.GetTempPath(),
         "CodexHp.Tests",
@@ -24,15 +68,21 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.True(File.Exists(Path.Combine(this.localAppData, "CodexHp", "settings.json")));
     }
 
-    [Fact]
-    public void Load_creates_a_twenty_minute_default_for_the_primary_display_when_it_is_missing()
+    [Theory]
+    [InlineData(1, 80)]
+    [InlineData(1.25, 87)]
+    [InlineData(1.5, 80)]
+    [InlineData(2, 80)]
+    [InlineData(2.5, 80)]
+    [InlineData(3, 80)]
+    public void First_run_preserves_default_shape_and_targets_twenty_minutes_within_minimum_width(double scale, int expectedBuckets)
     {
         var monitor = new MonitorGeometry(
             "DISPLAY2",
             new PhysicalRect(0, 0, 3840, 2160),
             new PhysicalRect(0, 0, 3840, 2064),
-            2,
-            2,
+            scale,
+            scale,
             true,
             "MONITOR-STABLE-2");
         var taskbar = new PhysicalRect(0, 2064, 3840, 96);
@@ -46,9 +96,19 @@ public sealed class JsonSettingsStoreTests : IDisposable
             settings,
             [new DisplayEnvironment(monitor, taskbar)]);
 
-        Assert.Equal(135, settings.Appearance.OverlayWidth);
+        Assert.Equal(new AppearanceSettings(settings.Appearance.OverlayWidth, 32, 48, 1, 0, 2), settings.Appearance);
+        if (scale == 2)
+        {
+            Assert.Equal(130, settings.Appearance.OverlayWidth);
+        }
+        if (scale == 1.25)
+        {
+            // The 120 DIP minimum width fits 87 buckets at this scale.
+            Assert.Equal(120, settings.Appearance.OverlayWidth);
+        }
+        Assert.Equal(OverlayLocationSettings.Default, settings.Location);
         Assert.Equal(
-            TimeSpan.FromMinutes(20),
+            TimeSpan.FromSeconds(expectedBuckets * 15),
             TokenGraphViewport.CalculateVisibleDuration(resolution.Appearance));
     }
 

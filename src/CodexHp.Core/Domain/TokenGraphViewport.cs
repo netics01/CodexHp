@@ -6,31 +6,28 @@ public static class TokenGraphViewport
 {
     public const int BucketSeconds = 15;
 
-    public const int ChartLeftInsetDip = 4;
-    public const int ChartRightInsetDip = 6;
-
     public static int ChartLeft(AppearanceSettings appearance)
     {
         ArgumentNullException.ThrowIfNull(appearance);
-        return appearance.GaugePaneWidth + ChartLeftInsetDip;
+        return appearance.GaugePaneWidth + OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.ChartLeftInsetDip, 1);
     }
 
     public static int ChartRight(AppearanceSettings appearance)
     {
         ArgumentNullException.ThrowIfNull(appearance);
-        return appearance.OverlayWidth - ChartRightInsetDip;
+        return appearance.OverlayWidth - OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.ChartRightInsetDip, 1);
     }
 
     public static int ChartLeft(EffectiveAppearanceSettings appearance)
     {
         ArgumentNullException.ThrowIfNull(appearance);
-        return appearance.GaugePaneWidth + ChartLeftInsetDip;
+        return appearance.GaugePaneWidth + OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.ChartLeftInsetDip, appearance.DisplayScaleX);
     }
 
     public static int ChartRight(EffectiveAppearanceSettings appearance)
     {
         ArgumentNullException.ThrowIfNull(appearance);
-        return appearance.OverlayWidth - ChartRightInsetDip;
+        return appearance.OverlayWidth - OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.ChartRightInsetDip, appearance.DisplayScaleX);
     }
 
     public static int CalculateVisibleBucketCount(AppearanceSettings appearance)

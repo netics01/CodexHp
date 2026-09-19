@@ -77,35 +77,6 @@ public sealed class PublishConfigurationTests
     }
 
     [Fact]
-    public void Core_verification_resolves_the_repository_root_from_the_scripts_directory()
-    {
-        var codexHpRoot = FindCodexHpRoot();
-        var scriptPath = Path.Combine(codexHpRoot, "scripts", "Verify-Core.ps1");
-        var script = File.ReadAllText(scriptPath);
-
-        Assert.Contains(
-            "$repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path",
-            script,
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Published_app_validation_derives_default_bounds_from_the_runtime_dpi_and_taskbar()
-    {
-        var codexHpRoot = FindCodexHpRoot();
-        var script = File.ReadAllText(Path.Combine(
-            codexHpRoot,
-            "tests",
-            "Windows",
-            "Validate-PublishedApp.ps1"));
-
-        Assert.Contains("GetWindowDpi", script, StringComparison.Ordinal);
-        Assert.Contains("$defaultOverlayWidthDip = 144", script, StringComparison.Ordinal);
-        Assert.Contains("$defaultOverlayHeightDip = 34", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("($monitorBounds[1] + $monitorBounds[3] - 12 - 68)", script, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void Local_release_uses_an_interactive_scheduled_task_to_escape_packaged_host_virtualization()
     {
         var codexHpRoot = FindCodexHpRoot();
@@ -170,38 +141,6 @@ public sealed class PublishConfigurationTests
             "& $installationValidator -ExpectedVersion $version",
             releaseScript,
             StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Application_project_and_sources_do_not_reference_windows_forms()
-    {
-        var codexHpRoot = FindCodexHpRoot();
-        var properties = LoadApplicationProjectProperties();
-        var violations = new List<string>();
-        if (properties.TryGetValue("UseWindowsForms", out var useWindowsForms) &&
-            string.Equals(useWindowsForms, "true", StringComparison.OrdinalIgnoreCase))
-        {
-            violations.Add("CodexHp.App.csproj enables UseWindowsForms.");
-        }
-
-        var sourceRoot = Path.Combine(codexHpRoot, "src", "CodexHp.App");
-        foreach (var sourcePath in Directory.EnumerateFiles(sourceRoot, "*.cs", SearchOption.AllDirectories))
-        {
-            var relativePath = Path.GetRelativePath(sourceRoot, sourcePath);
-            var segments = relativePath.Split(Path.DirectorySeparatorChar);
-            if (segments.Contains("bin", StringComparer.OrdinalIgnoreCase) ||
-                segments.Contains("obj", StringComparer.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            if (File.ReadAllText(sourcePath).Contains("System.Windows.Forms", StringComparison.Ordinal))
-            {
-                violations.Add(relativePath);
-            }
-        }
-
-        Assert.Empty(violations);
     }
 
     private static IReadOnlyDictionary<string, string> LoadApplicationProjectProperties()

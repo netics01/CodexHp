@@ -17,6 +17,8 @@ public sealed record UsageOverlayState(
     string? ContentMessage = null,
     string? ContentTooltip = null)
 {
+    public ServiceHealthState? ServiceHealth { get; init; }
+
     public string? Tooltip
     {
         get

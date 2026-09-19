@@ -59,7 +59,7 @@ public sealed class SettingsWindowViewModelTests
         viewModel.GraphBarWidth = 5;
         viewModel.GraphBarGap = 2;
 
-        Assert.Equal("Visible token history: 12 min 0 sec", viewModel.VisibleTokenHistoryText);
+        Assert.Equal("Visible token history: 12 min 30 sec", viewModel.VisibleTokenHistoryText);
 
         viewModel.ResetAppearanceToDefaults();
 
@@ -113,7 +113,7 @@ public sealed class SettingsWindowViewModelTests
             settings,
             calculateVisibleTokenHistory: _ => TokenGraphViewport.CalculateVisibleDuration(resolution.Appearance));
 
-        Assert.Equal("Visible token history: 21 min 15 sec", viewModel.VisibleTokenHistoryText);
+        Assert.Equal("Visible token history: 22 min 0 sec", viewModel.VisibleTokenHistoryText);
     }
 
     [Fact]

@@ -4,6 +4,32 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-19
+
+### Added
+
+- Add Light, Dark, and System overlay color modes in Settings, with a crisp light palette, separate per-theme custom colors, and readable percentage text across filled and empty gauge regions.
+- Automatically switch the tray icon between white and black Codex marks to match the Windows taskbar's dark or light theme, including theme changes while running.
+- Open the GitHub repository in the default browser from the tray menu.
+
+### Fixed
+
+- Remove the icon's opaque charcoal background and dark matte from logo edges, retaining the HP gauge and transparent negative spaces at every ICO resolution. Restore the complete logo with top padding so its upper curve is no longer clipped.
+- Automatically recover saved taskbar placement after temporary startup taskbar detection or hosting failures, with fast initial retries and slower background recovery. Suspend recovery while editing the overlay position and log recovery state transitions without repeating unchanged failures.
+
+### Changed
+
+- Remove the service-status stripe's top and bottom insets so it spans the full overlay height.
+- Separate color setting names and descriptions into two lines, with wrapping descriptions in narrow Settings windows. Increase the default Settings height so all color controls fit without scrolling.
+- Divide the weekly refresh gauge into seven day-sized sections and the 5-hour refresh gauge into five hour-sized sections with visible gaps.
+- Scale overlay spacing, refresh tracks, segment gaps, and position outlines in DIP, preserving the 200% reference appearance. Keep graph hairlines and dash patterns in physical pixels.
+- Keep reported token history synchronized with the DPI-scaled graph viewport without rewriting existing appearance settings.
+- Remove the gauge-side right inset, reducing the gauge-to-graph gap to 2 DIP without changing the graph viewport.
+- Remove the gauge top/bottom insets and graph top/right/bottom insets; keep the 1px graph baseline visible along the bottom edge.
+- Use a 32 DIP overlay height and 48 DIP gauge pane by default, with a reference width of 130 DIP. Continue adjusting first-run/reset width toward 20 minutes of token history on the target display, subject to the minimum window width.
+- Open the color picker directly from each color chip instead of a separate Pick button. Use #005A86 as the default light-mode refresh gauge color.
+- Refresh the English and Korean README illustrations with conceptual guides to usage, placement, colors, and independently adjustable element sizes.
+
 ## [0.3.8] - 2026-09-17
 
 ### Added

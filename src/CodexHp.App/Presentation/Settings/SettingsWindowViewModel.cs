@@ -17,6 +17,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     private readonly Func<AppSettings, TimeSpan> calculateVisibleTokenHistory;
     private readonly Func<AppSettings, AppearanceSettings> resolveDefaultAppearance;
     private readonly bool canEnableStartWithWindows;
+    private readonly Func<bool> systemUsesLightColors;
     private SettingsGroup selectedGroup;
 
     public SettingsWindowViewModel(
@@ -26,7 +27,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         Func<AppSettings, AppSettings> commit,
         bool canStartWithWindows = true,
         Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null,
-        Func<AppSettings, AppearanceSettings>? resolveDefaultAppearance = null)
+        Func<AppSettings, AppearanceSettings>? resolveDefaultAppearance = null,
+        Func<bool>? systemUsesLightColors = null)
     {
         this.baseline = baseline ?? throw new ArgumentNullException(nameof(baseline));
         this.preview = preview ?? (_ => { });
@@ -36,6 +38,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
             ?? (settings => TokenGraphViewport.CalculateVisibleDuration(settings.Appearance));
         this.resolveDefaultAppearance = resolveDefaultAppearance ?? (_ => AppearanceSettings.Default);
         this.canEnableStartWithWindows = canStartWithWindows;
+        this.systemUsesLightColors = systemUsesLightColors ?? (() => false);
         this.editSession = new SettingsEditSession(baseline);
         this.Groups =
         [
@@ -110,48 +113,69 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
 
     public ColorValue ManaBarColor
     {
-        get => this.Working.Colors.ManaBar;
-        set => this.UpdateColors(this.Working.Colors with { ManaBar = value });
+        get => this.EditingColors.ManaBar;
+        set => this.UpdateColors(this.EditingColors with { ManaBar = value });
     }
 
     public ColorValue HpBarColor
     {
-        get => this.Working.Colors.HpBar;
-        set => this.UpdateColors(this.Working.Colors with { HpBar = value });
+        get => this.EditingColors.HpBar;
+        set => this.UpdateColors(this.EditingColors with { HpBar = value });
     }
 
     public ColorValue RefreshGaugeColor
     {
-        get => this.Working.Colors.RefreshGauge;
-        set => this.UpdateColors(this.Working.Colors with { RefreshGauge = value });
+        get => this.EditingColors.RefreshGauge;
+        set => this.UpdateColors(this.EditingColors with { RefreshGauge = value });
     }
 
     public ColorValue ServiceIssueColor
     {
-        get => this.Working.Colors.ServiceIssue;
-        set => this.UpdateColors(this.Working.Colors with { ServiceIssue = value });
+        get => this.EditingColors.ServiceIssue;
+        set => this.UpdateColors(this.EditingColors with { ServiceIssue = value });
     }
 
     public ColorValue ServiceUnknownColor
     {
-        get => this.Working.Colors.ServiceUnknown;
-        set => this.UpdateColors(this.Working.Colors with { ServiceUnknown = value });
+        get => this.EditingColors.ServiceUnknown;
+        set => this.UpdateColors(this.EditingColors with { ServiceUnknown = value });
     }
 
     public ColorValue TokenLowColor
     {
-        get => this.Working.Colors.TokenLow;
-        set => this.UpdateColors(this.Working.Colors with { TokenLow = value });
+        get => this.EditingColors.TokenLow;
+        set => this.UpdateColors(this.EditingColors with { TokenLow = value });
     }
 
     public ColorValue TokenHighColor
     {
-        get => this.Working.Colors.TokenHigh;
-        set => this.UpdateColors(this.Working.Colors with { TokenHigh = value });
+        get => this.EditingColors.TokenHigh;
+        set => this.UpdateColors(this.EditingColors with { TokenHigh = value });
     }
 
     public void ResetColorsToDefaults() =>
-        this.UpdateColors(ColorSettings.Default);
+        this.UpdateColors(this.IsEditingLightColors ? ColorSettings.LightDefault : ColorSettings.Default);
+
+    public IReadOnlyList<OverlayColorMode> ColorModes { get; } =
+        [OverlayColorMode.Light, OverlayColorMode.Dark, OverlayColorMode.System];
+
+    public OverlayColorMode ColorMode
+    {
+        get => this.Working.ColorMode;
+        set
+        {
+            if (Enum.IsDefined(value))
+            {
+                this.UpdateWorking(this.Working with { ColorMode = value }, previewVisual: true);
+            }
+        }
+    }
+
+    private bool IsEditingLightColors => this.Working.UsesLightColors(this.systemUsesLightColors());
+
+    private ColorSettings EditingColors => this.Working.GetColors(this.systemUsesLightColors());
+
+    public void RefreshSystemColorMode() => this.OnPropertyChanged(string.Empty);
 
     public int OverlayWidth
     {
@@ -235,7 +259,9 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     }
 
     private void UpdateColors(ColorSettings colors) =>
-        this.UpdateWorking(this.Working with { Colors = colors }, previewVisual: true);
+        this.UpdateWorking(this.IsEditingLightColors
+            ? this.Working with { LightColors = colors }
+            : this.Working with { Colors = colors }, previewVisual: true);
 
     private void UpdateAppearance(AppearanceSettings appearance)
     {

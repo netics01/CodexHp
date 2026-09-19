@@ -23,6 +23,12 @@ public static class SettingsValidator
 
         var correctedFields = new List<string>();
         var appearance = settings.Appearance;
+        var colorMode = settings.ColorMode;
+        if (!Enum.IsDefined(colorMode))
+        {
+            colorMode = OverlayColorMode.System;
+            correctedFields.Add("ColorMode");
+        }
 
         var overlayWidth = ValidateRange(
             appearance.OverlayWidth,
@@ -70,6 +76,7 @@ public static class SettingsValidator
 
         var validated = settings with
         {
+            ColorMode = colorMode,
             Appearance = new AppearanceSettings(
                 overlayWidth,
                 overlayHeight,

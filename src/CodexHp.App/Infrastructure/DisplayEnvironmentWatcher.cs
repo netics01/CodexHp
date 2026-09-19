@@ -11,6 +11,7 @@ public sealed class DisplayEnvironmentWatcher : IDisposable
     private readonly bool subscribedToSystemEvents;
     private readonly TimeSpan debounceInterval;
     private readonly TimeSpan retryInterval;
+    private readonly TimeSpan slowRetryInterval;
     private readonly int maximumRetries;
     private int retryCount;
     private bool isDisposed;
@@ -34,12 +35,14 @@ public sealed class DisplayEnvironmentWatcher : IDisposable
         TimeSpan? debounceInterval = null,
         bool subscribeToSystemEvents = true,
         TimeSpan? retryInterval = null,
-        int maximumRetries = 8)
+        int maximumRetries = 8,
+        TimeSpan? slowRetryInterval = null)
     {
         this.dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         this.refresh = refresh ?? throw new ArgumentNullException(nameof(refresh));
         this.debounceInterval = debounceInterval ?? TimeSpan.FromMilliseconds(350);
         this.retryInterval = retryInterval ?? TimeSpan.FromMilliseconds(250);
+        this.slowRetryInterval = slowRetryInterval ?? TimeSpan.FromSeconds(5);
         if (this.debounceInterval <= TimeSpan.Zero)
         {
             throw new ArgumentOutOfRangeException(nameof(debounceInterval));
@@ -53,6 +56,11 @@ public sealed class DisplayEnvironmentWatcher : IDisposable
         if (maximumRetries < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maximumRetries));
+        }
+
+        if (this.slowRetryInterval <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slowRetryInterval));
         }
 
         this.maximumRetries = maximumRetries;
@@ -117,10 +125,12 @@ public sealed class DisplayEnvironmentWatcher : IDisposable
         if (!this.isDisposed)
         {
             var requiresRetry = this.refresh();
-            if (requiresRetry && this.retryCount < this.maximumRetries)
+            if (requiresRetry)
             {
-                this.retryCount++;
-                this.timer.Interval = this.retryInterval;
+                this.timer.Interval = this.retryCount < this.maximumRetries
+                    ? this.retryInterval
+                    : this.slowRetryInterval;
+                this.retryCount = Math.Min(this.retryCount + 1, this.maximumRetries);
                 this.timer.Start();
                 return;
             }

@@ -12,8 +12,8 @@ public sealed class TokenGraphViewportTests
         var appearance = AppearanceSettings.Default;
 
         Assert.Equal(15, TokenGraphViewport.BucketSeconds);
-        Assert.Equal(54, TokenGraphViewport.ChartLeft(appearance));
-        Assert.Equal(134, TokenGraphViewport.ChartRight(appearance));
+        Assert.Equal(50, TokenGraphViewport.ChartLeft(appearance));
+        Assert.Equal(130, TokenGraphViewport.ChartRight(appearance));
         Assert.Equal(80, TokenGraphViewport.CalculateVisibleBucketCount(appearance));
         Assert.Equal(
             TimeSpan.FromMinutes(20),
@@ -30,9 +30,9 @@ public sealed class TokenGraphViewportTests
             GraphBarGap = 2,
         };
 
-        Assert.Equal(48, TokenGraphViewport.CalculateVisibleBucketCount(appearance));
+        Assert.Equal(50, TokenGraphViewport.CalculateVisibleBucketCount(appearance));
         Assert.Equal(
-            TimeSpan.FromMinutes(12),
+            TimeSpan.FromMinutes(12.5),
             TokenGraphViewport.CalculateVisibleDuration(appearance));
     }
 

@@ -11,6 +11,7 @@ public enum TrayMenuCommand
 {
     Options,
     Exit,
+    Repository,
 }
 
 public enum TrayIconAsset
@@ -18,7 +19,7 @@ public enum TrayIconAsset
     CodexHpGauge,
 }
 
-public sealed record TrayMenuItem(TrayMenuCommand Command, string Text);
+public sealed record TrayMenuItem(TrayMenuCommand Command, string Text, bool SeparatorBefore = false);
 
 internal static class TrayIconMessageRouter
 {
@@ -26,6 +27,7 @@ internal static class TrayIconMessageRouter
     private const uint RightButtonUp = 0x0205;
     private const uint OptionsCommandId = 1;
     private const uint ExitCommandId = 2;
+    private const uint RepositoryCommandId = 3;
 
     public static TrayMouseButton RouteMouseButton(uint nativeMessage) => nativeMessage switch
     {
@@ -38,6 +40,7 @@ internal static class TrayIconMessageRouter
     {
         OptionsCommandId => TrayMenuCommand.Options,
         ExitCommandId => TrayMenuCommand.Exit,
+        RepositoryCommandId => TrayMenuCommand.Repository,
         _ => null,
     };
 }
@@ -62,12 +65,14 @@ public sealed class TrayIconController : IDisposable
     public static IReadOnlyList<TrayMenuItem> DefaultMenuItems { get; } =
     [
         new TrayMenuItem(TrayMenuCommand.Options, "Settings"),
-        new TrayMenuItem(TrayMenuCommand.Exit, "Exit"),
+        new TrayMenuItem(TrayMenuCommand.Repository, "Open GitHub"),
+        new TrayMenuItem(TrayMenuCommand.Exit, "Exit", SeparatorBefore: true),
     ];
 
     private readonly ITrayIconView view;
     private readonly Action openOptions;
     private readonly Action exit;
+    private readonly Action openRepository;
     private bool disposed;
 
     public TrayIconController(Action openOptions, Action exit)
@@ -75,11 +80,12 @@ public sealed class TrayIconController : IDisposable
     {
     }
 
-    public TrayIconController(ITrayIconView view, Action openOptions, Action exit)
+    public TrayIconController(ITrayIconView view, Action openOptions, Action exit, Action? openRepository = null)
     {
         this.view = view ?? throw new ArgumentNullException(nameof(view));
         this.openOptions = openOptions ?? throw new ArgumentNullException(nameof(openOptions));
         this.exit = exit ?? throw new ArgumentNullException(nameof(exit));
+        this.openRepository = openRepository ?? RepositoryBrowser.Open;
         this.view.MouseClicked += this.OnMouseClicked;
         this.view.MenuCommandInvoked += this.OnMenuCommandInvoked;
         this.view.Visible = true;
@@ -124,6 +130,9 @@ public sealed class TrayIconController : IDisposable
                 break;
             case TrayMenuCommand.Exit:
                 this.exit();
+                break;
+            case TrayMenuCommand.Repository:
+                this.openRepository();
                 break;
         }
     }

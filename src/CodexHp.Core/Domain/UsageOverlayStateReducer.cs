@@ -65,7 +65,7 @@ public static class UsageOverlayStateReducer
             stripeColor,
             statusStripeTooltip,
             contentStatus.Message,
-            contentStatus.Tooltip);
+            contentStatus.Tooltip) { ServiceHealth = serviceHealth };
     }
 
     private static (string? Message, string? Tooltip) CreateContentStatus(

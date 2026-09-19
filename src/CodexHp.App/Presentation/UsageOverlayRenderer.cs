@@ -25,11 +25,13 @@ public enum OverlayElementRole
     ManaText,
     ManaRefreshTrack,
     ManaRefreshFill,
+    ManaRefreshSeparator,
     HpTrack,
     HpFill,
     HpText,
     HpRefreshTrack,
     HpRefreshFill,
+    HpRefreshSeparator,
     GraphGridDot,
     GraphBaseline,
     TokenBar,
@@ -44,7 +46,8 @@ public sealed record OverlayDrawCommand(
     ColorValue Color,
     double Opacity = 1,
     string? Text = null,
-    int FontSize = 0);
+    int FontSize = 0,
+    LayoutRect? ClipBounds = null);
 
 public sealed record UsageOverlayLayout(
     int Width,
@@ -54,14 +57,14 @@ public sealed record UsageOverlayLayout(
 public sealed record OverlayPresentationSettings(
     ColorSettings Colors,
     EffectiveAppearanceSettings Appearance,
-    double DisplayScaleY = 1)
+    bool IsLight = false)
 {
-    public static OverlayPresentationSettings FromUnscaled(AppSettings settings)
+    public static OverlayPresentationSettings FromUnscaled(AppSettings settings, bool systemIsLight = false)
     {
         ArgumentNullException.ThrowIfNull(settings);
         var appearance = settings.Appearance;
         return new OverlayPresentationSettings(
-            settings.Colors,
+            settings.GetColors(systemIsLight),
             new EffectiveAppearanceSettings(
                 appearance.OverlayWidth,
                 appearance.OverlayHeight,
@@ -69,17 +72,14 @@ public sealed record OverlayPresentationSettings(
                 appearance.GraphBarWidth,
                 appearance.GraphBarGap,
                 appearance.StatusStripeWidth),
-            DisplayScaleY: 1);
+            settings.UsesLightColors(systemIsLight));
     }
 }
 
 public static class UsageOverlayRenderer
 {
-    private const int RefreshHeight = 2;
-    private const int GaugeGroupGap = 2;
     private const int ReferenceGaugeRowHeight = 27;
     private const int ReferenceGaugeFontHeight = 16;
-    private const double MinimumGaugeFontDip = 8.5;
     private const double StaleOpacity = 0.55;
     private static readonly ColorValue BackgroundColor = ColorValue.Parse("#18181C");
     private static readonly ColorValue GaugeTrackColor = ColorValue.Parse("#3E3E44");
@@ -105,6 +105,12 @@ public static class UsageOverlayRenderer
         ArgumentNullException.ThrowIfNull(settings);
 
         var appearance = settings.Appearance;
+        int X(double dip) => OverlayPixelPolicy.ToPixels(dip, appearance.DisplayScaleX);
+        int Y(double dip) => OverlayPixelPolicy.ToPixels(dip, appearance.DisplayScaleY);
+        var refreshHeight = Y(OverlayPixelPolicy.RefreshHeightDip);
+        var gaugeGroupGap = Y(OverlayPixelPolicy.GaugeGroupGapDip);
+        var leftInset = X(OverlayPixelPolicy.LeftInsetDip);
+        var verticalInset = Y(OverlayPixelPolicy.VerticalInsetDip);
         var width = appearance.OverlayWidth;
         var height = appearance.OverlayHeight;
         var commands = new List<OverlayDrawCommand>
@@ -112,13 +118,22 @@ public static class UsageOverlayRenderer
             Rectangle(OverlayElementRole.Background, new LayoutRect(0, 0, width, height), BackgroundColor),
         };
 
-        var gaugePaneWidth = Math.Clamp(appearance.GaugePaneWidth, 20, Math.Max(20, width - 20));
+        var minimumPaneWidth = X(20);
+        var gaugePaneWidth = Math.Clamp(appearance.GaugePaneWidth, minimumPaneWidth, Math.Max(minimumPaneWidth, width - minimumPaneWidth));
         var stripeOffset = 0;
-        if (state.StatusStripeColor is { } stripeColor && appearance.StatusStripeWidth > 0)
+        var resolvedStripeColor = state.ServiceHealth switch
         {
-            var stripeBounds = new LayoutRect(4, 2, appearance.StatusStripeWidth, Math.Max(1, height - 4));
+            ServiceHealthState.Operational => (ColorValue?)null,
+            ServiceHealthState.Issue => settings.Colors.ServiceIssue,
+            ServiceHealthState.Unknown => settings.Colors.ServiceUnknown,
+            _ => state.StatusStripeColor,
+        };
+        if (resolvedStripeColor is { } stripeColor && appearance.StatusStripeWidth > 0)
+        {
+            var stripeInset = Y(OverlayPixelPolicy.StatusVerticalInsetDip);
+            var stripeBounds = new LayoutRect(leftInset, stripeInset, appearance.StatusStripeWidth, Math.Max(1, height - (stripeInset * 2)));
             commands.Add(Rectangle(OverlayElementRole.StatusStripe, stripeBounds, stripeColor));
-            stripeOffset = appearance.StatusStripeWidth + 2;
+            stripeOffset = appearance.StatusStripeWidth + X(OverlayPixelPolicy.StatusGapDip);
         }
 
         if (!string.IsNullOrWhiteSpace(state.ContentMessage))
@@ -126,36 +141,36 @@ public static class UsageOverlayRenderer
             commands.Add(new OverlayDrawCommand(
                 OverlayDrawKind.Text,
                 OverlayElementRole.ContentMessage,
-                new LayoutRect(4 + stripeOffset, 0, Math.Max(1, width - 8 - stripeOffset), height),
+                new LayoutRect(leftInset + stripeOffset, 0, Math.Max(1, width - (leftInset * 2) - stripeOffset), height),
                 White,
                 Text: state.ContentMessage,
-                FontSize: Math.Clamp(height / 3, 10, 16)));
+                FontSize: Math.Clamp(height / 3, Y(OverlayPixelPolicy.MinimumMessageFontDip), Y(OverlayPixelPolicy.MaximumMessageFontDip))));
             if (isOverlayPositionChangeMode)
             {
-                AddOverlayPositionOutline(commands, width, height);
+                AddOverlayPositionOutline(commands, appearance);
             }
 
-            return new UsageOverlayLayout(width, height, commands);
+            return ApplyTheme(new UsageOverlayLayout(width, height, commands), settings.IsLight);
         }
 
-        var gaugeLeft = 4 + stripeOffset;
-        var gaugeRight = gaugePaneWidth - 3;
-        var gaugeTop = 2;
-        var gaugeBottom = height - 2;
+        var gaugeLeft = leftInset + stripeOffset;
+        var gaugeRight = gaugePaneWidth - X(OverlayPixelPolicy.GaugeRightInsetDip);
+        var gaugeTop = verticalInset;
+        var gaugeBottom = height - verticalInset;
         var gaugeHeight = Math.Max(1, gaugeBottom - gaugeTop);
         var quotaHeight = Math.Max(
             1,
-            (gaugeHeight - (RefreshHeight * 2) - GaugeGroupGap) / 2);
+            (gaugeHeight - (refreshHeight * 2) - gaugeGroupGap) / 2);
         var gaugeWidth = Math.Max(1, gaugeRight - gaugeLeft);
         var manaBounds = new LayoutRect(gaugeLeft, gaugeTop, gaugeWidth, quotaHeight);
         var manaRefreshBounds = new LayoutRect(
             gaugeLeft,
             manaBounds.Bottom,
             gaugeWidth,
-            RefreshHeight);
+            refreshHeight);
         var hpBounds = new LayoutRect(
             gaugeLeft,
-            manaRefreshBounds.Bottom + GaugeGroupGap,
+            manaRefreshBounds.Bottom + gaugeGroupGap,
             gaugeWidth,
             quotaHeight);
         var hpRefreshTop = hpBounds.Bottom;
@@ -163,8 +178,8 @@ public static class UsageOverlayRenderer
             gaugeLeft,
             hpRefreshTop,
             gaugeWidth,
-            Math.Max(1, Math.Min(RefreshHeight, gaugeBottom - hpRefreshTop)));
-        var fontSize = CalculateGaugeFontHeight(quotaHeight, settings.DisplayScaleY);
+            Math.Max(1, Math.Min(refreshHeight, gaugeBottom - hpRefreshTop)));
+        var fontSize = CalculateGaugeFontHeight(quotaHeight, appearance.DisplayScaleY);
 
         AddGauge(
             commands,
@@ -192,15 +207,90 @@ public static class UsageOverlayRenderer
             OverlayElementRole.HpRefreshTrack,
             OverlayElementRole.HpRefreshFill,
             fontSize);
+        var separatorWidth = X(OverlayPixelPolicy.RefreshSeparatorDip);
+        AddRefreshSeparators(commands, manaRefreshBounds, 5, separatorWidth, OverlayElementRole.ManaRefreshSeparator);
+        AddRefreshSeparators(commands, hpRefreshBounds, 7, separatorWidth, OverlayElementRole.HpRefreshSeparator);
 
         AddGraph(commands, state.TokenBuckets, settings, height);
 
         if (isOverlayPositionChangeMode)
         {
-            AddOverlayPositionOutline(commands, width, height);
+            AddOverlayPositionOutline(commands, appearance);
         }
 
-        return new UsageOverlayLayout(width, height, commands);
+        return ApplyTheme(new UsageOverlayLayout(width, height, commands), settings.IsLight);
+    }
+
+    private static UsageOverlayLayout ApplyTheme(UsageOverlayLayout layout, bool isLight)
+    {
+        if (!isLight)
+        {
+            return layout;
+        }
+
+        var background = ColorValue.Parse("#F3F3F3");
+        var text = ColorValue.Parse("#243042");
+        var commands = new List<OverlayDrawCommand>();
+        foreach (var command in layout.Commands)
+        {
+            var color = command.Role switch
+            {
+                OverlayElementRole.Background or OverlayElementRole.ManaRefreshSeparator
+                    or OverlayElementRole.HpRefreshSeparator => background,
+                OverlayElementRole.ManaTrack or OverlayElementRole.HpTrack => ColorValue.Parse("#D9DEE5"),
+                OverlayElementRole.ManaRefreshTrack or OverlayElementRole.HpRefreshTrack => ColorValue.Parse("#CCD2D9"),
+                OverlayElementRole.GraphGridDot => ColorValue.Parse("#B0B7C0"),
+                OverlayElementRole.GraphBaseline => ColorValue.Parse("#536172"),
+                OverlayElementRole.ContentMessage or OverlayElementRole.OverlayPositionOutline
+                    or OverlayElementRole.ManaText or OverlayElementRole.HpText => text,
+                _ => command.Color,
+            };
+            if (command.Role is OverlayElementRole.ManaText or OverlayElementRole.HpText)
+            {
+                var fillRole = command.Role == OverlayElementRole.ManaText
+                    ? OverlayElementRole.ManaFill : OverlayElementRole.HpFill;
+                var fill = layout.Commands.Single(item => item.Role == fillRole);
+                // Keep one centered text layout, clipping each pass to its background.
+                // This also keeps custom pale fills and stale gauges readable.
+                var filledBackground = GdiUsageOverlayPainter.Blend(fill.Color, background, fill.Opacity);
+                if (fill.Bounds.Width > 0)
+                {
+                    commands.Add(command with
+                    {
+                        Color = ReadableText(filledBackground),
+                        Opacity = 1,
+                        ClipBounds = fill.Bounds,
+                    });
+                }
+                var remaining = command.Bounds with
+                {
+                    Left = fill.Bounds.Right,
+                    Width = command.Bounds.Right - fill.Bounds.Right,
+                };
+                if (remaining.Width > 0)
+                {
+                    commands.Add(command with { Color = text, Opacity = 1, ClipBounds = remaining });
+                }
+                continue;
+            }
+            commands.Add(command with { Color = color });
+        }
+        return layout with { Commands = commands };
+    }
+
+    private static ColorValue ReadableText(ColorValue background)
+    {
+        static double Linear(byte channel)
+        {
+            var value = channel / 255.0;
+            return value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4);
+        }
+        static double Luminance(ColorValue color) =>
+            .2126 * Linear(color.Red) + .7152 * Linear(color.Green) + .0722 * Linear(color.Blue);
+        var dark = ColorValue.Parse("#243042");
+        var luminance = Luminance(background);
+        return 1.05 / (luminance + .05) >= (luminance + .05) / (Luminance(dark) + .05)
+            ? White : dark;
     }
 
     private static int CalculateGaugeFontHeight(int gaugeRowHeight, double displayScaleY)
@@ -213,9 +303,7 @@ public static class UsageOverlayRenderer
         var validDisplayScale = double.IsFinite(displayScaleY) && displayScaleY > 0
             ? displayScaleY
             : 1;
-        var minimumHeight = (int)Math.Round(
-            MinimumGaugeFontDip * validDisplayScale,
-            MidpointRounding.AwayFromZero);
+        var minimumHeight = (int)Math.Ceiling(OverlayPixelPolicy.MinimumGaugeFontDip * validDisplayScale);
         return Math.Max(proportionalHeight, minimumHeight);
     }
 
@@ -258,6 +346,33 @@ public static class UsageOverlayRenderer
             opacity));
     }
 
+    private static void AddRefreshSeparators(
+        ICollection<OverlayDrawCommand> commands,
+        LayoutRect bounds,
+        int segmentCount,
+        int preferredGapWidth,
+        OverlayElementRole separatorRole)
+    {
+        // Keep at least one visible pixel per segment, even in a narrow gauge pane.
+        if (bounds.Width < (segmentCount * 2) - 1)
+        {
+            return;
+        }
+
+        var gapWidth = Math.Min(preferredGapWidth, Math.Max(1, (bounds.Width / segmentCount) - 1));
+        for (var segment = 1; segment < segmentCount; segment++)
+        {
+            var position = bounds.Width * segment / (double)segmentCount;
+            var boundary = gapWidth == 1
+                ? (int)Math.Floor(position)
+                : (int)Math.Round(position, MidpointRounding.AwayFromZero);
+            commands.Add(Rectangle(
+                separatorRole,
+                new LayoutRect(bounds.Left + boundary - (gapWidth / 2), bounds.Top, gapWidth, bounds.Height),
+                BackgroundColor));
+        }
+    }
+
     private static void AddGraph(
         ICollection<OverlayDrawCommand> commands,
         IReadOnlyList<int> buckets,
@@ -266,8 +381,9 @@ public static class UsageOverlayRenderer
     {
         var chartLeft = TokenGraphViewport.ChartLeft(settings.Appearance);
         var chartRight = TokenGraphViewport.ChartRight(settings.Appearance);
-        var chartTop = 4;
-        var baselineTop = overlayHeight - 6;
+        var chartTop = OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.ChartTopInsetDip, settings.Appearance.DisplayScaleY);
+        var baselineTop = overlayHeight - OverlayPixelPolicy.GraphBaselinePixels
+            - OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.ChartBottomInsetDip, settings.Appearance.DisplayScaleY);
         var chartBottom = baselineTop;
         if (chartRight <= chartLeft || chartBottom <= chartTop)
         {
@@ -286,18 +402,18 @@ public static class UsageOverlayRenderer
                 break;
             }
 
-            for (var y = chartTop; y < chartBottom; y += 4)
+            for (var y = chartTop; y < chartBottom; y += OverlayPixelPolicy.GraphGridPeriodPixels)
             {
                 commands.Add(Rectangle(
                     OverlayElementRole.GraphGridDot,
-                    new LayoutRect(x, y, 1, Math.Min(2, chartBottom - y)),
+                    new LayoutRect(x, y, OverlayPixelPolicy.GraphGridWidthPixels, Math.Min(OverlayPixelPolicy.GraphGridDotPixels, chartBottom - y)),
                     GridColor));
             }
         }
 
         commands.Add(Rectangle(
             OverlayElementRole.GraphBaseline,
-            new LayoutRect(chartLeft, baselineTop, chartRight - chartLeft, 1),
+            new LayoutRect(chartLeft, baselineTop, chartRight - chartLeft, OverlayPixelPolicy.GraphBaselinePixels),
             White));
 
         var maximumBucket = buckets.Count == 0 ? 0 : Math.Max(0, buckets.Max());
@@ -331,14 +447,17 @@ public static class UsageOverlayRenderer
 
     private static void AddOverlayPositionOutline(
         ICollection<OverlayDrawCommand> commands,
-        int width,
-        int height)
+        EffectiveAppearanceSettings appearance)
     {
-        const int thickness = 4;
-        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(0, 0, width, thickness), White));
-        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(0, height - thickness, width, thickness), White));
-        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(0, thickness, thickness, height - (thickness * 2)), White));
-        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(width - thickness, thickness, thickness, height - (thickness * 2)), White));
+        var width = appearance.OverlayWidth;
+        var height = appearance.OverlayHeight;
+        var horizontal = Math.Min(width, OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.PositionOutlineDip, appearance.DisplayScaleX));
+        var vertical = Math.Min(height, OverlayPixelPolicy.ToPixels(OverlayPixelPolicy.PositionOutlineDip, appearance.DisplayScaleY));
+        var middleHeight = Math.Max(0, height - (vertical * 2));
+        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(0, 0, width, vertical), White));
+        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(0, height - vertical, width, vertical), White));
+        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(0, vertical, horizontal, middleHeight), White));
+        commands.Add(Rectangle(OverlayElementRole.OverlayPositionOutline, new LayoutRect(width - horizontal, vertical, horizontal, middleHeight), White));
     }
 
     private static OverlayDrawCommand Rectangle(

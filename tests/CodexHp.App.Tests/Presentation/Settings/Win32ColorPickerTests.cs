@@ -25,23 +25,46 @@ public sealed class Win32ColorPickerTests
         Assert.Equal(color, Win32ColorPicker.FromColorRef(colorRef));
     }
 
-    [Fact]
-    public void Settings_window_applies_the_color_returned_by_the_injected_picker() =>
+    [Theory]
+    [InlineData(OverlayColorMode.Light)]
+    [InlineData(OverlayColorMode.Dark)]
+    public void Each_color_chip_opens_picker_and_updates_only_the_selected_profile(OverlayColorMode mode) =>
         StaTest.Run(() =>
         {
             var selected = new ColorValue(17, 34, 51);
             var picker = new FakeColorPicker(selected);
             var viewModel = CreateViewModel();
-            var original = viewModel.ManaBarColor;
+            viewModel.ColorMode = mode;
             var window = new SettingsWindow(viewModel, picker);
             try
             {
                 window.Show();
-                FindPickButtons(window).First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-
-                Assert.Equal(original, picker.CurrentColor);
-                Assert.NotEqual(0, picker.OwnerWindow);
-                Assert.Equal(selected, viewModel.ManaBarColor);
+                var chips = new (string Name, Func<ColorValue> Get)[]
+                {
+                    ("ManaColorSwatch", () => viewModel.ManaBarColor),
+                    ("HpColorSwatch", () => viewModel.HpBarColor),
+                    ("RefreshColorSwatch", () => viewModel.RefreshGaugeColor),
+                    ("IssueColorSwatch", () => viewModel.ServiceIssueColor),
+                    ("UnknownColorSwatch", () => viewModel.ServiceUnknownColor),
+                    ("TokenLowColorSwatch", () => viewModel.TokenLowColor),
+                    ("TokenHighColorSwatch", () => viewModel.TokenHighColor),
+                };
+                foreach (var chip in chips)
+                {
+                    var before = chips.Select(item => item.Get()).ToArray();
+                    var original = chip.Get();
+                    var button = Assert.IsType<Button>(window.FindName(chip.Name));
+                    button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Assert.Equal(original, picker.CurrentColor);
+                    Assert.NotEqual(0, picker.OwnerWindow);
+                    Assert.Equal(selected, chip.Get());
+                    for (var index = 0; index < chips.Length; index++)
+                    {
+                        if (chips[index].Name != chip.Name) Assert.Equal(before[index], chips[index].Get());
+                    }
+                }
+                Assert.Equal(mode == OverlayColorMode.Light ? ColorSettings.Default : ColorSettings.LightDefault,
+                    mode == OverlayColorMode.Light ? viewModel.Working.Colors : viewModel.Working.LightColors);
             }
             finally
             {
@@ -60,7 +83,7 @@ public sealed class Win32ColorPickerTests
             try
             {
                 window.Show();
-                FindPickButtons(window).First().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.IsType<Button>(window.FindName("ManaColorSwatch")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
                 Assert.Equal(original, viewModel.ManaBarColor);
             }
@@ -79,22 +102,6 @@ public sealed class Win32ColorPickerTests
             settings => settings);
         viewModel.SelectedGroup = viewModel.Groups.Single(group => group.Kind == SettingsGroupKind.Color);
         return viewModel;
-    }
-
-    private static IEnumerable<Button> FindPickButtons(DependencyObject root)
-    {
-        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
-        {
-            if (child is Button { Content: "Pick" } button)
-            {
-                yield return button;
-            }
-
-            foreach (var descendant in FindPickButtons(child))
-            {
-                yield return descendant;
-            }
-        }
     }
 
     private sealed class FakeColorPicker(ColorValue? result) : IColorPicker

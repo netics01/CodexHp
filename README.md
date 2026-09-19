@@ -14,20 +14,15 @@ CodexHp is a compact taskbar overlay for people who use Codex in the ChatGPT des
 
 ## Codex usage at a glance
 
-![Numbered overview of the CodexHp usage gauges, reset progress, token activity graph, and service-status indicator](docs/assets/readme/codexhp-at-a-glance.svg)
+Keep your attention on the work—not on finding the usage page. See what's left in your limits, when they reset, and how your recent token activity adds up.
 
-| No. | What you see |
-| --- | --- |
-| **1** | Remaining usage in your current **5-hour session** and **weekly** windows |
-| **2** | Time remaining until each usage window resets |
-| **3** | Recent token activity read from your local Codex sessions |
-| **4** | OpenAI service incidents, with affected components shown on hover over the status indicator |
+![Conceptual guide to CodexHp: blue 5-hour and red weekly remaining-limit bars, reset gauges divided into five hours and seven days, a local token activity graph, and an orange OpenAI service-issue indicator. Dark and light appearances are illustrated with example values.](docs/assets/readme/codexhp-at-a-glance.png)
 
-The activity graph adds context to the remaining limits. Idle periods, steady work, and sudden bursts are easy to distinguish at a glance.
+Hover over the overlay for reset countdowns and, during an incident, affected service details. Choose **Light**, **Dark**, or **System** in Settings to match your Windows setup.
 
 ## Put it anywhere. Make it yours.
 
-![CodexHp on the taskbar, positioned freely on the desktop, and customized with colors and size controls](docs/assets/readme/codexhp-placement.svg)
+![Conceptual guide to placing CodexHp on the taskbar or anywhere on the desktop, choosing colors, and independently adjusting overlay and element dimensions](docs/assets/readme/codexhp-placement.png)
 
 | No. | Make it yours |
 | --- | --- |

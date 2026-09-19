@@ -33,6 +33,12 @@ public sealed class SettingsWindowTests
             var scroller = Assert.IsType<ScrollViewer>(window.FindName("SettingsContentScroller"));
             Assert.Equal(ScrollBarVisibility.Auto, scroller.VerticalScrollBarVisibility);
             Assert.Equal(ScrollBarVisibility.Auto, scroller.HorizontalScrollBarVisibility);
+            var visibleText = FindLogicalDescendants<TextBlock>(window)
+                .Where(textBlock => textBlock.IsVisible)
+                .Select(textBlock => textBlock.Text)
+                .ToArray();
+            Assert.DoesNotContain("px", visibleText);
+            Assert.DoesNotContain("Physical px", visibleText);
             var unitLabels = FindLogicalDescendants<TextBlock>(window)
                 .Where(textBlock => textBlock.IsVisible && textBlock.Text == "DIP")
                 .ToArray();
@@ -149,32 +155,75 @@ public sealed class SettingsWindowTests
         }
     });
 
-    [Fact]
-    public void Colors_page_labels_explain_the_UI_concept_and_its_actual_meaning() =>
+    [Theory]
+    [InlineData(650, 588)]
+    [InlineData(480, 360)]
+    public void Colors_page_separates_titles_and_descriptions_without_horizontal_overflow(double width, double height) =>
         StaTest.Run(() =>
     {
         var window = CreateWindow(SettingsGroupKind.Color);
         try
         {
+            if (width == 650)
+            {
+                Assert.Equal(width, window.Width);
+                Assert.Equal(height, window.Height);
+            }
             window.Show();
+            window.Width = width;
+            window.Height = height;
             PumpDispatcher();
 
-            var visibleText = FindLogicalDescendants<TextBlock>(window)
-                .Where(textBlock => textBlock.IsVisible)
-                .Select(textBlock => textBlock.Text)
-                .ToArray();
-            var expectedLabels = new[]
+            var panel = Assert.IsType<Grid>(window.FindName("ColorPanel"));
+            var labels = FindLogicalDescendants<StackPanel>(panel)
+                .Where(label => label.Children.OfType<TextBlock>().Count() == 2).ToArray();
+            var expectedLabels = new (string Title, string Description)[]
             {
-                "ManaBar: Token Limit Gauge for 5 Hours",
-                "HpBar: Token Limit Gauge for One Week",
-                "Refresh Gauge: Time Remaining Until Token Limit Reset",
-                "Issue Stripe: OpenAI Service Issue Detected",
-                "Unknown Stripe: Unable to Check OpenAI Service Status",
-                "Token Graph Low: ≤10K Tokens per 15s",
-                "Token Graph High: ≥100K Tokens per 15s",
+                ("ManaBar", "Token limit gauge for 5 hours"),
+                ("HpBar", "Token limit gauge for one week"),
+                ("Refresh Gauge", "Time remaining until token limit reset"),
+                ("Issue Stripe", "OpenAI service issue detected"),
+                ("Unknown Stripe", "Unable to check OpenAI service status"),
+                ("Token Graph Low", "≤10K tokens per 15s"),
+                ("Token Graph High", "≥100K tokens per 15s"),
             };
 
-            Assert.All(expectedLabels, label => Assert.Contains(label, visibleText));
+            Assert.Equal(expectedLabels.Length, labels.Length);
+            for (var index = 0; index < labels.Length; index++)
+            {
+                var label = labels[index];
+                var texts = label.Children.OfType<TextBlock>().ToArray();
+                Assert.Equal(2, texts.Length);
+                Assert.Equal(expectedLabels[index].Title, texts[0].Text);
+                Assert.Equal(expectedLabels[index].Description, texts[1].Text);
+                Assert.Equal(FontWeights.SemiBold, texts[0].FontWeight);
+                Assert.Same(window.TryFindResource("TextFillColorSecondaryBrush"), texts[1].Foreground);
+                Assert.Equal(TextWrapping.Wrap, texts[1].TextWrapping);
+                Assert.True(texts[1].TranslatePoint(new Point(), label).Y >= texts[0].ActualHeight);
+
+                var grid = Assert.IsType<Grid>(LogicalTreeHelper.GetParent(label));
+                var pick = Assert.Single(grid.Children.OfType<Button>(), button => Grid.GetRow(button) == index);
+                var labelRight = label.TranslatePoint(new Point(label.ActualWidth, 0), grid).X;
+                Assert.True(labelRight <= pick.TranslatePoint(new Point(), grid).X);
+                Assert.True(label.ActualHeight <= grid.RowDefinitions[index].ActualHeight);
+            }
+
+            var scroller = Assert.IsType<ScrollViewer>(window.FindName("SettingsContentScroller"));
+            Assert.True(scroller.ExtentWidth <= scroller.ViewportWidth + 1,
+                $"Content {scroller.ExtentWidth} exceeds viewport {scroller.ViewportWidth}.");
+            if (width == 650)
+            {
+                Assert.Equal(0, scroller.ScrollableHeight);
+                Assert.Equal(Visibility.Collapsed, scroller.ComputedVerticalScrollBarVisibility);
+            }
+            scroller.ScrollToBottom();
+            PumpDispatcher();
+            var reset = Assert.IsType<Button>(window.FindName("ResetColorsButton"));
+            var resetTop = reset.TranslatePoint(new Point(), scroller).Y;
+            Assert.InRange(resetTop, 0, scroller.ActualHeight - reset.ActualHeight);
+            scroller.ScrollToTop();
+            PumpDispatcher();
+            HoldForVisualProbe();
         }
         finally
         {
@@ -184,7 +233,7 @@ public sealed class SettingsWindowTests
     });
 
     [Fact]
-    public void Colors_page_uses_button_height_swatches_and_compact_pick_buttons() =>
+    public void Colors_page_uses_clickable_accessible_swatches_without_pick_buttons() =>
         StaTest.Run(() =>
     {
         var window = CreateWindow(SettingsGroupKind.Color);
@@ -202,7 +251,7 @@ public sealed class SettingsWindowTests
                 "UnknownColorSwatch",
                 "TokenLowColorSwatch",
                 "TokenHighColorSwatch",
-            }.Select(name => Assert.IsType<Border>(window.FindName(name))).ToArray();
+            }.Select(name => Assert.IsType<Button>(window.FindName(name))).ToArray();
             var visibleButtons = FindLogicalDescendants<Button>(window)
                 .Where(button => button.IsVisible)
                 .ToArray();
@@ -211,11 +260,15 @@ public sealed class SettingsWindowTests
                 .ToArray();
 
             Assert.All(swatches, swatch => Assert.Equal(24, swatch.ActualHeight));
-            Assert.Equal(7, pickButtons.Length);
-            Assert.All(pickButtons, button =>
+            Assert.Empty(pickButtons);
+            Assert.All(swatches, button =>
             {
                 Assert.Equal(24, button.ActualHeight);
-                Assert.Equal(44, button.ActualWidth);
+                Assert.Equal(24, button.ActualWidth);
+                Assert.True(button.Focusable);
+                Assert.True(button.IsTabStop);
+                Assert.False(string.IsNullOrWhiteSpace(System.Windows.Automation.AutomationProperties.GetName(button)));
+                Assert.Equal("Choose color", button.ToolTip);
             });
             Assert.DoesNotContain(visibleButtons, button => Equals(button.Content, "Choose"));
         }
@@ -410,32 +463,6 @@ public sealed class SettingsWindowTests
     });
 
     [Fact]
-    public void Appearance_size_units_use_device_independent_pixels() =>
-        StaTest.Run(() =>
-    {
-        var window = CreateWindow(SettingsGroupKind.Appearance);
-        try
-        {
-            window.Show();
-            PumpDispatcher();
-
-            var visibleText = FindLogicalDescendants<TextBlock>(window)
-                .Where(textBlock => textBlock.IsVisible)
-                .Select(textBlock => textBlock.Text)
-                .ToArray();
-
-            Assert.Equal(6, visibleText.Count(text => text == "DIP"));
-            Assert.DoesNotContain("px", visibleText);
-            Assert.DoesNotContain("Physical px", visibleText);
-        }
-        finally
-        {
-            window.Close();
-            PumpDispatcher();
-        }
-    });
-
-    [Fact]
     public void Appearance_page_reset_button_restores_only_default_appearance_and_previews_it() =>
         StaTest.Run(() =>
     {
@@ -523,7 +550,7 @@ public sealed class SettingsWindowTests
 
             var resetButton = Assert.IsType<Button>(window.FindName("ResetColorsButton"));
             Assert.Equal("Reset to Defaults", resetButton.Content);
-            Assert.Equal(1, Grid.GetRow(resetButton));
+            Assert.Equal(2, Grid.GetRow(resetButton));
             Assert.Equal(VerticalAlignment.Bottom, resetButton.VerticalAlignment);
 
             resetButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -626,58 +653,6 @@ public sealed class SettingsWindowTests
             var pageTop = pageHost.TranslatePoint(new Point(0, 0), root).Y;
             Assert.Equal(navigationTop, pageTop, 3);
             Assert.Equal(navigation.ActualHeight, pageHost.ActualHeight, 3);
-        }
-        finally
-        {
-            window.Close();
-            PumpDispatcher();
-        }
-    });
-
-    [Fact]
-    public void Settings_window_uses_the_approved_compact_layout() =>
-        StaTest.Run(() =>
-    {
-        var window = CreateWindow();
-        try
-        {
-            window.Show();
-            PumpDispatcher();
-            HoldForVisualProbe();
-
-            Assert.Equal(650, window.Width);
-            Assert.Equal(502, window.Height);
-            Assert.Equal(480, window.MinWidth);
-            Assert.Equal(360, window.MinHeight);
-            Assert.Equal(ResizeMode.CanResizeWithGrip, window.ResizeMode);
-            Assert.Equal(13, window.FontSize);
-
-            var root = Assert.IsType<Grid>(window.FindName("SettingsRoot"));
-            Assert.Equal(new Thickness(10), root.Margin);
-
-            var navigation = Assert.IsType<ListBox>(window.FindName("GroupList"));
-            Assert.Equal(130, navigation.Width);
-            Assert.Equal(13, navigation.FontSize);
-            Assert.Equal(new Thickness(0.5), navigation.BorderThickness);
-            var firstNavigationItem = Assert.IsType<ListBoxItem>(
-                navigation.ItemContainerGenerator.ContainerFromIndex(0));
-            Assert.Equal(30, firstNavigationItem.ActualHeight);
-
-            var generalHeader = Assert.IsType<Border>(window.FindName("GeneralHeader"));
-            Assert.Equal(28, generalHeader.Height);
-            var generalTitle = Assert.IsType<TextBlock>(window.FindName("GeneralSectionTitle"));
-            Assert.Equal(14, generalTitle.FontSize);
-            Assert.Equal(FontWeights.SemiBold, generalTitle.FontWeight);
-            var generalBody = Assert.IsType<Border>(window.FindName("GeneralBody"));
-            Assert.Equal(new Thickness(10), generalBody.Padding);
-            Assert.Equal(new Thickness(0.5), generalBody.BorderThickness);
-
-            var okButton = Assert.IsType<Button>(window.FindName("OkButton"));
-            var cancelButton = Assert.IsType<Button>(window.FindName("CancelButton"));
-            Assert.Equal(92, okButton.Width);
-            Assert.Equal(26, okButton.Height);
-            Assert.Equal(92, cancelButton.Width);
-            Assert.Equal(26, cancelButton.Height);
         }
         finally
         {

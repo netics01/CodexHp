@@ -169,6 +169,26 @@ public sealed class UsageOverlayWindow
             rectangle.Bottom - rectangle.Top);
     }
 
+    internal string? VerifyTaskbarPlacement(OverlayPlacement expected)
+    {
+        if (this.windowHost.LastTransitionFailure is { } failure)
+        {
+            return $"TaskbarHostingFailed:{failure}";
+        }
+
+        if (this.windowHost.Mode != OverlayHostMode.TaskbarChild)
+        {
+            return "TaskbarNotAttached";
+        }
+
+        if (this.windowHost.RequiresRecreation(this.WindowHandle))
+        {
+            return "TaskbarHostUnhealthy";
+        }
+
+        return this.GetOverlayBounds() == expected.Bounds ? null : "TaskbarBoundsMismatch";
+    }
+
     public void Show()
     {
         ObjectDisposedException.ThrowIf(this.isClosed, this);
@@ -340,7 +360,7 @@ public sealed class UsageOverlayWindow
 
     private void OnHostHealthTimerTick(object? sender, EventArgs eventArgs)
     {
-        if (this.isClosed || this.isRecreating)
+        if (this.isClosed || this.isRecreating || this.IsOverlayPositionChangeMode)
         {
             return;
         }

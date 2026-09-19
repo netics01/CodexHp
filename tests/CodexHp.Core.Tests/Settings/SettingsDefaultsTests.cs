@@ -20,9 +20,10 @@ public sealed class SettingsDefaultsTests
         Assert.Equal("#808080", settings.Colors.ServiceUnknown.ToHex());
         Assert.Equal("#2667CD", settings.Colors.TokenLow.ToHex());
         Assert.Equal("#DC4856", settings.Colors.TokenHigh.ToHex());
-        Assert.Equal(140, settings.Appearance.OverlayWidth);
-        Assert.Equal(34, settings.Appearance.OverlayHeight);
-        Assert.Equal(50, settings.Appearance.GaugePaneWidth);
+        Assert.Equal(130, settings.Appearance.OverlayWidth);
+        Assert.Equal(32, settings.Appearance.OverlayHeight);
+        Assert.Equal(ColorValue.Parse("#005A86"), settings.LightColors.RefreshGauge);
+        Assert.Equal(48, settings.Appearance.GaugePaneWidth);
         Assert.Equal(1, settings.Appearance.GraphBarWidth);
         Assert.Equal(0, settings.Appearance.GraphBarGap);
         Assert.Equal(2, settings.Appearance.StatusStripeWidth);

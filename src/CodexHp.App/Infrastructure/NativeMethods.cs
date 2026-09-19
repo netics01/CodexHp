@@ -316,6 +316,16 @@ internal static class NativeMethods
     [DllImport("gdi32.dll")]
     internal static extern uint SetTextColor(nint deviceContext, uint colorRef);
 
+    [DllImport("gdi32.dll")]
+    internal static extern int SaveDC(nint deviceContext);
+
+    [DllImport("gdi32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool RestoreDC(nint deviceContext, int savedContext);
+
+    [DllImport("gdi32.dll")]
+    internal static extern int IntersectClipRect(nint deviceContext, int left, int top, int right, int bottom);
+
     [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
     internal static extern nint CreateFontW(
         int height,

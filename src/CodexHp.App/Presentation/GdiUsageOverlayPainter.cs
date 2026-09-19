@@ -16,9 +16,11 @@ internal static class GdiUsageOverlayPainter
         }
 
         ArgumentNullException.ThrowIfNull(layout);
+        var background = layout.Commands.FirstOrDefault(command => command.Role == OverlayElementRole.Background)?.Color
+            ?? Background;
         foreach (var command in layout.Commands)
         {
-            var color = Blend(command.Color, Background, command.Opacity);
+            var color = Blend(command.Color, background, command.Opacity);
             if (command.Kind == OverlayDrawKind.Rectangle)
             {
                 FillRectangle(deviceContext, command.Bounds, color);
@@ -87,6 +89,15 @@ internal static class GdiUsageOverlayPainter
             return;
         }
 
+        var savedContext = command.ClipBounds is null ? 0 : NativeMethods.SaveDC(deviceContext);
+        if (command.ClipBounds is { } clip)
+        {
+            if (savedContext == 0)
+            {
+                return;
+            }
+            _ = NativeMethods.IntersectClipRect(deviceContext, clip.Left, clip.Top, clip.Right, clip.Bottom);
+        }
         _ = NativeMethods.SetBkMode(deviceContext, NativeMethods.TransparentBackgroundMode);
         _ = NativeMethods.SetTextColor(deviceContext, ToColorRef(color));
         var font = NativeMethods.CreateFontW(
@@ -130,6 +141,10 @@ internal static class GdiUsageOverlayPainter
             if (font != nint.Zero)
             {
                 _ = NativeMethods.DeleteObject(font);
+            }
+            if (savedContext != 0)
+            {
+                _ = NativeMethods.RestoreDC(deviceContext, savedContext);
             }
         }
     }

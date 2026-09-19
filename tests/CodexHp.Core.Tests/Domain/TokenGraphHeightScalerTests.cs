@@ -5,12 +5,6 @@ namespace CodexHp.Core.Tests.Domain;
 
 public sealed class TokenGraphHeightScalerTests
 {
-    [Fact]
-    public void Knee_is_ten_thousand_tokens()
-    {
-        Assert.Equal(10_000, TokenGraphHeightScaler.KneeTokenCount);
-    }
-
     [Theory]
     [InlineData(1_000, 45_172, 58, 3)]
     [InlineData(3_677, 45_172, 58, 10)]

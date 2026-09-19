@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
     <AssemblyName>CodexHp</AssemblyName>
     <RootNamespace>CodexHp.App</RootNamespace>
-    <Version>0.3.8</Version>
+    <Version>0.4.0</Version>
     <CodexHpBuildFlavor Condition="'$(CodexHpBuildFlavor)' == ''">Development</CodexHpBuildFlavor>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -28,5 +28,6 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Assets\CodexHp.ico" LogicalName="CodexHp.App.Assets.CodexHp.ico" />
+    <EmbeddedResource Include="Assets\CodexHp.Light.ico" LogicalName="CodexHp.App.Assets.CodexHp.Light.ico" />
   </ItemGroup>
 </Project>

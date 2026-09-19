@@ -1,4 +1,5 @@
 using CodexHp.App.Infrastructure;
+using CodexHp.App.Application;
 using CodexHp.App.Presentation;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Positioning;
@@ -10,6 +11,73 @@ namespace CodexHp.App.Tests.Presentation;
 
 public sealed class UsageOverlayHostingIntegrationTests
 {
+    [Fact]
+    public void Delayed_startup_taskbar_recovers_the_real_window_without_opening_settings() =>
+        StaTest.Run(() =>
+    {
+        var previousDpi = NativeMethods.SetThreadDpiAwarenessContext(NativeMethods.DpiAwarenessContextPerMonitorAwareV2);
+        var window = new UsageOverlayWindow();
+        try
+        {
+            var monitor = new WindowsMonitorService().GetMonitors().Single(item => item.IsPrimary);
+            var taskbar = new TaskbarWindowLocator().FindForMonitor(monitor.Id)!.Value;
+            var settings = AppSettings.Default with
+            {
+                Location = new OverlayLocationSettings(monitor.Id,
+                    taskbar.TaskbarBounds.Left + 8 - monitor.Bounds.Left,
+                    taskbar.TaskbarBounds.Top + 4 - monitor.Bounds.Top,
+                    monitor.PersistentId),
+            };
+            var expected = OverlayDisplayResolver.Resolve(settings, [new(monitor, taskbar.TaskbarBounds)]);
+            Assert.Equal(OverlayPlacementTarget.Taskbar, expected.EffectiveTarget);
+            var probes = 0;
+            var recovery = new OverlayPlacementRecovery(
+                candidate => OverlayDisplayResolver.Resolve(candidate,
+                    [new(monitor, ++probes < 3 ? null : taskbar.TaskbarBounds)]),
+                (candidate, resolution) =>
+                {
+                    window.Apply(new UsageOverlayState(true, new(100, 0.5, false), new(100, 0.5, false), [], null, null),
+                        new OverlayPresentationSettings(candidate.Colors, resolution.Appearance));
+                    window.SetPlacement(resolution.Placement);
+                },
+                window.VerifyTaskbarPlacement,
+                new RecoveryTestLogger());
+
+            Assert.True(recovery.Update(settings, allowFallback: true));
+            window.Show();
+            PumpDispatcher();
+            Assert.NotNull(window.VerifyTaskbarPlacement(expected.Placement));
+
+            using var watcher = new DisplayEnvironmentWatcher(Dispatcher.CurrentDispatcher,
+                () => recovery.Refresh(settings, window.IsOverlayPositionChangeMode),
+                TimeSpan.FromMilliseconds(10), subscribeToSystemEvents: false,
+                retryInterval: TimeSpan.FromMilliseconds(10), maximumRetries: 1,
+                slowRetryInterval: TimeSpan.FromMilliseconds(30));
+            watcher.RequestRefresh();
+            var deadline = DateTime.UtcNow.AddSeconds(3);
+            while (recovery.IsPending && DateTime.UtcNow < deadline)
+            {
+                PumpDispatcher();
+                Thread.Sleep(10);
+            }
+
+            Assert.False(recovery.IsPending);
+            AssertOverlayBoundsEventually(window, expected.Placement.Bounds);
+            Assert.Null(window.VerifyTaskbarPlacement(expected.Placement));
+            Assert.Equal(taskbar.WindowHandle, NativeMethods.GetParent(window.WindowHandle));
+        }
+        finally
+        {
+            window.CloseForShutdown();
+            _ = NativeMethods.SetThreadDpiAwarenessContext(previousDpi);
+        }
+    });
+
+    private sealed class RecoveryTestLogger : IDiagnosticLogger
+    {
+        public void Log(DiagnosticLevel level, string component, string message, Exception? exception = null) { }
+    }
+
     [Fact]
     public void Sequential_WPF_hosting_operations_preserve_popup_topmost_state()
     {

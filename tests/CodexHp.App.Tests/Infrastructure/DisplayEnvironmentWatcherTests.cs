@@ -49,6 +49,53 @@ public sealed class DisplayEnvironmentWatcherTests
         });
     }
 
+    [Fact]
+    public void Recovery_continues_at_a_slow_interval_after_the_fast_retry_budget_then_stops()
+    {
+        StaTest.Run(() =>
+        {
+            var calls = new List<long>();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            using var watcher = new DisplayEnvironmentWatcher(
+                Dispatcher.CurrentDispatcher,
+                () => { calls.Add(clock.ElapsedMilliseconds); return calls.Count < 4; },
+                TimeSpan.FromMilliseconds(5), subscribeToSystemEvents: false,
+                retryInterval: TimeSpan.FromMilliseconds(5), maximumRetries: 1,
+                slowRetryInterval: TimeSpan.FromMilliseconds(40));
+
+            watcher.RequestRefresh();
+            var deadline = DateTime.UtcNow.AddSeconds(3);
+            while (calls.Count < 4 && DateTime.UtcNow < deadline)
+            {
+                PumpDispatcher(TimeSpan.FromMilliseconds(20));
+            }
+            PumpDispatcher(TimeSpan.FromMilliseconds(100));
+            Assert.Equal(4, calls.Count);
+            Assert.True(calls[2] - calls[1] >= 30);
+            Assert.True(calls[3] - calls[2] >= 30);
+        });
+    }
+
+    [Fact]
+    public void Disposing_a_pending_recovery_stops_all_further_attempts()
+    {
+        StaTest.Run(() =>
+        {
+            var calls = 0;
+            var watcher = new DisplayEnvironmentWatcher(Dispatcher.CurrentDispatcher,
+                () => { calls++; return true; }, TimeSpan.FromMilliseconds(5),
+                subscribeToSystemEvents: false, maximumRetries: 0,
+                slowRetryInterval: TimeSpan.FromMilliseconds(20));
+            watcher.RequestRefresh();
+            PumpDispatcher(TimeSpan.FromMilliseconds(60));
+            watcher.Dispose();
+            var stoppedAt = calls;
+            Assert.True(stoppedAt > 0);
+            PumpDispatcher(TimeSpan.FromMilliseconds(80));
+            Assert.Equal(stoppedAt, calls);
+        });
+    }
+
     private static void PumpDispatcher(TimeSpan duration)
     {
         var frame = new DispatcherFrame();

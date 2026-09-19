@@ -22,7 +22,9 @@ public partial class App : System.Windows.Application
     private SettingsWindowController? settingsWindowController;
     private OverlayPositionController? positionController;
     private DisplayEnvironmentWatcher? displayEnvironmentWatcher;
+    private OverlayPlacementRecovery? placementRecovery;
     private AppSettings activeSettings = AppSettings.Default;
+    private bool systemUsesLightColors;
     private OverlayPresentationSettings activePresentation =
         OverlayPresentationSettings.FromUnscaled(AppSettings.Default);
     private UsageOverlayState currentUsageOverlayState = UsageOverlayStateReducer.Reduce(
@@ -90,18 +92,17 @@ public partial class App : System.Windows.Application
         {
             StartWithWindows = startupRegistration.IsEnabled(),
         };
+        this.systemUsesLightColors = WindowsShellTheme.Read() == TrayIconTheme.Light;
         var settingsCommitService = new SettingsCommitService(settingsStore, startupRegistration);
         this.positionController = new OverlayPositionController(monitorService, taskbarBounds);
-        var displayResolution = this.positionController.Resolve(this.activeSettings);
-        this.activePresentation = new OverlayPresentationSettings(
-            this.activeSettings.Colors,
-            displayResolution.Appearance,
-            displayResolution.DisplayScaleY);
-
         this.usageOverlayWindow = new UsageOverlayWindow(
             new OverlayWindowHost(taskbarLocator, monitorService));
-        this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
-        this.usageOverlayWindow.SetPlacement(displayResolution.Placement);
+        this.placementRecovery = new OverlayPlacementRecovery(
+            this.positionController.Resolve,
+            this.ApplyResolvedPlacement,
+            this.usageOverlayWindow.VerifyTaskbarPlacement,
+            this.logger);
+        _ = this.placementRecovery.Update(this.activeSettings, allowFallback: true);
         this.usageOverlayWindow.OpenSettingsRequested += (_, _) => this.OpenSettings();
         this.usageOverlayWindow.OverlayPositionChanged += this.OnOverlayPositionChanged;
         this.usageOverlayWindow.DisplayEnvironmentChangeRequested +=
@@ -110,16 +111,19 @@ public partial class App : System.Windows.Application
         this.displayEnvironmentWatcher = new DisplayEnvironmentWatcher(
             this.Dispatcher,
             this.RefreshDisplayEnvironment);
+        // Recheck after the first WPF Show, including any temporary startup fallback.
+        this.displayEnvironmentWatcher.RequestRefresh();
 
         this.settingsWindowController = new SettingsWindowController(
             () => new SettingsWindowViewModel(
                 this.activeSettings,
                 this.ApplySettingsPreview,
-                enabled => this.usageOverlayWindow.SetOverlayPositionChangeMode(enabled),
+                this.SetOverlayPositionChangeMode,
                 desired => settingsCommitService.Commit(desired),
                 canStartWithWindows: startupRegistration.CanEnable,
                 calculateVisibleTokenHistory: this.CalculateVisibleTokenHistory,
-                resolveDefaultAppearance: this.ResolveDefaultAppearance),
+                resolveDefaultAppearance: this.ResolveDefaultAppearance,
+                systemUsesLightColors: () => this.systemUsesLightColors),
             this.ShowSettingsWindow,
             this.ActivateSettingsWindow);
 
@@ -189,18 +193,40 @@ public partial class App : System.Windows.Application
     private void ApplySettingsPreview(AppSettings settings)
     {
         this.activeSettings = settings;
-        if (this.usageOverlayWindow is null || this.positionController is null)
+        if (this.placementRecovery is null)
         {
             return;
         }
 
-        var displayResolution = this.positionController.Resolve(settings);
+        if (this.placementRecovery.Update(settings, allowFallback: true))
+        {
+            this.displayEnvironmentWatcher?.RequestRefresh();
+        }
+    }
+
+    private void SetOverlayPositionChangeMode(bool enabled)
+    {
+        this.usageOverlayWindow?.SetOverlayPositionChangeMode(enabled);
+        if (!enabled)
+        {
+            this.displayEnvironmentWatcher?.RequestRefresh();
+        }
+    }
+
+    private void ApplyResolvedPlacement(AppSettings settings, OverlayDisplayResolution displayResolution)
+    {
+        if (this.usageOverlayWindow is null)
+        {
+            return;
+        }
+
         this.activePresentation = new OverlayPresentationSettings(
-            settings.Colors,
+            settings.GetColors(this.systemUsesLightColors),
             displayResolution.Appearance,
-            displayResolution.DisplayScaleY);
+            settings.UsesLightColors(this.systemUsesLightColors));
         this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
         this.usageOverlayWindow.SetPlacement(displayResolution.Placement);
+        this.ConstrainSettingsWindow(displayResolution.Placement.MonitorId, center: false);
     }
 
     private TimeSpan CalculateVisibleTokenHistory(AppSettings settings)
@@ -238,41 +264,29 @@ public partial class App : System.Windows.Application
     {
         if (Volatile.Read(ref this.shutdownStarted) != 0
             || this.usageOverlayWindow is null
-            || this.positionController is null)
+            || this.placementRecovery is null)
         {
             return false;
         }
 
-        try
+        // Color changes must still render while position editing pauses placement recovery.
+        if (WindowsShellTheme.Read() is { } theme)
         {
-            var resolution = this.positionController.Resolve(this.activeSettings);
-            if (resolution.TaskbarWasUnavailable)
+            var isLight = theme == TrayIconTheme.Light;
+            if (this.systemUsesLightColors != isLight)
             {
-                this.logger?.Log(
-                    DiagnosticLevel.Information,
-                    "Display",
-                    "The taskbar was unavailable during a display refresh; keeping the current overlay placement and retrying.");
-                return true;
+                this.systemUsesLightColors = isLight;
+                this.activePresentation = this.activePresentation with
+                {
+                    Colors = this.activeSettings.GetColors(isLight),
+                    IsLight = this.activeSettings.UsesLightColors(isLight),
+                };
+                this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
+                this.settingsWindowController?.Current?.RefreshSystemColorMode();
             }
-
-            this.activePresentation = new OverlayPresentationSettings(
-                this.activeSettings.Colors,
-                resolution.Appearance,
-                resolution.DisplayScaleY);
-            this.usageOverlayWindow.Apply(this.currentUsageOverlayState, this.activePresentation);
-            this.usageOverlayWindow.SetPlacement(resolution.Placement);
-            this.ConstrainSettingsWindow(resolution.Placement.MonitorId, center: false);
-            return false;
         }
-        catch (Exception exception)
-        {
-            this.logger?.Log(
-                DiagnosticLevel.Warning,
-                "Display",
-                "The display environment could not be refreshed.",
-                exception);
-            return false;
-        }
+        return this.placementRecovery.Refresh(
+            this.activeSettings, this.usageOverlayWindow.IsOverlayPositionChangeMode);
     }
 
     private void OpenSettings()

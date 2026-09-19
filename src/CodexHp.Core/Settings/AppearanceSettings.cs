@@ -9,9 +9,9 @@ public sealed record AppearanceSettings(
     int StatusStripeWidth)
 {
     public static AppearanceSettings Default { get; } = new(
-        OverlayWidth: 140,
-        OverlayHeight: 34,
-        GaugePaneWidth: 50,
+        OverlayWidth: 130,
+        OverlayHeight: 32,
+        GaugePaneWidth: 48,
         GraphBarWidth: 1,
         GraphBarGap: 0,
         StatusStripeWidth: 2);
@@ -23,4 +23,6 @@ public sealed record EffectiveAppearanceSettings(
     int GaugePaneWidth,
     int GraphBarWidth,
     int GraphBarGap,
-    int StatusStripeWidth);
+    int StatusStripeWidth,
+    double DisplayScaleX = 1,
+    double DisplayScaleY = 1);

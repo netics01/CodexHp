@@ -339,43 +339,33 @@ try {
         $expectedBounds = $ExpectedOverlayBounds
     }
     else {
-        $defaultOverlayWidthDip = 144
-        $defaultOverlayHeightDip = 34
+        # Default dimensions depend on the display and the target history duration.
+        # Exact size policy is covered by first-run/DPI tests; this smoke check
+        # verifies taskbar fit and anchoring. Pass ExpectedOverlayBounds for an
+        # exact-size acceptance scenario instead of duplicating product defaults.
         $edgeInsetDip = 2
         $dpi = [CodexHpWindowProbe]::GetWindowDpi($overlayWindowHandle)
         if ($dpi -eq 0) {
             throw 'The usage overlay DPI could not be read.'
         }
         $scale = [double]$dpi / 96.0
-        $preferredWidth = [Math]::Max(1, [int][Math]::Round(
-                $defaultOverlayWidthDip * $scale,
-                [MidpointRounding]::AwayFromZero))
-        $preferredHeight = [Math]::Max(1, [int][Math]::Round(
-                $defaultOverlayHeightDip * $scale,
-                [MidpointRounding]::AwayFromZero))
+        $expectedWidth = $actualBounds[2]
+        $expectedHeight = $actualBounds[3]
+        if ($expectedWidth -le 0 -or $expectedHeight -le 0 -or
+            $expectedWidth -gt $taskbarBounds[2] -or $expectedHeight -gt $taskbarBounds[3]) {
+            throw 'The usage overlay must have positive dimensions and fit inside its taskbar.'
+        }
         $edgeInset = [Math]::Max(1, [int][Math]::Round(
                 $edgeInsetDip * $scale,
                 [MidpointRounding]::AwayFromZero))
         $horizontalTaskbar = $taskbarBounds[2] -ge $taskbarBounds[3]
         if ($horizontalTaskbar) {
-            $expectedWidth = [Math]::Min(
-                $preferredWidth,
-                [Math]::Max(1, $taskbarBounds[2] - (2 * $edgeInset)))
-            $expectedHeight = [Math]::Min(
-                $preferredHeight,
-                [Math]::Max(1, $taskbarBounds[3] - (2 * $edgeInset)))
             $maximumLeftOffset = [Math]::Max(0, $taskbarBounds[2] - $expectedWidth)
             $maximumTopOffset = [Math]::Max(0, $taskbarBounds[3] - $expectedHeight)
             $expectedLeft = $taskbarBounds[0] + [Math]::Min($edgeInset, $maximumLeftOffset)
             $expectedTop = $taskbarBounds[1] + [int][Math]::Floor($maximumTopOffset / 2.0)
         }
         else {
-            $expectedWidth = [Math]::Min(
-                $preferredWidth,
-                [Math]::Max(1, $taskbarBounds[2] - (2 * $edgeInset)))
-            $expectedHeight = [Math]::Min(
-                $preferredHeight,
-                [Math]::Max(1, $taskbarBounds[3] - (2 * $edgeInset)))
             $maximumLeftOffset = [Math]::Max(0, $taskbarBounds[2] - $expectedWidth)
             $maximumTopOffset = [Math]::Max(0, $taskbarBounds[3] - $expectedHeight)
             $expectedLeft = $taskbarBounds[0] + [int][Math]::Floor($maximumLeftOffset / 2.0)

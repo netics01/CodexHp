@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -102,15 +101,16 @@ public partial class SettingsWindow : System.Windows.Window
 
     private void OnRepositoryRequestNavigate(object sender, RequestNavigateEventArgs eventArgs)
     {
-        Process.Start(new ProcessStartInfo(eventArgs.Uri.AbsoluteUri)
-        {
-            UseShellExecute = true,
-        });
+        RepositoryBrowser.Open();
         eventArgs.Handled = true;
     }
 
     private void ShowGroup(SettingsGroupKind group)
     {
+        // Colors can wrap within the viewport; the other pages retain horizontal scrolling.
+        this.SettingsContentScroller.HorizontalScrollBarVisibility = group == SettingsGroupKind.Color
+            ? ScrollBarVisibility.Disabled
+            : ScrollBarVisibility.Auto;
         this.GeneralPanel.Visibility = group == SettingsGroupKind.General ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         this.ColorPanel.Visibility = group == SettingsGroupKind.Color ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         this.AppearancePanel.Visibility = group == SettingsGroupKind.Appearance ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;

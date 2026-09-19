@@ -1,5 +1,5 @@
 #ifndef AppVersion
-  #define AppVersion "0.3.8"
+  #define AppVersion "0.4.0"
 #endif
 
 #ifndef SourceExe

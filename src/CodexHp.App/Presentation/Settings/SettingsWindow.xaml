@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="CodexHp Settings"
         Width="650"
-        Height="502"
+        Height="588"
         MinWidth="480"
         MinHeight="360"
         FontFamily="Segoe UI"
@@ -135,6 +135,39 @@
             </Setter>
         </Style>
 
+        <Style x:Key="ColorSwatchButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SurfaceStrokeColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="0.5" />
+            <Setter Property="ToolTip" Value="Choose color" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="BorderThickness" Value="1.5" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter Property="BorderThickness" Value="2" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource FocusStrokeColorOuterBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="CompactTextBoxStyle" TargetType="TextBox">
             <Setter Property="Height" Value="24" />
             <Setter Property="Padding" Value="4,1" />
@@ -149,6 +182,20 @@
             <Setter Property="MinHeight" Value="26" />
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ColorLabelStyle" TargetType="StackPanel">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,6,10,6" />
+        </Style>
+        <Style x:Key="ColorTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style x:Key="ColorDescriptionStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
     </Window.Resources>
 
@@ -222,48 +269,85 @@
                 <Border Grid.Row="1" Style="{StaticResource SectionBodyStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <Grid VerticalAlignment="Top">
+                        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                            <DockPanel>
+                                <TextBlock Text="Mode" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                <ComboBox x:Name="ColorModeComboBox" Width="140" HorizontalAlignment="Right"
+                                          AutomationProperties.Name="Overlay color mode"
+                                          ItemsSource="{Binding ColorModes}"
+                                          SelectedItem="{Binding ColorMode, Mode=TwoWay}" />
+                            </DockPanel>
+                        </StackPanel>
+                        <Grid Grid.Row="1" VerticalAlignment="Top">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="34" />
-                                <ColumnDefinition Width="44" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
-                                <RowDefinition Height="30" />
-                                <RowDefinition Height="30" />
-                                <RowDefinition Height="30" />
-                                <RowDefinition Height="30" />
-                                <RowDefinition Height="30" />
-                                <RowDefinition Height="30" />
-                                <RowDefinition Height="30" />
+                                <RowDefinition Height="Auto" MinHeight="48" />
+                                <RowDefinition Height="Auto" MinHeight="48" />
+                                <RowDefinition Height="Auto" MinHeight="48" />
+                                <RowDefinition Height="Auto" MinHeight="48" />
+                                <RowDefinition Height="Auto" MinHeight="48" />
+                                <RowDefinition Height="Auto" MinHeight="48" />
+                                <RowDefinition Height="Auto" MinHeight="48" />
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" VerticalAlignment="Center" Text="ManaBar: Token Limit Gauge for 5 Hours" />
-                            <Border x:Name="ManaColorSwatch" Grid.Row="0" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
-                            <Button Grid.Row="0" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickManaColor" />
-                            <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="HpBar: Token Limit Gauge for One Week" />
-                            <Border x:Name="HpColorSwatch" Grid.Row="1" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
-                            <Button Grid.Row="1" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickHpColor" />
-                            <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Refresh Gauge: Time Remaining Until Token Limit Reset" />
-                            <Border x:Name="RefreshColorSwatch" Grid.Row="2" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
-                            <Button Grid.Row="2" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickRefreshColor" />
-                            <TextBlock Grid.Row="3" VerticalAlignment="Center" Text="Issue Stripe: OpenAI Service Issue Detected" />
-                            <Border x:Name="IssueColorSwatch" Grid.Row="3" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
-                            <Button Grid.Row="3" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickIssueColor" />
-                            <TextBlock Grid.Row="4" VerticalAlignment="Center" Text="Unknown Stripe: Unable to Check OpenAI Service Status" />
-                            <Border x:Name="UnknownColorSwatch" Grid.Row="4" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
-                            <Button Grid.Row="4" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickUnknownColor" />
-                            <TextBlock Grid.Row="5" VerticalAlignment="Center" Text="Token Graph Low: ≤10K Tokens per 15s" />
-                            <Border x:Name="TokenLowColorSwatch" Grid.Row="5" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
-                            <Button Grid.Row="5" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickTokenLowColor" />
-                            <TextBlock Grid.Row="6" VerticalAlignment="Center" Text="Token Graph High: ≥100K Tokens per 15s" />
-                            <Border x:Name="TokenHighColorSwatch" Grid.Row="6" Grid.Column="1" Width="24" Height="24" BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5" />
-                            <Button Grid.Row="6" Grid.Column="2" Style="{StaticResource CompactButtonStyle}" Content="Pick" Click="OnPickTokenHighColor" />
+                            <StackPanel Grid.Row="0" Style="{StaticResource ColorLabelStyle}">
+                                <TextBlock Style="{StaticResource ColorTitleStyle}" Text="ManaBar" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="Token limit gauge for 5 hours" />
+                            </StackPanel>
+                            <Button x:Name="ManaColorSwatch" Grid.Row="0" Grid.Column="1"
+                                    Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickManaColor"
+                                    AutomationProperties.Name="5-hour gauge color" />
+                            <StackPanel Grid.Row="1" Style="{StaticResource ColorLabelStyle}">
+                                <TextBlock Style="{StaticResource ColorTitleStyle}" Text="HpBar" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="Token limit gauge for one week" />
+                            </StackPanel>
+                            <Button x:Name="HpColorSwatch" Grid.Row="1" Grid.Column="1"
+                                    Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickHpColor"
+                                    AutomationProperties.Name="Weekly gauge color" />
+                            <StackPanel Grid.Row="2" Style="{StaticResource ColorLabelStyle}">
+                                <TextBlock Style="{StaticResource ColorTitleStyle}" Text="Refresh Gauge" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="Time remaining until token limit reset" />
+                            </StackPanel>
+                            <Button x:Name="RefreshColorSwatch" Grid.Row="2" Grid.Column="1"
+                                    Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickRefreshColor"
+                                    AutomationProperties.Name="Refresh gauge color" />
+                            <StackPanel Grid.Row="3" Style="{StaticResource ColorLabelStyle}">
+                                <TextBlock Style="{StaticResource ColorTitleStyle}" Text="Issue Stripe" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="OpenAI service issue detected" />
+                            </StackPanel>
+                            <Button x:Name="IssueColorSwatch" Grid.Row="3" Grid.Column="1"
+                                    Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickIssueColor"
+                                    AutomationProperties.Name="Service issue stripe color" />
+                            <StackPanel Grid.Row="4" Style="{StaticResource ColorLabelStyle}">
+                                <TextBlock Style="{StaticResource ColorTitleStyle}" Text="Unknown Stripe" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="Unable to check OpenAI service status" />
+                            </StackPanel>
+                            <Button x:Name="UnknownColorSwatch" Grid.Row="4" Grid.Column="1"
+                                    Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickUnknownColor"
+                                    AutomationProperties.Name="Unknown status stripe color" />
+                            <StackPanel Grid.Row="5" Style="{StaticResource ColorLabelStyle}">
+                                <TextBlock Style="{StaticResource ColorTitleStyle}" Text="Token Graph Low" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="≤10K tokens per 15s" />
+                            </StackPanel>
+                            <Button x:Name="TokenLowColorSwatch" Grid.Row="5" Grid.Column="1"
+                                    Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickTokenLowColor"
+                                    AutomationProperties.Name="Token graph low color" />
+                            <StackPanel Grid.Row="6" Style="{StaticResource ColorLabelStyle}">
+                                <TextBlock Style="{StaticResource ColorTitleStyle}" Text="Token Graph High" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="≥100K tokens per 15s" />
+                            </StackPanel>
+                            <Button x:Name="TokenHighColorSwatch" Grid.Row="6" Grid.Column="1"
+                                    Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickTokenHighColor"
+                                    AutomationProperties.Name="Token graph high color" />
                         </Grid>
                         <Button x:Name="ResetColorsButton"
-                                Grid.Row="1"
+                                Grid.Row="2"
                                 Width="120"
                                 Margin="0,10,0,0"
                                 HorizontalAlignment="Right"

@@ -4,6 +4,12 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-09-23
+
+### Changed
+
+- Fill the reset-credit ticket icon with the weekly HP gauge color to visually connect credits with replenishing usage capacity. Preserve its outline and side notches, follow custom HP colors in both themes, and retain stale-data dimming.
+
 ## [0.5.0] - 2026-09-23
 
 ### Added

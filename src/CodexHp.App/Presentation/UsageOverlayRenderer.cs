@@ -28,6 +28,7 @@ public enum OverlayElementRole
     ManaRefreshSeparator,
     ResetCreditTrack,
     ResetCreditIcon,
+    ResetCreditIconFill,
     ResetCreditText,
     ResetCreditExpiryText,
     HpTrack,
@@ -270,6 +271,17 @@ public static class UsageOverlayRenderer
             var strokeY = Math.Max(1, Y(1));
             var notchTop = top + iconHeight / 2 - strokeY;
             var iconColor = foreground;
+            // Fill the ticket interior with the weekly HP color, retaining the outline and side notches.
+            void Fill(int x, int y, int w, int h)
+            {
+                if (w > 0 && h > 0)
+                    commands.Add(Rectangle(OverlayElementRole.ResetCreditIconFill,
+                        new LayoutRect(x, y, w, h), settings.Colors.HpBar, opacity));
+            }
+            Fill(left + strokeX, top + strokeY, iconWidth - strokeX * 2, notchTop - top - strokeY);
+            Fill(left + strokeX * 2, notchTop, iconWidth - strokeX * 4, strokeY * 2);
+            Fill(left + strokeX, notchTop + strokeY * 2, iconWidth - strokeX * 2,
+                top + iconHeight - strokeY - notchTop - strokeY * 2);
             // A small ticket outline drawn in DIP-scaled strokes, with side notches.
             void Line(int x, int y, int w, int h) => commands.Add(Rectangle(
                 OverlayElementRole.ResetCreditIcon, new LayoutRect(x, y, w, h), iconColor, opacity));

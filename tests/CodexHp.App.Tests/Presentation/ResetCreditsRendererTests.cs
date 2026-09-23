@@ -31,6 +31,13 @@ public sealed class ResetCreditsRendererTests
             Assert.True(GdiUsageOverlayPainter.MeasureTextWidth(text.Text!, text.FontSize) <= text.Bounds.Width);
             Assert.DoesNotContain(current.Commands, item => item.Role.ToString().StartsWith("Mana", StringComparison.Ordinal));
             Assert.Equal(original.Commands.Where(Unchanged), current.Commands.Where(Unchanged));
+            var fills = current.Commands.Where(item => item.Role == OverlayElementRole.ResetCreditIconFill).ToArray();
+            Assert.NotEmpty(fills);
+            Assert.All(fills, fill => Assert.Equal(settings.Colors.HpBar, fill.Color));
+            var outline = current.Commands.Where(item => item.Role == OverlayElementRole.ResetCreditIcon).ToArray();
+            var left = outline.Min(item => item.Bounds.Left);
+            var right = outline.Max(item => item.Bounds.Right);
+            Assert.All(fills, fill => Assert.True(fill.Bounds.Left > left && fill.Bounds.Right < right));
             var bitmap = GdiBitmapSourceRenderer.Render(current);
             Assert.Equal(P(130), bitmap.PixelWidth);
             Assert.Equal(P(32), bitmap.PixelHeight);
@@ -40,6 +47,23 @@ public sealed class ResetCreditsRendererTests
             OverlayElementRole.HpTrack or OverlayElementRole.HpFill or OverlayElementRole.HpText
             or OverlayElementRole.HpRefreshTrack or OverlayElementRole.HpRefreshFill or OverlayElementRole.HpRefreshSeparator
             or OverlayElementRole.GraphBaseline or OverlayElementRole.GraphGridDot or OverlayElementRole.TokenBar;
+    }
+
+    [Fact]
+    public void Ticket_fill_follows_custom_HP_color_and_stale_opacity()
+    {
+        var state = new UsageOverlayState(true, new(100, 1, false), new(70, .5, false), [], null, null)
+        { BankedResets = new("3", "11d", false, true, "Banked resets: 3") };
+        var settings = AppSettings.Default with { Colors = ColorSettings.Default with { HpBar = ColorValue.Parse("#23AB45") } };
+        var layout = UsageOverlayRenderer.CreateLayout(state, settings, false);
+        var text = Assert.Single(layout.Commands, item => item.Role == OverlayElementRole.ResetCreditText);
+        var fills = layout.Commands.Where(item => item.Role == OverlayElementRole.ResetCreditIconFill).ToArray();
+        Assert.NotEmpty(fills);
+        Assert.All(fills, fill =>
+        {
+            Assert.Equal(settings.Colors.HpBar, fill.Color);
+            Assert.Equal(text.Opacity, fill.Opacity);
+        });
     }
 
     [Fact]

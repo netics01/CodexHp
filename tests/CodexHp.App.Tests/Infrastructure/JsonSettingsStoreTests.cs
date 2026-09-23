@@ -8,6 +8,20 @@ namespace CodexHp.App.Tests.Infrastructure;
 
 public sealed class JsonSettingsStoreTests : IDisposable
 {
+    [Fact]
+    public void Upper_bar_mode_round_trips_and_invalid_values_fall_back_without_resetting_other_settings()
+    {
+        var store = new JsonSettingsStore(this.localAppData);
+        var settings = AppSettings.Default with { UpperBarMode = UpperBarMode.BankedResets };
+        store.Save(settings);
+        Assert.Equal(settings, store.Load());
+        File.WriteAllText(store.SettingsPath, File.ReadAllText(store.SettingsPath).Replace("BankedResets", "future-mode"));
+        Assert.Equal(AppSettings.Default, store.Load());
+        var validated = SettingsValidator.Validate(settings with { UpperBarMode = (UpperBarMode)99 });
+        Assert.Equal(UpperBarMode.FiveHourUsage, validated.Settings.UpperBarMode);
+        Assert.Contains("UpperBarMode", validated.CorrectedFields);
+    }
+
     [Theory]
     [InlineData(OverlayColorMode.Light)]
     [InlineData(OverlayColorMode.Dark)]

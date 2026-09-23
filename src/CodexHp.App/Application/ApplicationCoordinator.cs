@@ -81,7 +81,9 @@ public sealed class ApplicationCoordinator
         try
         {
             var credentials = this.credentialSource.Load();
-            var snapshot = await this.usageClient.FetchAsync(credentials, cancellationToken);
+            var snapshot = await this.usageClient.FetchAsync(
+                credentials, cancellationToken,
+                includeResetCredits: this.readSettings().UpperBarMode == UpperBarMode.BankedResets);
             cancellationToken.ThrowIfCancellationRequested();
             this.UpdateState(
                 state => state with { Usage = UsageProviderState.Current(snapshot) },

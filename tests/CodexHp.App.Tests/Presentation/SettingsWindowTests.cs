@@ -17,6 +17,29 @@ namespace CodexHp.App.Tests.Presentation;
 public sealed class SettingsWindowTests
 {
     [Fact]
+    public void General_upper_bar_selector_updates_the_working_settings() => StaTest.Run(() =>
+    {
+        var window = CreateWindow(SettingsGroupKind.General);
+        try
+        {
+            window.Show();
+            PumpDispatcher();
+            var combo = Assert.IsType<ComboBox>(window.FindName("UpperBarModeComboBox"));
+            Assert.True(combo.IsVisible);
+            Assert.Equal(0, combo.SelectedIndex);
+            combo.SelectedIndex = 1;
+            PumpDispatcher();
+            var model = Assert.IsType<SettingsWindowViewModel>(window.DataContext);
+            Assert.Equal(UpperBarMode.BankedResets, model.Working.UpperBarMode);
+        }
+        finally
+        {
+            window.Close();
+            PumpDispatcher();
+        }
+    });
+
+    [Fact]
     public void Window_is_resizable_scrollable_and_uses_logical_appearance_units() =>
         StaTest.Run(() =>
     {
@@ -179,7 +202,7 @@ public sealed class SettingsWindowTests
                 .Where(label => label.Children.OfType<TextBlock>().Count() == 2).ToArray();
             var expectedLabels = new (string Title, string Description)[]
             {
-                ("ManaBar", "Token limit gauge for 5 hours"),
+                ("ManaBar", "5-hour usage or banked resets"),
                 ("HpBar", "Token limit gauge for one week"),
                 ("Refresh Gauge", "Time remaining until token limit reset"),
                 ("Issue Stripe", "OpenAI service issue detected"),

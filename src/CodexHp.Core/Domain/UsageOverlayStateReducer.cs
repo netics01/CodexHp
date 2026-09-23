@@ -56,6 +56,18 @@ public static class UsageOverlayStateReducer
                 affectedServiceComponentGroups)
             : null;
         var contentStatus = CreateContentStatus(usage, nowUnixMs);
+        var bankedResets = settings.UpperBarMode == UpperBarMode.BankedResets
+            ? ResetCreditsDisplayState.Create(snapshot?.ResetCredits, nowUnixMs, isUsageStale)
+            : null;
+        if (bankedResets is not null && snapshot is not null)
+        {
+            var sessionRemaining = Math.Clamp(snapshot.SessionRemainingPercent, 0, 100);
+            if (sessionRemaining < 100)
+            {
+                contentStatus.Tooltip += $"\r\n5H remaining: {sessionRemaining}%";
+            }
+            contentStatus.Tooltip += $"\r\n\r\n{bankedResets.Tooltip}";
+        }
 
         return new UsageOverlayState(
             isVisible,
@@ -65,7 +77,7 @@ public static class UsageOverlayStateReducer
             stripeColor,
             statusStripeTooltip,
             contentStatus.Message,
-            contentStatus.Tooltip) { ServiceHealth = serviceHealth };
+            contentStatus.Tooltip) { ServiceHealth = serviceHealth, BankedResets = bankedResets };
     }
 
     private static (string? Message, string? Tooltip) CreateContentStatus(

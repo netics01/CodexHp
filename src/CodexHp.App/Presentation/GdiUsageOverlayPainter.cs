@@ -35,6 +35,33 @@ internal static class GdiUsageOverlayPainter
     internal static uint ToColorRef(ColorValue color) =>
         color.Red | ((uint)color.Green << 8) | ((uint)color.Blue << 16);
 
+    internal static int MeasureTextWidth(string text, int fontSize)
+    {
+        var context = NativeMethods.CreateCompatibleDC(nint.Zero);
+        if (context == nint.Zero) return int.MaxValue / 2;
+        var font = CreateFont(fontSize);
+        var previous = font == nint.Zero ? nint.Zero : NativeMethods.SelectObject(context, font);
+        try
+        {
+            var rectangle = new NativeMethods.NativeRect();
+            const uint calculateRectangle = 0x00000400;
+            _ = NativeMethods.DrawTextW(context, text, -1, ref rectangle,
+                NativeMethods.DrawTextSingleLine | calculateRectangle);
+            return Math.Max(1, rectangle.Right - rectangle.Left);
+        }
+        finally
+        {
+            if (previous != nint.Zero && previous != InvalidGraphicObject)
+                _ = NativeMethods.SelectObject(context, previous);
+            if (font != nint.Zero) _ = NativeMethods.DeleteObject(font);
+            _ = NativeMethods.DeleteDC(context);
+        }
+    }
+
+    private static nint CreateFont(int fontSize) => NativeMethods.CreateFontW(
+        -Math.Max(1, fontSize), 0, 0, 0, NativeMethods.FontWeightSemiBold,
+        0, 0, 0, 1, 0, 0, 5, 0, "Segoe UI Variable Text");
+
     internal static ColorValue Blend(
         ColorValue foreground,
         ColorValue background,
@@ -100,21 +127,7 @@ internal static class GdiUsageOverlayPainter
         }
         _ = NativeMethods.SetBkMode(deviceContext, NativeMethods.TransparentBackgroundMode);
         _ = NativeMethods.SetTextColor(deviceContext, ToColorRef(color));
-        var font = NativeMethods.CreateFontW(
-            -Math.Max(1, command.FontSize),
-            0,
-            0,
-            0,
-            NativeMethods.FontWeightSemiBold,
-            0,
-            0,
-            0,
-            1,
-            0,
-            0,
-            5,
-            0,
-            "Segoe UI Variable Text");
+        var font = CreateFont(command.FontSize);
         var previousFont = font == nint.Zero
             ? nint.Zero
             : NativeMethods.SelectObject(deviceContext, font);

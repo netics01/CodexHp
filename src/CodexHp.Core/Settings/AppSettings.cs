@@ -1,5 +1,11 @@
 namespace CodexHp.Core.Settings;
 
+public enum UpperBarMode
+{
+    FiveHourUsage,
+    BankedResets,
+}
+
 public enum OverlayColorMode
 {
     System,
@@ -42,6 +48,8 @@ public sealed record AppSettings(
     public const int CurrentSchemaVersion = 4;
 
     public OverlayColorMode ColorMode { get; init; } = OverlayColorMode.System;
+
+    public UpperBarMode UpperBarMode { get; init; } = UpperBarMode.FiveHourUsage;
 
     // Keep the existing Colors profile as the dark palette for backward compatibility.
     public ColorSettings LightColors { get; init; } = ColorSettings.LightDefault;

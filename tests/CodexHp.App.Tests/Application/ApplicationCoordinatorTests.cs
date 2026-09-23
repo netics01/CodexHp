@@ -323,7 +323,8 @@ public sealed class ApplicationCoordinatorTests
     {
         public Task<UsageSnapshot> FetchAsync(
             CodexCredentials credentials,
-            CancellationToken cancellationToken = default) => fetch(credentials, cancellationToken);
+            CancellationToken cancellationToken = default,
+            bool includeResetCredits = false) => fetch(credentials, cancellationToken);
     }
 
     private sealed class DelegateTokenSource(

@@ -8,6 +8,20 @@ namespace CodexHp.App.Tests.Presentation;
 
 public sealed class SettingsWindowViewModelTests
 {
+    [Fact]
+    public void Upper_bar_mode_previews_and_cancel_restores_the_previous_mode()
+    {
+        var previews = new List<AppSettings>();
+        var viewModel = CreateViewModel(previews: previews);
+        Assert.Equal(0, viewModel.UpperBarModeIndex);
+        viewModel.UpperBarModeIndex = 1;
+        Assert.Equal(UpperBarMode.BankedResets, Assert.Single(previews).UpperBarMode);
+        viewModel.UpperBarModeIndex = -1;
+        Assert.Equal(1, viewModel.UpperBarModeIndex);
+        viewModel.Cancel();
+        Assert.Equal(UpperBarMode.FiveHourUsage, previews.Last().UpperBarMode);
+    }
+
     [Theory]
     [InlineData("Development", "CodexHp-Dev")]
     [InlineData("Official", "CodexHp")]

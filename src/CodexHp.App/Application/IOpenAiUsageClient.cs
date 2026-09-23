@@ -7,5 +7,6 @@ public interface IOpenAiUsageClient
 {
     Task<UsageSnapshot> FetchAsync(
         CodexCredentials credentials,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool includeResetCredits = false);
 }

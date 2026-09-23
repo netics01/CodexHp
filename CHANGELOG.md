@@ -4,6 +4,10 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- Add an optional Banked resets upper-bar mode showing the owned reset count and nearest known expiry, with detailed expiration dates and 5-hour usage in the standard tooltip. Keep 5H usage as the default mode and preserve weekly usage when reset-credit details are unavailable.
+
 ## [0.4.0] - 2026-09-19
 
 ### Added

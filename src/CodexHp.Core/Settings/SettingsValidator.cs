@@ -24,6 +24,12 @@ public static class SettingsValidator
         var correctedFields = new List<string>();
         var appearance = settings.Appearance;
         var colorMode = settings.ColorMode;
+        var upperBarMode = settings.UpperBarMode;
+        if (!Enum.IsDefined(upperBarMode))
+        {
+            upperBarMode = UpperBarMode.FiveHourUsage;
+            correctedFields.Add("UpperBarMode");
+        }
         if (!Enum.IsDefined(colorMode))
         {
             colorMode = OverlayColorMode.System;
@@ -77,6 +83,7 @@ public static class SettingsValidator
         var validated = settings with
         {
             ColorMode = colorMode,
+            UpperBarMode = upperBarMode,
             Appearance = new AppearanceSettings(
                 overlayWidth,
                 overlayHeight,

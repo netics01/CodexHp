@@ -6,7 +6,10 @@ public sealed record UsageSnapshot(
     long SessionResetUnixMs,
     int SessionWindowSeconds,
     long WeeklyResetUnixMs,
-    int WeeklyWindowSeconds);
+    int WeeklyWindowSeconds)
+{
+    public ResetCreditsSnapshot? ResetCredits { get; init; }
+}
 
 public enum ProviderAvailability
 {

@@ -254,6 +254,13 @@
                         <CheckBox Style="{StaticResource CompactCheckBoxStyle}"
                                   Content="Show the usage overlay only while the ChatGPT desktop app is running"
                                   IsChecked="{Binding ShowOnlyWhenChatGptRunning, Mode=TwoWay}" />
+                        <TextBlock Text="Upper bar" FontWeight="SemiBold" Margin="0,16,0,6" />
+                        <ComboBox x:Name="UpperBarModeComboBox" Width="180" HorizontalAlignment="Left"
+                                  AutomationProperties.Name="Upper bar display mode"
+                                  ItemsSource="{Binding UpperBarModes}"
+                                  SelectedIndex="{Binding UpperBarModeIndex, Mode=TwoWay}" />
+                        <TextBlock Text="Show the 5-hour limit or banked resets and their next expiry."
+                                   TextWrapping="Wrap" Margin="0,6,0,0" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -298,11 +305,11 @@
                             </Grid.RowDefinitions>
                             <StackPanel Grid.Row="0" Style="{StaticResource ColorLabelStyle}">
                                 <TextBlock Style="{StaticResource ColorTitleStyle}" Text="ManaBar" />
-                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="Token limit gauge for 5 hours" />
+                                <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="5-hour usage or banked resets" />
                             </StackPanel>
                             <Button x:Name="ManaColorSwatch" Grid.Row="0" Grid.Column="1"
                                     Style="{StaticResource ColorSwatchButtonStyle}" Click="OnPickManaColor"
-                                    AutomationProperties.Name="5-hour gauge color" />
+                                    AutomationProperties.Name="Upper bar color" />
                             <StackPanel Grid.Row="1" Style="{StaticResource ColorLabelStyle}">
                                 <TextBlock Style="{StaticResource ColorTitleStyle}" Text="HpBar" />
                                 <TextBlock Style="{StaticResource ColorDescriptionStyle}" Text="Token limit gauge for one week" />

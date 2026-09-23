@@ -19,6 +19,8 @@ public sealed record UsageOverlayState(
 {
     public ServiceHealthState? ServiceHealth { get; init; }
 
+    public ResetCreditsDisplayState? BankedResets { get; init; }
+
     public string? Tooltip
     {
         get

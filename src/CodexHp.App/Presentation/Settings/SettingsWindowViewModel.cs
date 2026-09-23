@@ -111,6 +111,20 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         set => this.UpdateWorking(this.Working with { ShowOnlyWhenChatGptRunning = value }, previewVisual: false);
     }
 
+    public IReadOnlyList<string> UpperBarModes { get; } = ["5H usage", "Banked resets"];
+
+    public int UpperBarModeIndex
+    {
+        get => (int)this.Working.UpperBarMode;
+        set
+        {
+            if (Enum.IsDefined((UpperBarMode)value))
+            {
+                this.UpdateWorking(this.Working with { UpperBarMode = (UpperBarMode)value }, previewVisual: true);
+            }
+        }
+    }
+
     public ColorValue ManaBarColor
     {
         get => this.EditingColors.ManaBar;

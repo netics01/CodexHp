@@ -26,6 +26,10 @@ public enum OverlayElementRole
     ManaRefreshTrack,
     ManaRefreshFill,
     ManaRefreshSeparator,
+    ResetCreditTrack,
+    ResetCreditIcon,
+    ResetCreditText,
+    ResetCreditExpiryText,
     HpTrack,
     HpFill,
     HpText,
@@ -181,19 +185,29 @@ public static class UsageOverlayRenderer
             Math.Max(1, Math.Min(refreshHeight, gaugeBottom - hpRefreshTop)));
         var fontSize = CalculateGaugeFontHeight(quotaHeight, appearance.DisplayScaleY);
 
-        AddGauge(
-            commands,
-            state.ManaBar,
-            manaBounds,
-            manaRefreshBounds,
-            settings.Colors.ManaBar,
-            settings.Colors.RefreshGauge,
-            OverlayElementRole.ManaTrack,
-            OverlayElementRole.ManaFill,
-            OverlayElementRole.ManaText,
-            OverlayElementRole.ManaRefreshTrack,
-            OverlayElementRole.ManaRefreshFill,
-            fontSize);
+        if (state.BankedResets is { } bankedResets)
+        {
+            AddResetCredits(commands, bankedResets,
+                manaBounds with { Height = manaBounds.Height + refreshHeight }, settings, fontSize);
+        }
+        else
+        {
+            AddGauge(
+                commands,
+                state.ManaBar,
+                manaBounds,
+                manaRefreshBounds,
+                settings.Colors.ManaBar,
+                settings.Colors.RefreshGauge,
+                OverlayElementRole.ManaTrack,
+                OverlayElementRole.ManaFill,
+                OverlayElementRole.ManaText,
+                OverlayElementRole.ManaRefreshTrack,
+                OverlayElementRole.ManaRefreshFill,
+                fontSize);
+            AddRefreshSeparators(commands, manaRefreshBounds, 5,
+                X(OverlayPixelPolicy.RefreshSeparatorDip), OverlayElementRole.ManaRefreshSeparator);
+        }
         AddGauge(
             commands,
             state.HpBar,
@@ -208,7 +222,6 @@ public static class UsageOverlayRenderer
             OverlayElementRole.HpRefreshFill,
             fontSize);
         var separatorWidth = X(OverlayPixelPolicy.RefreshSeparatorDip);
-        AddRefreshSeparators(commands, manaRefreshBounds, 5, separatorWidth, OverlayElementRole.ManaRefreshSeparator);
         AddRefreshSeparators(commands, hpRefreshBounds, 7, separatorWidth, OverlayElementRole.HpRefreshSeparator);
 
         AddGraph(commands, state.TokenBuckets, settings, height);
@@ -219,6 +232,70 @@ public static class UsageOverlayRenderer
         }
 
         return ApplyTheme(new UsageOverlayLayout(width, height, commands), settings.IsLight);
+    }
+
+    private static void AddResetCredits(
+        ICollection<OverlayDrawCommand> commands,
+        ResetCreditsDisplayState state,
+        LayoutRect bounds,
+        OverlayPresentationSettings settings,
+        int fontSize)
+    {
+        int X(double dip) => OverlayPixelPolicy.ToPixels(dip, settings.Appearance.DisplayScaleX);
+        int Y(double dip) => OverlayPixelPolicy.ToPixels(dip, settings.Appearance.DisplayScaleY);
+        var opacity = state.IsStale ? StaleOpacity : 1;
+        var background = GdiUsageOverlayPainter.Blend(settings.Colors.ManaBar,
+            settings.IsLight ? ColorValue.Parse("#F3F3F3") : BackgroundColor, .24);
+        var foreground = ReadableText(background);
+        commands.Add(Rectangle(OverlayElementRole.ResetCreditTrack, bounds, background, opacity));
+
+        var iconWidth = X(7);
+        var gap = X(2);
+        var padding = X(1);
+        var text = state.Text;
+        var textWidth = GdiUsageOverlayPainter.MeasureTextWidth(text, fontSize);
+        if (textWidth + iconWidth + gap + padding * 2 > bounds.Width)
+        {
+            text = state.CountText;
+            textWidth = GdiUsageOverlayPainter.MeasureTextWidth(text, fontSize);
+        }
+        var showIcon = textWidth + iconWidth + gap + padding * 2 <= bounds.Width;
+        var groupWidth = textWidth + (showIcon ? iconWidth + gap : 0);
+        var left = bounds.Left + Math.Max(0, (bounds.Width - groupWidth) / 2);
+        if (showIcon)
+        {
+            var iconHeight = Math.Min(Y(6), bounds.Height);
+            var top = bounds.Top + (bounds.Height - iconHeight) / 2;
+            var strokeX = Math.Max(1, X(1));
+            var strokeY = Math.Max(1, Y(1));
+            var notchTop = top + iconHeight / 2 - strokeY;
+            var iconColor = foreground;
+            // A small ticket outline drawn in DIP-scaled strokes, with side notches.
+            void Line(int x, int y, int w, int h) => commands.Add(Rectangle(
+                OverlayElementRole.ResetCreditIcon, new LayoutRect(x, y, w, h), iconColor, opacity));
+            Line(left, top, iconWidth, strokeY);
+            Line(left, top + iconHeight - strokeY, iconWidth, strokeY);
+            foreach (var x in new[] { left, left + iconWidth - strokeX })
+            {
+                Line(x, top, strokeX, Math.Max(1, notchTop - top));
+                Line(x, notchTop + strokeY * 2, strokeX, Math.Max(1, top + iconHeight - notchTop - strokeY * 2));
+            }
+            Line(left + strokeX, notchTop, strokeX, strokeY * 2);
+            Line(left + iconWidth - strokeX * 2, notchTop, strokeX, strokeY * 2);
+            left += iconWidth + gap;
+        }
+
+        var textBounds = new LayoutRect(left, bounds.Top, Math.Max(1, Math.Min(textWidth, bounds.Right - left)), bounds.Height);
+        commands.Add(new OverlayDrawCommand(OverlayDrawKind.Text, OverlayElementRole.ResetCreditText,
+            textBounds, foreground, opacity, text, fontSize, ClipBounds: bounds));
+        if (state.IsUrgent && text == state.Text && state.ExpiryText is { } expiryText)
+        {
+            var expiryWidth = GdiUsageOverlayPainter.MeasureTextWidth(expiryText, fontSize);
+            var expiryBounds = new LayoutRect(textBounds.Right - expiryWidth, bounds.Top, expiryWidth, bounds.Height);
+            commands.Add(new OverlayDrawCommand(OverlayDrawKind.Text, OverlayElementRole.ResetCreditExpiryText,
+                textBounds, settings.IsLight ? ColorValue.Parse("#843B00") : ColorValue.Parse("#FFD18A"),
+                opacity, text, fontSize, ClipBounds: expiryBounds));
+        }
     }
 
     private static UsageOverlayLayout ApplyTheme(UsageOverlayLayout layout, bool isLight)

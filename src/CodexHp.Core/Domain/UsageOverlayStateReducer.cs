@@ -48,13 +48,14 @@ public static class UsageOverlayStateReducer
             ServiceHealthState.Issue => settings.Colors.ServiceIssue,
             _ => settings.Colors.ServiceUnknown,
         };
-        var statusStripeTooltip = serviceHealth == ServiceHealthState.Issue
+        var serviceTooltip = serviceHealth == ServiceHealthState.Issue
             ? BuildServiceIssueTooltip(
                 serviceStatusDescription,
                 affectedServiceComponents,
                 affectedServiceGroups,
                 affectedServiceComponentGroups)
-            : null;
+            : ((string Text, OverlayTooltipSection Section)?)null;
+        var statusStripeTooltip = serviceTooltip?.Text;
         var contentStatus = CreateContentStatus(usage, nowUnixMs);
         var bankedResets = settings.UpperBarMode == UpperBarMode.BankedResets
             ? ResetCreditsDisplayState.Create(snapshot?.ResetCredits, nowUnixMs, isUsageStale)
@@ -69,6 +70,34 @@ public static class UsageOverlayStateReducer
             contentStatus.Tooltip += $"\r\n\r\n{bankedResets.Tooltip}";
         }
 
+        var tooltipSections = new List<OverlayTooltipSection>();
+        if (snapshot is not null)
+        {
+            var resetRows = new List<OverlayTooltipRow>
+            {
+                CreateResetRow("Week", snapshot.WeeklyResetUnixMs, nowUnixMs),
+            };
+            if (manaBar.RemainingPercent < 100)
+            {
+                resetRows.Add(CreateResetRow("5H", snapshot.SessionResetUnixMs, nowUnixMs));
+                if (bankedResets is not null)
+                    resetRows.Add(new("5H remaining", $"{manaBar.RemainingPercent}%"));
+            }
+            if (isUsageStale)
+                resetRows.Add(new("", "Reset times based on last successful update."));
+            tooltipSections.Add(new(null, resetRows));
+            if (bankedResets is not null)
+                tooltipSections.Add(new("Banked resets", bankedResets.TooltipRows));
+        }
+        else if (contentStatus.Tooltip is not null)
+        {
+            tooltipSections.Add(new(contentStatus.Message, [new("", contentStatus.Tooltip)]));
+        }
+        if (serviceTooltip is { } issue)
+        {
+            tooltipSections.Add(issue.Section);
+        }
+
         return new UsageOverlayState(
             isVisible,
             manaBar,
@@ -77,7 +106,12 @@ public static class UsageOverlayStateReducer
             stripeColor,
             statusStripeTooltip,
             contentStatus.Message,
-            contentStatus.Tooltip) { ServiceHealth = serviceHealth, BankedResets = bankedResets };
+            contentStatus.Tooltip)
+        {
+            ServiceHealth = serviceHealth,
+            BankedResets = bankedResets,
+            TooltipSections = tooltipSections,
+        };
     }
 
     private static (string? Message, string? Tooltip) CreateContentStatus(
@@ -124,23 +158,40 @@ public static class UsageOverlayStateReducer
         };
     }
 
+    private static OverlayTooltipRow CreateResetRow(string label, long resetUnixMs, long nowUnixMs)
+    {
+        var value = FormatResetValue(resetUnixMs, nowUnixMs);
+        return new(value is "Unavailable" or "Pending" ? $"{label} reset" : $"{label} resets in", value);
+    }
+
     private static string FormatResetTime(string label, long resetUnixMs, long nowUnixMs)
+    {
+        var value = FormatResetValue(resetUnixMs, nowUnixMs);
+        return value switch
+        {
+            "Unavailable" => $"{label} reset time unavailable",
+            "Pending" => $"{label} reset pending",
+            _ => $"{label} resets in {value}",
+        };
+    }
+
+    private static string FormatResetValue(long resetUnixMs, long nowUnixMs)
     {
         // A missing 5H window is represented by long.MaxValue in the usage client.
         if (resetUnixMs <= 0 || resetUnixMs > DateTimeOffset.MaxValue.ToUnixTimeMilliseconds())
         {
-            return $"{label} reset time unavailable";
+            return "Unavailable";
         }
 
         if (resetUnixMs <= nowUnixMs)
         {
-            return $"{label} reset pending";
+            return "Pending";
         }
 
         var remaining = TimeSpan.FromMilliseconds(resetUnixMs - nowUnixMs);
         if (remaining.TotalMinutes < 1)
         {
-            return $"{label} resets in <1m";
+            return "<1m";
         }
 
         var duration = new List<string>();
@@ -159,10 +210,10 @@ public static class UsageOverlayStateReducer
             duration.Add($"{remaining.Minutes}m");
         }
 
-        return $"{label} resets in {string.Join(" ", duration)}";
+        return string.Join(" ", duration);
     }
 
-    private static string BuildServiceIssueTooltip(
+    private static (string Text, OverlayTooltipSection Section) BuildServiceIssueTooltip(
         string serviceStatusDescription,
         IReadOnlyList<string>? affectedServiceComponents,
         IReadOnlyList<string>? affectedServiceGroups,
@@ -171,6 +222,15 @@ public static class UsageOverlayStateReducer
         var issueText = string.IsNullOrWhiteSpace(serviceStatusDescription)
             ? "OpenAI service issue detected."
             : $"OpenAI service issue: {serviceStatusDescription.Trim()}";
+        (string, OverlayTooltipSection) Finish(IEnumerable<string> details)
+        {
+            var lines = details.ToArray();
+            var rows = new List<OverlayTooltipRow>();
+            if (!string.IsNullOrWhiteSpace(serviceStatusDescription))
+                rows.Add(new("", serviceStatusDescription.Trim()));
+            rows.AddRange(lines.Select(line => new OverlayTooltipRow("", line)));
+            return ($"{issueText}\r\n{string.Join("\r\n", lines)}", new("OpenAI service issue", rows, true));
+        }
         var componentNames = affectedServiceComponents?
             .Where(component => !string.IsNullOrWhiteSpace(component))
             .Select(component => component.Trim())
@@ -213,32 +273,32 @@ public static class UsageOverlayStateReducer
                 lines.Add($"Affected components: {string.Join(", ", ungroupedComponentNames)}");
             }
 
-            return $"{issueText}\r\n{string.Join("\r\n", lines)}";
+            return Finish(lines);
         }
 
         if (groupNames.Length == 1 && componentNames.Length > 0)
         {
-            return $"{issueText}\r\n{groupNames[0]} — {string.Join(", ", componentNames)}";
+            return Finish([$"{groupNames[0]} — {string.Join(", ", componentNames)}"]);
         }
 
         if (groupNames.Length > 0 && componentNames.Length > 0)
         {
-            return $"{issueText}\r\nAffected groups: {string.Join(", ", groupNames)}\r\nAffected components: {string.Join(", ", componentNames)}";
+            return Finish([$"Affected groups: {string.Join(", ", groupNames)}", $"Affected components: {string.Join(", ", componentNames)}"]);
         }
 
         if (groupNames.Length == 1)
         {
-            return $"{issueText}\r\n{groupNames[0]}";
+            return Finish([groupNames[0]]);
         }
 
         if (groupNames.Length > 1)
         {
-            return $"{issueText}\r\nAffected groups: {string.Join(", ", groupNames)}";
+            return Finish([$"Affected groups: {string.Join(", ", groupNames)}"]);
         }
 
-        return componentNames.Length > 0
-            ? $"{issueText}\r\n{string.Join(", ", componentNames)}"
-            : $"{issueText}\r\nAffected component details unavailable";
+        return Finish([componentNames.Length > 0
+            ? string.Join(", ", componentNames)
+            : "Affected component details unavailable"]);
     }
 
     private static GaugeDisplayState CreateGauge(

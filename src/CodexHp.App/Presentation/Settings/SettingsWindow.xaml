@@ -210,6 +210,10 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
+        <Border x:Name="NavigationPanel" Grid.Row="0" Grid.Column="0"
+                Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}" BorderThickness="0.5">
+        <StackPanel>
         <ListBox x:Name="GroupList"
                  Grid.Row="0"
                  Grid.Column="0"
@@ -225,6 +229,33 @@
                  ItemContainerStyle="{StaticResource NavigationItemStyle}"
                  SelectionChanged="OnGroupSelectionChanged"
                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+
+        <Border Margin="8,8,8,0" Padding="0,8,0,0" BorderThickness="0,0.5,0,0"
+                BorderBrush="{DynamicResource SurfaceStrokeColorDefaultBrush}">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasAvailableUpdate}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Button x:Name="UpdateLinkButton" Click="OnUpdateLinkClick" Padding="4,6"
+                    HorizontalContentAlignment="Center"
+                    Background="Transparent" BorderThickness="0"
+                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                    ToolTip="{Binding UpdateLinkDescription}"
+                    AutomationProperties.Name="{Binding UpdateLinkDescription}">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Ellipse Width="6" Height="6" Fill="#3A8EFF" Margin="0,0,7,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Update ↗" FontWeight="SemiBold" />
+                </StackPanel>
+            </Button>
+        </Border>
+        </StackPanel>
+        </Border>
 
         <ScrollViewer x:Name="SettingsContentScroller"
                       Grid.Row="0"
@@ -253,6 +284,7 @@
                                   Margin="0,0,0,4" />
                         <CheckBox Style="{StaticResource CompactCheckBoxStyle}"
                                   Content="Show the usage overlay only while the ChatGPT desktop app is running"
+                                  IsEnabled="{Binding CanChooseProcessVisibility}"
                                   IsChecked="{Binding ShowOnlyWhenChatGptRunning, Mode=TwoWay}" />
                         <TextBlock Text="Upper bar" FontWeight="SemiBold" Margin="0,16,0,6" />
                         <ComboBox x:Name="UpperBarModeComboBox" Width="180" HorizontalAlignment="Left"

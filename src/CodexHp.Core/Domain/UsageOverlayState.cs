@@ -21,6 +21,8 @@ public sealed record UsageOverlayState(
 
     public ResetCreditsDisplayState? BankedResets { get; init; }
 
+    public IReadOnlyList<OverlayTooltipSection> TooltipSections { get; init; } = [];
+
     public string? Tooltip
     {
         get

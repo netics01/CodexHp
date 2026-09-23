@@ -5,6 +5,18 @@ namespace CodexHp.App.Tests.Application;
 public sealed class ReleaseConfigurationTests
 {
     [Fact]
+    public void Simulation_is_compiled_only_for_explicit_Development_flavor()
+    {
+        var project = System.Xml.Linq.XDocument.Parse(ReadRequiredRepositoryFile("src", "CodexHp.App", "CodexHp.App.csproj"));
+        var symbolGroup = project.Root!.Elements("PropertyGroup").Single(group =>
+            group.Element("DefineConstants")?.Value.Contains("CODEXHP_DEVELOPMENT") == true);
+        Assert.Equal("'$(CodexHpBuildFlavor)' == 'Development'", symbolGroup.Attribute("Condition")!.Value);
+        var exclusion = project.Descendants("Compile").Single(item => item.Attribute("Remove")?.Value == @"Development\**\*.cs");
+        Assert.Equal("'$(CodexHpBuildFlavor)' != 'Development'", exclusion.Parent!.Attribute("Condition")!.Value);
+        Assert.NotNull(project.Root.Elements("Target").Single(target => target.Attribute("Name")?.Value == "ValidateBuildFlavor"));
+    }
+
+    [Fact]
     public void Local_release_is_the_only_official_binary_source_and_enforces_publication_safeguards()
     {
         var repositoryRoot = FindCodexHpRoot();
@@ -25,6 +37,7 @@ public sealed class ReleaseConfigurationTests
         Assert.Contains("CodexHp-Portable-$version-x64.exe", localRelease, StringComparison.Ordinal);
         Assert.Contains("SHA256SUMS.txt", localRelease, StringComparison.Ordinal);
         Assert.Contains("/VERYSILENT", localRelease, StringComparison.Ordinal);
+        Assert.Contains("/TASKS=autostart", localRelease, StringComparison.Ordinal);
         Assert.DoesNotContain("WINDOWS_SIGNING_CERTIFICATE_BASE64", localRelease, StringComparison.Ordinal);
         Assert.DoesNotContain("signtool.exe", localRelease, StringComparison.OrdinalIgnoreCase);
     }

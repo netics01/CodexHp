@@ -457,6 +457,7 @@ CodexHp {version} for Windows 11.
         '/VERYSILENT',
         '/SUPPRESSMSGBOXES',
         '/NORESTART',
+        '/TASKS=autostart',
         '/SP-'
     ) | Out-Null
 

@@ -38,6 +38,8 @@ public partial class SettingsWindow : System.Windows.Window
         AltTabWindowStyle.ApplyVisible(new WindowInteropHelper(this).Handle);
     }
 
+    private void OnUpdateLinkClick(object sender, System.Windows.RoutedEventArgs eventArgs) => this.viewModel.OpenUpdatePage();
+
     internal void ConstrainToWorkArea(MonitorGeometry monitor, bool center = true)
     {
         ArgumentNullException.ThrowIfNull(monitor);

@@ -1,3 +1,5 @@
+using CodexHp.App.Application;
+
 namespace CodexHp.App.Presentation;
 
 public enum TrayMouseButton
@@ -12,6 +14,7 @@ public enum TrayMenuCommand
     Options,
     Exit,
     Repository,
+    Update,
 }
 
 public enum TrayIconAsset
@@ -41,6 +44,7 @@ internal static class TrayIconMessageRouter
         OptionsCommandId => TrayMenuCommand.Options,
         ExitCommandId => TrayMenuCommand.Exit,
         RepositoryCommandId => TrayMenuCommand.Repository,
+        4 => TrayMenuCommand.Update,
         _ => null,
     };
 }
@@ -57,7 +61,7 @@ public interface ITrayIconView : IDisposable
 
     string ToolTipText { get; set; }
 
-    IReadOnlyList<TrayMenuItem> MenuItems { get; }
+    IReadOnlyList<TrayMenuItem> MenuItems { get; set; }
 }
 
 public sealed class TrayIconController : IDisposable
@@ -73,6 +77,8 @@ public sealed class TrayIconController : IDisposable
     private readonly Action openOptions;
     private readonly Action exit;
     private readonly Action openRepository;
+    private readonly Action<AvailableUpdate> openUpdate;
+    private AvailableUpdate? availableUpdate;
     private bool disposed;
 
     public TrayIconController(Action openOptions, Action exit)
@@ -80,12 +86,14 @@ public sealed class TrayIconController : IDisposable
     {
     }
 
-    public TrayIconController(ITrayIconView view, Action openOptions, Action exit, Action? openRepository = null)
+    public TrayIconController(ITrayIconView view, Action openOptions, Action exit, Action? openRepository = null,
+        Action<AvailableUpdate>? openUpdate = null)
     {
         this.view = view ?? throw new ArgumentNullException(nameof(view));
         this.openOptions = openOptions ?? throw new ArgumentNullException(nameof(openOptions));
         this.exit = exit ?? throw new ArgumentNullException(nameof(exit));
         this.openRepository = openRepository ?? RepositoryBrowser.Open;
+        this.openUpdate = openUpdate ?? ReleaseBrowser.Open;
         this.view.MouseClicked += this.OnMouseClicked;
         this.view.MenuCommandInvoked += this.OnMenuCommandInvoked;
         this.view.Visible = true;
@@ -97,6 +105,15 @@ public sealed class TrayIconController : IDisposable
         this.view.ToolTipText = string.IsNullOrWhiteSpace(message)
             ? "CodexHp"
             : $"CodexHp — {message.Trim()}";
+    }
+
+    public void SetAvailableUpdate(AvailableUpdate? update)
+    {
+        ObjectDisposedException.ThrowIf(this.disposed, this);
+        if (this.availableUpdate == update) return;
+        this.availableUpdate = update;
+        this.view.MenuItems = update is null ? DefaultMenuItems :
+        [DefaultMenuItems[0], DefaultMenuItems[1], new(TrayMenuCommand.Update, "Update available"), DefaultMenuItems[2]];
     }
 
     public void Dispose()
@@ -133,6 +150,9 @@ public sealed class TrayIconController : IDisposable
                 break;
             case TrayMenuCommand.Repository:
                 this.openRepository();
+                break;
+            case TrayMenuCommand.Update when this.availableUpdate is { } update:
+                this.openUpdate(update);
                 break;
         }
     }

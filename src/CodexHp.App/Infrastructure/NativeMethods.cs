@@ -28,21 +28,6 @@ internal static class NativeMethods
     internal const uint WsExLayered = 0x00080000;
     internal const uint WsExToolWindow = 0x00000080;
     internal const uint WsExNoActivate = 0x08000000;
-    internal const uint TtsAlwaysTip = 0x00000001;
-    internal const uint TtsNoPrefix = 0x00000002;
-    internal const uint TtfIdIsHwnd = 0x0001;
-    internal const uint TtfSubclass = 0x0010;
-    internal const uint TtmActivate = 0x0401;
-    internal const uint TtmSetDelayTime = 0x0403;
-    internal const uint TtmGetToolCount = 0x040D;
-    internal const uint TtmGetDelayTime = 0x0415;
-    internal const uint TtmSetMaxTipWidth = 0x0418;
-    internal const uint TtmGetMaxTipWidth = 0x0419;
-    internal const uint TtmAddToolW = 0x0432;
-    internal const uint TtmUpdateTipTextW = 0x0439;
-    internal const uint TtmPop = 0x041C;
-    internal const int TtDtInitial = 3;
-    internal const uint IccWin95Classes = 0x000000FF;
     internal const uint DibRgbColors = 0;
     internal const uint SwpNoSize = 0x0001;
     internal const uint SwpNoMove = 0x0002;
@@ -84,27 +69,6 @@ internal static class NativeMethods
     {
         internal int X;
         internal int Y;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct InitCommonControlsData
-    {
-        internal uint Size;
-        internal uint Classes;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    internal struct ToolInfo
-    {
-        internal uint Size;
-        internal uint Flags;
-        internal nint WindowHandle;
-        internal nuint Id;
-        internal NativeRect Rectangle;
-        internal nint InstanceHandle;
-        internal nint TextPointer;
-        internal nint Data;
-        internal nint Reserved;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -195,10 +159,6 @@ internal static class NativeMethods
         StringBuilder className,
         int maximumCount);
 
-    [DllImport("comctl32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool InitCommonControlsEx(ref InitCommonControlsData controls);
-
     [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "CreateWindowExW", SetLastError = true)]
     internal static extern nint CreateWindowEx(
         uint extendedStyle,
@@ -252,6 +212,17 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern nint WindowFromPoint(NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool IsChild(nint parent, nint child);
+
+    [DllImport("user32.dll")]
+    internal static extern short GetAsyncKeyState(int virtualKey);
 
     [DllImport("user32.dll")]
     internal static extern nint GetShellWindow();

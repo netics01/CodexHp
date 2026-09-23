@@ -11,9 +11,15 @@ namespace CodexHp.App;
 
 public partial class App : System.Windows.Application
 {
+#if CODEXHP_DEVELOPMENT
+    private Development.SimulationHost? simulation;
+#endif
     private SingleInstanceGuard? singleInstance;
     private RollingFileLogger? logger;
     private HttpClient? httpClient;
+    private HttpClient? updateHttpClient;
+    private Task? updateTask;
+    private AvailableUpdate? availableUpdate;
     private CancellationTokenSource? lifetimeCancellation;
     private Task? coordinatorTask;
     private TrayIconController? trayIcon;
@@ -43,12 +49,25 @@ public partial class App : System.Windows.Application
         this.singleInstance = SingleInstanceGuard.TryAcquire();
         if (this.singleInstance is null)
         {
+            if (eventArgs.Args.Length > 0)
+                System.Windows.MessageBox.Show("CodexHp is already running. Exit it before starting a development simulation.", "CodexHp");
             this.Shutdown();
             return;
         }
 
         try
         {
+#if CODEXHP_DEVELOPMENT
+            if (eventArgs.Args.FirstOrDefault() == "--simulate")
+            {
+                var preset = Development.SimulationLaunchOptions.Parse(eventArgs.Args);
+                this.simulation = new Development.SimulationHost(preset, this.BeginShutdown);
+                this.simulation.Start();
+                return;
+            }
+#endif
+            if (eventArgs.Args.Length > 0)
+                throw new ArgumentException("Unsupported launch arguments for this build.");
             this.StartApplication();
         }
         catch (Exception exception)
@@ -154,6 +173,17 @@ public partial class App : System.Windows.Application
             readGraphAppearance: () => Volatile.Read(ref this.activePresentation).Appearance);
         coordinator.UsageOverlayStateChanged += this.OnUsageOverlayStateChanged;
         this.coordinatorTask = this.RunCoordinatorAsync(coordinator, this.lifetimeCancellation.Token);
+        this.updateHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10), MaxResponseContentBufferSize = 1024 * 1024 };
+        var updateClient = new GitHubUpdateClient(this.updateHttpClient, typeof(App).Assembly.GetName().Version!);
+        var updates = new UpdateMonitor(updateClient.FetchAsync, clock, this.logger);
+        updates.Changed += update => this.Dispatcher.BeginInvoke(() =>
+        {
+            if (Volatile.Read(ref this.shutdownStarted) != 0) return;
+            this.availableUpdate = update;
+            this.trayIcon?.SetAvailableUpdate(update);
+            this.settingsWindowController?.Current?.SetAvailableUpdate(update);
+        });
+        this.updateTask = updates.RunAsync(this.lifetimeCancellation.Token);
         this.logger.Log(DiagnosticLevel.Information, "Lifecycle", "CodexHp started.");
     }
 
@@ -302,6 +332,7 @@ public partial class App : System.Windows.Application
 
     private void ShowSettingsWindow(SettingsWindowViewModel viewModel)
     {
+        viewModel.SetAvailableUpdate(this.availableUpdate);
         var window = new SettingsWindow(viewModel);
         this.settingsWindow = window;
         window.Closed += (_, _) =>
@@ -378,6 +409,7 @@ public partial class App : System.Windows.Application
         {
             await this.coordinatorTask;
         }
+        if (this.updateTask is not null) await this.updateTask;
 
         this.settingsWindowController?.Current?.Cancel(SettingsCancelTrigger.WindowClose);
         this.usageOverlayWindow?.CloseForShutdown();
@@ -388,6 +420,10 @@ public partial class App : System.Windows.Application
 
     private void DisposeResources()
     {
+#if CODEXHP_DEVELOPMENT
+        this.simulation?.Dispose();
+        this.simulation = null;
+#endif
         this.lifetimeCancellation?.Cancel();
         this.lifetimeCancellation?.Dispose();
         this.lifetimeCancellation = null;
@@ -399,6 +435,8 @@ public partial class App : System.Windows.Application
         this.usageOverlayWindow = null;
         this.httpClient?.Dispose();
         this.httpClient = null;
+        this.updateHttpClient?.Dispose();
+        this.updateHttpClient = null;
         this.singleInstance?.Dispose();
         this.singleInstance = null;
     }

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
+using CodexHp.App.Application;
 
 namespace CodexHp.App.Presentation.Settings;
 
@@ -19,6 +20,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     private readonly bool canEnableStartWithWindows;
     private readonly Func<bool> systemUsesLightColors;
     private SettingsGroup selectedGroup;
+    private AvailableUpdate? availableUpdate;
+    private readonly Action<AvailableUpdate> openUpdate;
 
     public SettingsWindowViewModel(
         AppSettings baseline,
@@ -28,7 +31,8 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         bool canStartWithWindows = true,
         Func<AppSettings, TimeSpan>? calculateVisibleTokenHistory = null,
         Func<AppSettings, AppearanceSettings>? resolveDefaultAppearance = null,
-        Func<bool>? systemUsesLightColors = null)
+        Func<bool>? systemUsesLightColors = null,
+        Action<AvailableUpdate>? openUpdate = null)
     {
         this.baseline = baseline ?? throw new ArgumentNullException(nameof(baseline));
         this.preview = preview ?? (_ => { });
@@ -39,6 +43,7 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         this.resolveDefaultAppearance = resolveDefaultAppearance ?? (_ => AppearanceSettings.Default);
         this.canEnableStartWithWindows = canStartWithWindows;
         this.systemUsesLightColors = systemUsesLightColors ?? (() => false);
+        this.openUpdate = openUpdate ?? ReleaseBrowser.Open;
         this.editSession = new SettingsEditSession(baseline);
         this.Groups =
         [
@@ -57,7 +62,27 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<SettingsGroup> Groups { get; }
 
-    public string ApplicationTitleText { get; } = CurrentBuild.ApplicationTitle;
+    public string ApplicationTitleText { get; init; } = CurrentBuild.ApplicationTitle;
+
+    public bool CanChooseProcessVisibility { get; init; } = true;
+
+    public bool HasAvailableUpdate => this.availableUpdate is not null;
+    public string UpdateLinkDescription => this.availableUpdate is { } update
+        ? $"Version {update.Version} is available. Open its GitHub release page in your browser."
+        : string.Empty;
+
+    public void SetAvailableUpdate(AvailableUpdate? update)
+    {
+        if (this.availableUpdate == update) return;
+        this.availableUpdate = update;
+        this.OnPropertyChanged(nameof(this.HasAvailableUpdate));
+        this.OnPropertyChanged(nameof(this.UpdateLinkDescription));
+    }
+
+    public void OpenUpdatePage()
+    {
+        if (!this.IsClosed && this.availableUpdate is { } update) this.openUpdate(update);
+    }
 
     public string ApplicationVersionText { get; } = $"Version {CurrentBuild.Version}";
 

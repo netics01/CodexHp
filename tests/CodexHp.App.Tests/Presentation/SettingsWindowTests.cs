@@ -668,7 +668,7 @@ public sealed class SettingsWindowTests
             PumpDispatcher();
 
             var root = Assert.IsType<Grid>(window.FindName("SettingsRoot"));
-            var navigation = Assert.IsType<ListBox>(window.FindName("GroupList"));
+            var navigation = Assert.IsType<Border>(window.FindName("NavigationPanel"));
             var generalPanel = Assert.IsType<Grid>(window.FindName("GeneralPanel"));
             var pageHost = Assert.IsType<Grid>(LogicalTreeHelper.GetParent(generalPanel));
 

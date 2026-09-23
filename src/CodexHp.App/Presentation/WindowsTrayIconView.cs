@@ -153,7 +153,7 @@ public sealed class WindowsTrayIconView : ITrayIconView
         }
     }
 
-    public IReadOnlyList<TrayMenuItem> MenuItems => TrayIconController.DefaultMenuItems;
+    public IReadOnlyList<TrayMenuItem> MenuItems { get; set; } = TrayIconController.DefaultMenuItems;
 
     public void Dispose()
     {
@@ -271,7 +271,7 @@ public sealed class WindowsTrayIconView : ITrayIconView
 
         try
         {
-            if (!AppendContextMenu(menuHandle))
+            if (!AppendContextMenu(menuHandle, this.MenuItems))
             {
                 return;
             }
@@ -306,9 +306,9 @@ public sealed class WindowsTrayIconView : ITrayIconView
         }
     }
 
-    internal static bool AppendContextMenu(nint menuHandle)
+    internal static bool AppendContextMenu(nint menuHandle, IReadOnlyList<TrayMenuItem>? items = null)
     {
-        foreach (var item in TrayIconController.DefaultMenuItems)
+        foreach (var item in items ?? TrayIconController.DefaultMenuItems)
         {
             if (item.SeparatorBefore && !NativeMethods.AppendMenu(menuHandle, MenuSeparator, 0, string.Empty))
             {
@@ -319,6 +319,7 @@ public sealed class WindowsTrayIconView : ITrayIconView
             {
                 TrayMenuCommand.Options => OptionsCommandId,
                 TrayMenuCommand.Repository => RepositoryCommandId,
+                TrayMenuCommand.Update => 4u,
                 TrayMenuCommand.Exit => ExitCommandId,
                 _ => 0u,
             };

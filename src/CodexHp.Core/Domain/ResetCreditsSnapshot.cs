@@ -21,15 +21,21 @@ public sealed record ResetCreditsDisplayState(
 {
     public string Text => this.ExpiryText is null ? this.CountText : $"{this.CountText} · {this.ExpiryText}";
 
+    public IReadOnlyList<OverlayTooltipRow> TooltipRows { get; init; } = [];
+
     public static ResetCreditsDisplayState Create(ResetCreditsSnapshot? snapshot, long nowUnixMs, bool isStale)
     {
         if (snapshot is null)
         {
-            return new("—", null, false, isStale, "Banked reset information unavailable. CodexHp will retry automatically.");
+            return new("—", null, false, isStale, "Banked reset information unavailable. CodexHp will retry automatically.")
+            {
+                TooltipRows = [new("Available", "—"), new("", "Information unavailable. CodexHp will retry automatically.")],
+            };
         }
 
         var count = snapshot.AvailableCount.ToString(CultureInfo.InvariantCulture);
         var lines = new List<string> { $"Banked resets: {count}" };
+        var rows = new List<OverlayTooltipRow> { new("Available", count) };
         var credits = snapshot.Credits?.OrderBy(credit => credit.ExpiresAtUnixMs ?? long.MaxValue).ToArray();
         // The server may cap details. Do not claim an earliest expiry from a partial list.
         var canIdentifyNextExpiry = snapshot.HasCompleteDetails
@@ -45,13 +51,16 @@ public sealed record ResetCreditsDisplayState(
             if (!canIdentifyNextExpiry)
             {
                 lines.Add("Next expiry unavailable (missing or incomplete details).");
+                rows.Add(new("", lines[^1]));
             }
 
             if (credits is not null)
             {
                 foreach (var credit in credits.Where(credit => IsValidExpiry(credit.ExpiresAtUnixMs)).Take(2))
                 {
-                    lines.Add($"Expires {DateTimeOffset.FromUnixTimeMilliseconds(credit.ExpiresAtUnixMs!.Value).ToLocalTime():yyyy-MM-dd HH:mm}");
+                    var localExpiry = $"{DateTimeOffset.FromUnixTimeMilliseconds(credit.ExpiresAtUnixMs!.Value).ToLocalTime():yyyy-MM-dd HH:mm}";
+                    lines.Add($"Expires {localExpiry}");
+                    rows.Add(new("Expires", localExpiry));
                 }
             }
         }
@@ -59,12 +68,14 @@ public sealed record ResetCreditsDisplayState(
         if (remainingMs <= 0)
         {
             lines.Add("Expiry passed; awaiting updated inventory.");
+            rows.Add(new("", lines[^1]));
         }
         if (isStale)
         {
             lines.Add("Banked resets based on last successful update.");
+            rows.Add(new("", lines[^1]));
         }
-        return new(count, expiryText, remainingMs <= 86_400_000, isStale, string.Join("\r\n", lines));
+        return new(count, expiryText, remainingMs <= 86_400_000, isStale, string.Join("\r\n", lines)) { TooltipRows = rows };
     }
 
     private static bool IsValidExpiry(long? expiry) => expiry is > 0

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using CodexHp.Core.Domain;
 
 namespace CodexHp.App.Presentation;
 
@@ -10,8 +11,10 @@ internal sealed class WpfOverlaySurface : IDisposable
     private readonly System.Windows.Controls.Image image;
     private readonly HwndSource source;
     private readonly HwndSourceHook messageHook;
-    private readonly NativeOverlayTooltip statusStripeTooltip;
+    private readonly CustomOverlayTooltip statusStripeTooltip;
     private string? statusStripeTooltipText;
+    private IReadOnlyList<OverlayTooltipSection>? tooltipSections;
+    private bool tooltipIsLight;
     private bool isVisible;
     private bool isStatusStripeTooltipSuppressed;
     private bool isDisposed;
@@ -50,7 +53,7 @@ internal sealed class WpfOverlaySurface : IDisposable
 
         this.WindowHandle = new WindowInteropHelper(this.window).EnsureHandle();
         AltTabWindowStyle.Apply(this.WindowHandle);
-        this.statusStripeTooltip = new NativeOverlayTooltip(this.WindowHandle);
+        this.statusStripeTooltip = new CustomOverlayTooltip(this.WindowHandle);
         this.source = HwndSource.FromHwnd(this.WindowHandle)
             ?? throw new InvalidOperationException("The WPF overlay surface source is unavailable.");
         this.source.AddHook(this.messageHook);
@@ -65,6 +68,9 @@ internal sealed class WpfOverlaySurface : IDisposable
     internal bool IsStatusStripeTooltipEnabled => this.statusStripeTooltip.IsEnabled;
 
     internal nint StatusStripeTooltipWindowHandle => this.statusStripeTooltip.WindowHandle;
+#if CODEXHP_DEVELOPMENT
+    internal void SetSimulationTooltipMode(Development.SimulationTooltipMode mode) => this.statusStripeTooltip.SimulationMode = mode;
+#endif
 
     internal void ProcessLeftButtonDown(int clickCount)
     {
@@ -81,10 +87,12 @@ internal sealed class WpfOverlaySurface : IDisposable
         return true;
     }
 
-    internal void UpdateStatusStripeTooltip(string? text)
+    internal void UpdateStatusStripeTooltip(string? text, IReadOnlyList<OverlayTooltipSection>? sections = null, bool isLight = false)
     {
         ObjectDisposedException.ThrowIf(this.isDisposed, this);
         this.statusStripeTooltipText = text;
+        this.tooltipSections = sections;
+        this.tooltipIsLight = isLight;
         this.ApplyStatusStripeTooltip();
     }
 
@@ -135,5 +143,7 @@ internal sealed class WpfOverlaySurface : IDisposable
         this.statusStripeTooltip.Update(
             this.isVisible && !this.isStatusStripeTooltipSuppressed
                 ? this.statusStripeTooltipText
-                : null);
+                : null,
+            this.tooltipSections,
+            this.tooltipIsLight);
 }

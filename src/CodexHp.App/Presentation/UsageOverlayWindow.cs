@@ -28,6 +28,14 @@ public sealed class UsageOverlayWindow
     private bool isRecreating;
     private bool hasHostedSurface;
     private bool recreationPending;
+#if CODEXHP_DEVELOPMENT
+    private Development.SimulationTooltipMode simulationTooltipMode;
+    internal void SetSimulationTooltipMode(Development.SimulationTooltipMode mode)
+    {
+        this.simulationTooltipMode = mode;
+        this.overlaySurface?.SetSimulationTooltipMode(mode);
+    }
+#endif
 
     public UsageOverlayWindow() : this(new OverlayWindowHost(), null)
     {
@@ -287,6 +295,9 @@ public sealed class UsageOverlayWindow
 
     private void UpdateLayout()
     {
+#if CODEXHP_DEVELOPMENT
+        this.overlaySurface?.SetSimulationTooltipMode(this.simulationTooltipMode);
+#endif
         if (this.usageOverlayState is null || this.WindowHandle == nint.Zero)
         {
             return;
@@ -296,7 +307,8 @@ public sealed class UsageOverlayWindow
             this.usageOverlayState,
             this.presentationSettings,
             this.IsOverlayPositionChangeMode);
-        this.overlaySurface?.UpdateStatusStripeTooltip(this.usageOverlayState.Tooltip);
+        this.overlaySurface?.UpdateStatusStripeTooltip(
+            this.usageOverlayState.Tooltip, this.usageOverlayState.TooltipSections, this.presentationSettings.IsLight);
         this.SubmitLayeredSurface();
     }
 

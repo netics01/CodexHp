@@ -4,9 +4,22 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-23
+
 ### Added
 
-- Add an optional Banked resets upper-bar mode showing the owned reset count and nearest known expiry, with detailed expiration dates and 5-hour usage in the standard tooltip. Keep 5H usage as the default mode and preserve weekly usage when reset-credit details are unavailable.
+- Check GitHub for a newer stable release at startup and every seven days while running. Show an Update available tray menu item and an Update link in Settings when one is found; open its release page without downloading or installing automatically.
+- Add an optional Banked resets upper-bar mode showing the owned reset count and nearest known expiry, with detailed expiration dates and 5-hour usage in the tooltip. Keep 5H usage as the default mode and preserve weekly usage when reset-credit details are unavailable.
+- Replace the standard tooltip with a light/dark card showing reset times, banked resets, and grouped service issues. Anchor its speech-bubble tail to the overlay, prefer placement above it, and keep the card within the monitor work area without covering the overlay or taking keyboard focus. Long incident details wrap and scroll.
+
+### Changed
+
+- Show only the two nearest known reset-credit expiration times, in the user's local time without a UTC offset. Hide 5-hour details when the 5H bar is full, including in Banked resets mode.
+- Use a compact 200 DIP tooltip for ordinary account details and a wider 320 DIP tooltip for service incidents, constrained to the available monitor area.
+
+### Development
+
+- Add a development-only simulation control window with repeatable usage, reset-credit, service-status, and update-notification scenarios. Sample settings stay in memory and no account or update requests are made. Simulation code is excluded from official release builds.
 
 ## [0.4.0] - 2026-09-19
 

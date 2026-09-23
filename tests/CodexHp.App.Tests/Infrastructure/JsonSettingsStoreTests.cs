@@ -15,6 +15,8 @@ public sealed class JsonSettingsStoreTests : IDisposable
         var settings = AppSettings.Default with { UpperBarMode = UpperBarMode.BankedResets };
         store.Save(settings);
         Assert.Equal(settings, store.Load());
+        // A new process creates a new store, so verify persistence without shared memory.
+        Assert.Equal(UpperBarMode.BankedResets, new JsonSettingsStore(this.localAppData).Load().UpperBarMode);
         File.WriteAllText(store.SettingsPath, File.ReadAllText(store.SettingsPath).Replace("BankedResets", "future-mode"));
         Assert.Equal(AppSettings.Default, store.Load());
         var validated = SettingsValidator.Validate(settings with { UpperBarMode = (UpperBarMode)99 });

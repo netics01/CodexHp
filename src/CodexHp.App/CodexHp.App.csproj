@@ -4,7 +4,7 @@
     <TargetFramework>net10.0-windows10.0.22000.0</TargetFramework>
     <AssemblyName>CodexHp</AssemblyName>
     <RootNamespace>CodexHp.App</RootNamespace>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <CodexHpBuildFlavor Condition="'$(CodexHpBuildFlavor)' == ''">Development</CodexHpBuildFlavor>
     <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -19,6 +19,16 @@
     <SatelliteResourceLanguages>ko</SatelliteResourceLanguages>
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(CodexHpBuildFlavor)' == 'Development'">
+    <DefineConstants>$(DefineConstants);CODEXHP_DEVELOPMENT</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(CodexHpBuildFlavor)' != 'Development'">
+    <Compile Remove="Development\**\*.cs" />
+  </ItemGroup>
+  <Target Name="ValidateBuildFlavor" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(CodexHpBuildFlavor)' != 'Development' and '$(CodexHpBuildFlavor)' != 'Official'"
+           Text="CodexHpBuildFlavor must be Development or Official." />
+  </Target>
   <ItemGroup>
     <AssemblyMetadata Include="CodexHpBuildFlavor" Value="$(CodexHpBuildFlavor)" />
     <ProjectReference Include="..\CodexHp.Core\CodexHp.Core.csproj" />

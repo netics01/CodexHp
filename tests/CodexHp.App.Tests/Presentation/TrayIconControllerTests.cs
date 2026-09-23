@@ -1,4 +1,5 @@
 using CodexHp.App.Presentation;
+using CodexHp.App.Application;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Xunit;
@@ -7,6 +8,39 @@ namespace CodexHp.App.Tests.Presentation;
 
 public sealed class TrayIconControllerTests
 {
+    [Fact]
+    public void Available_update_is_between_GitHub_and_exit_and_opens_the_detected_release()
+    {
+        var view = new FakeTrayIconView();
+        AvailableUpdate? opened = null;
+        using var controller = new TrayIconController(view, () => { }, () => { }, openUpdate: update => opened = update);
+        var update = AvailableUpdate.FromTag("v0.5.0");
+        controller.SetAvailableUpdate(update);
+        Assert.Equal(new[] { TrayMenuCommand.Options, TrayMenuCommand.Repository, TrayMenuCommand.Update, TrayMenuCommand.Exit },
+            view.MenuItems.Select(item => item.Command));
+        Assert.Equal("Update available", view.MenuItems[2].Text);
+        view.RaiseMenuCommand(TrayMenuCommand.Update);
+        Assert.Equal(update, opened);
+        Assert.Contains(view.MenuItems, item => item.Command == TrayMenuCommand.Update);
+        var menu = MenuProbe.CreatePopupMenu();
+        try
+        {
+            WindowsTrayIconView.AppendContextMenu(menu, view.MenuItems);
+            Assert.Equal(5, MenuProbe.GetMenuItemCount(menu));
+            Assert.Equal(4u, MenuProbe.GetMenuItemID(menu, 2));
+            Assert.Equal(TrayMenuCommand.Update, TrayIconMessageRouter.RouteMenuCommand(4));
+        }
+        finally { MenuProbe.DestroyMenu(menu); }
+        controller.SetAvailableUpdate(null);
+        opened = null;
+        view.RaiseMenuCommand(TrayMenuCommand.Update);
+        Assert.Null(opened);
+        Assert.DoesNotContain(view.MenuItems, item => item.Command == TrayMenuCommand.Update);
+        var start = ReleaseBrowser.CreateStartInfo(update);
+        Assert.True(start.UseShellExecute);
+        Assert.Equal(update.ReleaseUri.AbsoluteUri, start.FileName);
+    }
+
     [Theory]
     [InlineData(0x0202u, TrayMouseButton.Left)]
     [InlineData(0x0205u, TrayMouseButton.Right)]
@@ -312,7 +346,7 @@ public sealed class TrayIconControllerTests
 
         public string ToolTipText { get; set; } = "CodexHp";
 
-        public IReadOnlyList<TrayMenuItem> MenuItems { get; } = TrayIconController.DefaultMenuItems;
+        public IReadOnlyList<TrayMenuItem> MenuItems { get; set; } = TrayIconController.DefaultMenuItems;
 
         public void RaiseMouseClick(TrayMouseButton button) => this.MouseClicked?.Invoke(button);
 

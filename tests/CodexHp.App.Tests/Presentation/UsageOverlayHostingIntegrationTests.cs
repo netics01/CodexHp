@@ -222,29 +222,9 @@ public sealed class UsageOverlayHostingIntegrationTests
             Assert.NotEqual(0u, extendedStyle & NativeMethods.WsExToolWindow);
             Assert.NotEqual(0u, extendedStyle & NativeMethods.WsExNoActivate);
             Assert.Equal(0u, extendedStyle & NativeMethods.WsExAppWindow);
-            Assert.Equal(
-                200,
-                NativeMethods.SendMessageW(
-                    tooltipWindow,
-                    NativeMethods.TtmGetDelayTime,
-                    new nint(NativeMethods.TtDtInitial),
-                    nint.Zero).ToInt32());
-            var virtualScreenWidth = NativeMethods.GetSystemMetrics(NativeMethods.SmCxVirtualScreen);
-            Assert.True(virtualScreenWidth > 0);
-            Assert.Equal(
-                virtualScreenWidth,
-                NativeMethods.SendMessageW(
-                    tooltipWindow,
-                    NativeMethods.TtmGetMaxTipWidth,
-                    nint.Zero,
-                    nint.Zero).ToInt32());
-            Assert.Equal(
-                1,
-                NativeMethods.SendMessageW(
-                    tooltipWindow,
-                    NativeMethods.TtmGetToolCount,
-                    nint.Zero,
-                    nint.Zero).ToInt32());
+            // The popup is top-level even when the overlay is hosted inside Explorer.
+            Assert.Equal(nint.Zero, NativeMethods.GetParent(tooltipWindow));
+            Assert.False(NativeMethods.IsWindowVisible(tooltipWindow));
 
             surface.UpdateStatusStripeTooltip(null);
 

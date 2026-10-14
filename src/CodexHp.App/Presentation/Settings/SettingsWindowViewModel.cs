@@ -136,6 +136,20 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
         set => this.UpdateWorking(this.Working with { ShowOnlyWhenChatGptRunning = value }, previewVisual: false);
     }
 
+    public IReadOnlyList<string> ProviderModes { get; } = ["Follow the active app", "Codex", "Claude"];
+
+    public int ProviderModeIndex
+    {
+        get => (int)this.Working.ProviderMode;
+        set
+        {
+            if (Enum.IsDefined((ProviderMode)value))
+            {
+                this.UpdateWorking(this.Working with { ProviderMode = (ProviderMode)value }, previewVisual: true);
+            }
+        }
+    }
+
     public IReadOnlyList<string> UpperBarModes { get; } = ["5H usage", "Banked resets"];
 
     public int UpperBarModeIndex

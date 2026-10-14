@@ -156,6 +156,8 @@ public sealed class JsonSettingsStore : ISettingsStore
                 && Enum.IsDefined(mode) ? mode : OverlayColorMode.System,
             UpperBarMode = Enum.TryParse<UpperBarMode>(document.UpperBarMode, true, out var upperBarMode)
                 && Enum.IsDefined(upperBarMode) ? upperBarMode : UpperBarMode.FiveHourUsage,
+            ProviderMode = Enum.TryParse<ProviderMode>(document.ProviderMode, true, out var providerMode)
+                && Enum.IsDefined(providerMode) ? providerMode : ProviderMode.Automatic,
             LightColors = new ColorSettings(
                 ParseColor(document.LightColors?.ManaBar, ColorSettings.LightDefault.ManaBar),
                 ParseColor(document.LightColors?.HpBar, ColorSettings.LightDefault.HpBar),
@@ -323,6 +325,8 @@ public sealed class JsonSettingsStore : ISettingsStore
 
         public string? UpperBarMode { get; set; }
 
+        public string? ProviderMode { get; set; }
+
         public ColorSettingsDocument? LightColors { get; set; }
 
         public AppearanceSettingsDocument? Appearance { get; set; }
@@ -336,6 +340,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             ShowOnlyWhenChatGptRunning = settings.ShowOnlyWhenChatGptRunning,
             ColorMode = settings.ColorMode.ToString(),
             UpperBarMode = settings.UpperBarMode.ToString(),
+            ProviderMode = settings.ProviderMode.ToString(),
             LightColors = new ColorSettingsDocument
             {
                 ManaBar = settings.LightColors.ManaBar.ToHex(),

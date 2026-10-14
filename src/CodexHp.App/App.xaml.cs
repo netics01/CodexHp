@@ -157,10 +157,18 @@ public partial class App : System.Windows.Application
         var serviceStatusPoller = new OpenAiServiceStatusPoller(
             serviceStatusClient.FetchAsync,
             () => clock.UnixTimeMilliseconds);
+        var claudeStatusPoller = new OpenAiServiceStatusPoller(
+            new OpenAiServiceStatusClient(
+                this.httpClient,
+                new Uri("https://status.claude.com/api/v2/status.json"),
+                new Uri("https://status.claude.com/api/v2/components.json"),
+                new Uri("https://status.claude.com/")).FetchAsync,
+            () => clock.UnixTimeMilliseconds);
         var visibilitySource = new WindowsVisibilitySource(
             new ChatGptProcessDetector(),
             new FullscreenDetector(),
-            monitorService);
+            monitorService,
+            new DesktopAppDetector());
         var coordinator = new ApplicationCoordinator(
             new CodexCredentialSource(),
             new OpenAiUsageClient(this.httpClient),
@@ -170,7 +178,11 @@ public partial class App : System.Windows.Application
             () => Volatile.Read(ref this.activeSettings),
             clock,
             this.logger,
-            readGraphAppearance: () => Volatile.Read(ref this.activePresentation).Appearance);
+            readGraphAppearance: () => Volatile.Read(ref this.activePresentation).Appearance,
+            claude: new ClaudeProviderSources(
+                new ClaudeDesktopUsageSource(this.logger),
+                new ClaudeTokenUsageScanner(),
+                claudeStatusPoller.ReadAsync));
         coordinator.UsageOverlayStateChanged += this.OnUsageOverlayStateChanged;
         this.coordinatorTask = this.RunCoordinatorAsync(coordinator, this.lifetimeCancellation.Token);
         this.updateHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10), MaxResponseContentBufferSize = 1024 * 1024 };

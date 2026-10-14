@@ -5,6 +5,11 @@ using CodexHp.Core.Settings;
 
 namespace CodexHp.App.Application;
 
+public sealed record ClaudeProviderSources(
+    IClaudeUsageSource Usage,
+    ITokenActivitySource TokenActivity,
+    Func<CancellationToken, Task<OpenAiServiceStatusSnapshot>> ReadServiceStatus);
+
 public sealed class ApplicationCoordinator
 {
     private readonly object sync = new();
@@ -18,7 +23,12 @@ public sealed class ApplicationCoordinator
     private readonly IClock clock;
     private readonly IDiagnosticLogger logger;
     private readonly PollSchedule schedule;
+    private readonly ClaudeProviderSources? claude;
+    private readonly ProviderSelector providerSelector = new();
+    // Codex state also carries the shared visibility state.
     private ProviderState providerState = ProviderState.Initial;
+    private ProviderState claudeState = ProviderState.Initial;
+    private bool hasVisibility;
     private int hasRun;
 
     public ApplicationCoordinator(
@@ -31,7 +41,8 @@ public sealed class ApplicationCoordinator
         IClock clock,
         IDiagnosticLogger logger,
         Func<EffectiveAppearanceSettings>? readGraphAppearance = null,
-        PollSchedule? schedule = null)
+        PollSchedule? schedule = null,
+        ClaudeProviderSources? claude = null)
     {
         this.credentialSource = credentialSource ?? throw new ArgumentNullException(nameof(credentialSource));
         this.usageClient = usageClient ?? throw new ArgumentNullException(nameof(usageClient));
@@ -43,6 +54,7 @@ public sealed class ApplicationCoordinator
         this.clock = clock ?? throw new ArgumentNullException(nameof(clock));
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
         this.schedule = schedule ?? PollSchedule.Default;
+        this.claude = claude;
     }
 
     public event Action<UsageOverlayState>? UsageOverlayStateChanged;
@@ -58,6 +70,17 @@ public sealed class ApplicationCoordinator
         }
     }
 
+    public ProviderState CurrentClaudeState
+    {
+        get
+        {
+            lock (this.sync)
+            {
+                return this.claudeState;
+            }
+        }
+    }
+
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         if (Interlocked.Exchange(ref this.hasRun, 1) != 0)
@@ -68,12 +91,150 @@ public sealed class ApplicationCoordinator
         cancellationToken.ThrowIfCancellationRequested();
         this.PublishCurrentState(cancellationToken);
 
-        await Task.WhenAll(
+        var loops = new List<Task>
+        {
             this.RunUsageLoopAsync(cancellationToken),
             this.RunTokenActivityLoopAsync(cancellationToken),
             this.RunServiceStatusLoopAsync(cancellationToken),
             this.RunVisibilityLoopAsync(cancellationToken),
-            this.RunRefreshGaugeLoopAsync(cancellationToken));
+            this.RunRefreshGaugeLoopAsync(cancellationToken),
+        };
+        if (this.claude is not null)
+        {
+            loops.Add(this.RunLoopAsync(this.PollClaudeUsageOnceAsync, this.schedule.Usage, cancellationToken));
+            loops.Add(this.RunLoopAsync(this.PollClaudeTokenActivityOnceAsync, this.schedule.TokenActivity, cancellationToken));
+            loops.Add(this.RunLoopAsync(this.PollClaudeServiceStatusOnceAsync, this.schedule.ServiceStatusProbe, cancellationToken));
+        }
+
+        await Task.WhenAll(loops);
+    }
+
+    internal Task PollClaudeUsageOnceAsync(CancellationToken cancellationToken)
+    {
+        if (this.claude is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var snapshot = this.claude.Usage.Read(this.clock.UnixTimeMilliseconds);
+            this.UpdateClaudeState(
+                state => state with
+                {
+                    Usage = snapshot is null
+                        ? UsageProviderState.Failed(state.Usage.LastSuccessful)
+                        : UsageProviderState.Current(snapshot),
+                },
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            this.logger.Log(DiagnosticLevel.Warning, "ClaudeUsage", "The Claude usage provider failed.", exception);
+            this.UpdateClaudeState(
+                state => state with { Usage = UsageProviderState.Failed(state.Usage.LastSuccessful) },
+                cancellationToken);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    internal Task PollClaudeTokenActivityOnceAsync(CancellationToken cancellationToken)
+    {
+        if (this.claude is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var visibleBucketCount = TokenGraphViewport.CalculateVisibleBucketCount(this.readGraphAppearance());
+            var buckets = this.claude.TokenActivity.ReadRecentTokenBuckets(
+                this.clock.UnixTimeMilliseconds,
+                TokenGraphViewport.BucketSeconds,
+                Math.Max(1, visibleBucketCount));
+            this.UpdateClaudeState(
+                state => state with { TokenActivity = TokenActivityProviderState.Current(buckets) },
+                cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            this.logger.Log(DiagnosticLevel.Warning, "ClaudeTokenActivity", "The Claude token activity provider failed.", exception);
+            this.UpdateClaudeState(
+                state => state with { TokenActivity = TokenActivityProviderState.Failed },
+                cancellationToken);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    internal async Task PollClaudeServiceStatusOnceAsync(CancellationToken cancellationToken)
+    {
+        if (this.claude is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = await this.claude.ReadServiceStatus(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            this.UpdateClaudeState(state => WithServiceStatus(state, snapshot), cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            this.logger.Log(DiagnosticLevel.Warning, "ClaudeServiceStatus", "The Claude service status provider failed.", exception);
+            this.UpdateClaudeState(
+                state => WithServiceStatus(state, OpenAiServiceStatusSnapshot.Unknown(this.clock.UnixTimeMilliseconds)),
+                cancellationToken);
+        }
+    }
+
+    private static ProviderState WithServiceStatus(ProviderState state, OpenAiServiceStatusSnapshot snapshot) =>
+        state with
+        {
+            ServiceHealth = snapshot.Health,
+            ServiceStatusDescription = snapshot.Description,
+            ServiceAffectedComponents = snapshot.AffectedComponents ?? [],
+            ServiceAffectedGroups = snapshot.AffectedGroups ?? [],
+            ServiceAffectedComponentGroups = snapshot.AffectedComponentGroups ?? [],
+        };
+
+    private async Task RunLoopAsync(
+        Func<CancellationToken, Task> poll,
+        TimeSpan interval,
+        CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            await poll(cancellationToken);
+            await this.clock.DelayAsync(interval, cancellationToken);
+        }
+    }
+
+    private void UpdateClaudeState(Func<ProviderState, ProviderState> update, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (this.sync)
+        {
+            this.claudeState = update(this.claudeState);
+        }
+
+        this.PublishCurrentState(cancellationToken);
     }
 
     internal async Task PollUsageOnceAsync(CancellationToken cancellationToken)
@@ -211,7 +372,13 @@ public sealed class ApplicationCoordinator
         {
             cancellationToken.ThrowIfCancellationRequested();
             var visibility = this.readVisibility();
-            this.UpdateState(state => state with { Visibility = visibility }, cancellationToken);
+            this.UpdateState(
+                state =>
+                {
+                    this.hasVisibility = true;
+                    return state with { Visibility = visibility };
+                },
+                cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -286,6 +453,40 @@ public sealed class ApplicationCoordinator
         this.PublishCurrentState(cancellationToken);
     }
 
+    // Called under the state lock.
+    private (ProviderState Shown, ProviderPresentation Presentation) SelectProvider(
+        AppSettings settings,
+        VisibilityState visibility,
+        long nowUnixMs)
+    {
+        var codexUsage = this.providerState.Usage;
+        var isCodexAvailable = visibility.IsChatGptRunning
+            || codexUsage.LastSuccessful is not null
+            || codexUsage is not { Availability: ProviderAvailability.Failed, FailureReason: UsageFailureReason.SignInRequired };
+        var isClaudeAvailable = visibility.IsClaudeRunning || this.claudeState.Usage.LastSuccessful is not null;
+        // Until the foreground app is first observed, show a provisional choice without
+        // committing it, so startup does not count as a switch.
+        var selection = this.hasVisibility
+            ? this.providerSelector.Update(
+                settings.ProviderMode,
+                visibility.ForegroundProvider,
+                isCodexAvailable,
+                isClaudeAvailable,
+                nowUnixMs)
+            : new ProviderSelection(
+                settings.ProviderMode == ProviderMode.Claude || (isClaudeAvailable && !isCodexAvailable)
+                    ? UsageProvider.Claude
+                    : UsageProvider.Codex,
+                false);
+        var (shown, other, otherProvider, isOtherAvailable) = selection.Provider == UsageProvider.Claude
+            ? (this.claudeState, this.providerState, UsageProvider.Codex, isCodexAvailable)
+            : (this.providerState, this.claudeState, UsageProvider.Claude, isClaudeAvailable);
+        var summary = isOtherAvailable
+            ? UsageOverlayStateReducer.CreateProviderSummary(otherProvider, other.Usage, other.ServiceHealth, nowUnixMs)
+            : null;
+        return (shown, new ProviderPresentation(selection.Provider, selection.IsLabelEmphasized, summary));
+    }
+
     private void PublishCurrentState(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -294,17 +495,24 @@ public sealed class ApplicationCoordinator
         {
             lock (this.sync)
             {
+                var settings = this.readSettings();
+                var nowUnixMs = this.clock.UnixTimeMilliseconds;
+                var visibility = this.providerState.Visibility;
+                var (shown, presentation) = this.claude is null
+                    ? (this.providerState, null)
+                    : this.SelectProvider(settings, visibility, nowUnixMs);
                 usageOverlayState = UsageOverlayStateReducer.Reduce(
-                    this.providerState.Usage,
-                    this.providerState.TokenActivity,
-                    this.providerState.ServiceHealth,
-                    this.providerState.ServiceStatusDescription,
-                    this.providerState.Visibility,
-                    this.readSettings(),
-                    this.clock.UnixTimeMilliseconds,
-                    this.providerState.ServiceAffectedComponents,
-                    this.providerState.ServiceAffectedGroups,
-                    this.providerState.ServiceAffectedComponentGroups);
+                    shown.Usage,
+                    shown.TokenActivity,
+                    shown.ServiceHealth,
+                    shown.ServiceStatusDescription,
+                    visibility,
+                    settings,
+                    nowUnixMs,
+                    shown.ServiceAffectedComponents,
+                    shown.ServiceAffectedGroups,
+                    shown.ServiceAffectedComponentGroups,
+                    presentation);
             }
         }
         catch (Exception exception)

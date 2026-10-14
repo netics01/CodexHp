@@ -220,6 +220,36 @@ public sealed class UsageOverlayRendererTests
         Assert.True(previousRight < track.Right);
     }
 
+    [Fact]
+    public void Provider_label_is_faint_behind_the_token_bars_and_only_slightly_brighter_after_a_switch()
+    {
+        OverlayDrawCommand[] Draw(bool emphasized) => UsageOverlayRenderer.CreateLayout(
+                State([1_000, 2_000]) with { ProviderLabel = "Claude", IsProviderLabelEmphasized = emphasized },
+                ReferencePresentation,
+                false)
+            .Commands
+            .ToArray();
+        var normal = Draw(false);
+        var emphasized = Draw(true);
+
+        var label = Assert.Single(normal, command => command.Role == OverlayElementRole.ProviderLabel);
+        var emphasizedLabel = Assert.Single(emphasized, command => command.Role == OverlayElementRole.ProviderLabel);
+        Assert.Equal("Claude", label.Text);
+        Assert.Equal(TokenGraphViewport.ChartLeft(ReferencePresentation.Appearance), label.Bounds.Left);
+        Assert.True(label.Opacity <= 0.2);
+        Assert.InRange(emphasizedLabel.Opacity, label.Opacity + 0.05, 0.35);
+        Assert.True(Array.FindIndex(normal, command => command.Role == OverlayElementRole.ProviderLabel)
+            < Array.FindIndex(normal, command => command.Role == OverlayElementRole.TokenBar));
+    }
+
+    [Fact]
+    public void No_provider_label_is_drawn_in_the_Codex_only_presentation()
+    {
+        var commands = UsageOverlayRenderer.CreateLayout(State([1]), ReferencePresentation, false).Commands;
+
+        Assert.DoesNotContain(commands, command => command.Role == OverlayElementRole.ProviderLabel);
+    }
+
     private static UsageOverlayState State(IReadOnlyList<int> buckets) => new(
         IsVisible: true,
         ManaBar: new GaugeDisplayState(75, 0.5, false),

@@ -24,6 +24,20 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Contains("UpperBarMode", validated.CorrectedFields);
     }
 
+    [Fact]
+    public void Provider_mode_round_trips_and_unknown_values_fall_back_to_automatic()
+    {
+        var store = new JsonSettingsStore(this.localAppData);
+        store.Save(AppSettings.Default with { ProviderMode = ProviderMode.Claude });
+
+        Assert.Equal(ProviderMode.Claude, new JsonSettingsStore(this.localAppData).Load().ProviderMode);
+        File.WriteAllText(store.SettingsPath, File.ReadAllText(store.SettingsPath).Replace("\"Claude\"", "\"future-provider\""));
+        Assert.Equal(ProviderMode.Automatic, store.Load().ProviderMode);
+        var validated = SettingsValidator.Validate(AppSettings.Default with { ProviderMode = (ProviderMode)99 });
+        Assert.Equal(ProviderMode.Automatic, validated.Settings.ProviderMode);
+        Assert.Contains("ProviderMode", validated.CorrectedFields);
+    }
+
     [Theory]
     [InlineData(OverlayColorMode.Light)]
     [InlineData(OverlayColorMode.Dark)]

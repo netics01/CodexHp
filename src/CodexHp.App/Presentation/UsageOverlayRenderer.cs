@@ -39,6 +39,7 @@ public enum OverlayElementRole
     HpRefreshSeparator,
     GraphGridDot,
     GraphBaseline,
+    ProviderLabel,
     TokenBar,
     ContentMessage,
     OverlayPositionOutline,
@@ -86,6 +87,12 @@ public static class UsageOverlayRenderer
     private const int ReferenceGaugeRowHeight = 27;
     private const int ReferenceGaugeFontHeight = 16;
     private const double StaleOpacity = 0.55;
+    // The provider caption sits behind the token bars. The switch emphasis is a small step up
+    // that is legible when looked at directly but does not pull attention from elsewhere.
+    private const double ProviderLabelOpacity = 0.16;
+    private const double ProviderLabelEmphasizedOpacity = 0.3;
+    private const double ProviderLabelMinimumFontDip = 6;
+    private const double ProviderLabelMaximumFontDip = 9;
     private static readonly ColorValue BackgroundColor = ColorValue.Parse("#18181C");
     private static readonly ColorValue GaugeTrackColor = ColorValue.Parse("#3E3E44");
     private static readonly ColorValue RefreshTrackColor = ColorValue.Parse("#44464E");
@@ -225,7 +232,7 @@ public static class UsageOverlayRenderer
         var separatorWidth = X(OverlayPixelPolicy.RefreshSeparatorDip);
         AddRefreshSeparators(commands, hpRefreshBounds, 7, separatorWidth, OverlayElementRole.HpRefreshSeparator);
 
-        AddGraph(commands, state.TokenBuckets, settings, height);
+        AddGraph(commands, state.TokenBuckets, settings, height, state.ProviderLabel, state.IsProviderLabelEmphasized);
 
         if (isOverlayPositionChangeMode)
         {
@@ -331,7 +338,8 @@ public static class UsageOverlayRenderer
                 OverlayElementRole.GraphGridDot => ColorValue.Parse("#B0B7C0"),
                 OverlayElementRole.GraphBaseline => ColorValue.Parse("#536172"),
                 OverlayElementRole.ContentMessage or OverlayElementRole.OverlayPositionOutline
-                    or OverlayElementRole.ManaText or OverlayElementRole.HpText => text,
+                    or OverlayElementRole.ManaText or OverlayElementRole.HpText
+                    or OverlayElementRole.ProviderLabel => text,
                 _ => command.Color,
             };
             if (command.Role is OverlayElementRole.ManaText or OverlayElementRole.HpText)
@@ -466,7 +474,9 @@ public static class UsageOverlayRenderer
         ICollection<OverlayDrawCommand> commands,
         IReadOnlyList<int> buckets,
         OverlayPresentationSettings settings,
-        int overlayHeight)
+        int overlayHeight,
+        string? providerLabel = null,
+        bool isProviderLabelEmphasized = false)
     {
         var chartLeft = TokenGraphViewport.ChartLeft(settings.Appearance);
         var chartRight = TokenGraphViewport.ChartRight(settings.Appearance);
@@ -504,6 +514,23 @@ public static class UsageOverlayRenderer
             OverlayElementRole.GraphBaseline,
             new LayoutRect(chartLeft, baselineTop, chartRight - chartLeft, OverlayPixelPolicy.GraphBaselinePixels),
             White));
+
+        if (!string.IsNullOrWhiteSpace(providerLabel))
+        {
+            var scaleY = settings.Appearance.DisplayScaleY;
+            var labelFont = Math.Clamp(
+                (chartBottom - chartTop) * 2 / 5,
+                OverlayPixelPolicy.ToPixels(ProviderLabelMinimumFontDip, scaleY),
+                OverlayPixelPolicy.ToPixels(ProviderLabelMaximumFontDip, scaleY));
+            commands.Add(new OverlayDrawCommand(
+                OverlayDrawKind.Text,
+                OverlayElementRole.ProviderLabel,
+                new LayoutRect(chartLeft, chartTop, chartRight - chartLeft, chartBottom - chartTop),
+                White,
+                isProviderLabelEmphasized ? ProviderLabelEmphasizedOpacity : ProviderLabelOpacity,
+                providerLabel,
+                labelFont));
+        }
 
         var maximumBucket = buckets.Count == 0 ? 0 : Math.Max(0, buckets.Max());
         var xPosition = chartRight - barWidth;

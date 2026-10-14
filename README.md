@@ -6,29 +6,29 @@
 
 Now supports Claude too. If the Claude desktop app is installed, it just works. No setup required.
 
-CodexHp is a small Windows overlay for Codex. It shows remaining usage limits, reset countdowns, and a graph of local token activity without opening a separate window. You can also view your available reset credits (banked resets) and when they expire. Keep it on the taskbar or place it elsewhere on your desktop.
-
 ![CodexHp on the Windows taskbar: normal operation with a weekly reset countdown above the overlay, and a service issue with an orange indicator and details grouped under APIs and Codex.](docs/assets/readme/codexhp-taskbar.png)
 
-*Actual app captures with simulated usage and service status. The tooltip appears when you hover over the overlay.*
+*App captures with simulated values. Hover the overlay for the tooltip.*
 
-**[Get the latest release](https://github.com/netics01/CodexHp/releases/latest)**
+**[Get the latest release](https://github.com/netics01/CodexHp/releases/latest)** · unsigned, see [Install](#install)
 
-*Current downloads are unsigned and may trigger a Windows security warning. See [Install](#install) for details.*
-
-## Codex usage at a glance
-
-The gauge panel shows your **remaining** 5-hour and weekly limits. Thin reset gauges below the bars are divided into five hours and seven days. The graph panel shows token activity over time from Codex sessions on this PC; it is not an account-wide usage or billing total.
+## What it shows
 
 ![Conceptual guide to CodexHp: blue 5-hour and red weekly remaining-limit bars, reset gauges divided into five hours and seven days, a local token activity graph, and an orange OpenAI service-issue indicator. Dark and light appearances are illustrated with example values.](docs/assets/readme/codexhp-at-a-glance.png)
 
-Hover for the weekly reset countdown and, when the 5-hour limit is below 100% remaining, its countdown too. The tooltip is placed above or below the overlay so it does not cover the gauges. An orange indicator marks an OpenAI service issue; the tooltip lists affected services by product.
+- **Bars**: remaining 5-hour (blue) and weekly (red) limits
+- **Thin gauges**: time until reset, in hours and days
+- **Graph**: token activity from sessions on this PC, not account totals
+- **Orange stripe**: service issue; hover for affected services
+- **Tooltip**: reset countdowns and details
 
-The upper gauge can instead show **banked resets**: the number of available reset credits and the time until the next known expiry. Select **Settings → General → Upper bar → Banked resets**. The weekly gauge and activity graph remain visible.
+## Banked resets
 
 <img src="docs/assets/readme/codexhp-reset-credits.png" width="220" alt="Simulated banked-reset view: a red ticket marked 3 and 2d above the weekly gauge; its tooltip lists three available credits and the two nearest expiry dates.">
 
-*Simulated reset credits. Hover to see the two nearest expiry times in your local time zone. CodexHp displays this information; it does not redeem credits. Availability depends on your account.*
+- The upper bar can show available reset credits and the next expiry.
+- **Settings → General → Upper bar → Banked resets**
+- Display only. CodexHp does not redeem credits. Availability depends on your account.
 
 ## Codex and Claude
 
@@ -36,103 +36,87 @@ The upper gauge can instead show **banked resets**: the number of available rese
 
 *Rendered by CodexHp with sample values.*
 
-The overlay shows the provider of the active app. The faint label in the graph names it, and the last tooltip row shows the other one.
+- Shows the provider of the active app. A faint label in the graph names it.
+- The last tooltip row shows the other provider.
+- Claude always shows the 5-hour limit. The graph shows Claude Code sessions.
+- Claude values dim after 30 minutes and hide after 2 hours without an update.
+- To show only one: **Settings → General → Provider**
 
-- Claude always shows the 5-hour limit in the upper gauge. The graph shows Claude Code sessions on this PC.
-- Claude values come from the Claude desktop app. They dim after 30 minutes and are hidden after 2 hours without an update.
-- To show only one provider, use **Settings → General → Provider**.
-
-## Put it anywhere. Make it yours.
+## Placement and appearance
 
 ![Conceptual guide to placing CodexHp on the taskbar or anywhere on the desktop, choosing colors, and independently adjusting overlay and element dimensions](docs/assets/readme/codexhp-placement.png)
 
-| No. | Setting |
-| --- | --- |
-| **1** | Place the overlay on the Windows taskbar |
-| **2** | Move it to a position on any connected display |
-| **3** | Adjust colors, overlay and gauge dimensions, graph density, and the status indicator |
+1. On the taskbar
+2. Anywhere on any display (**Settings → Overlay Position**, then drag)
+3. Colors per Light/Dark theme, overlay and element sizes
 
-Open **Overlay Position** in Settings and drag the outlined overlay to place it. **Colors** offers **Light**, **Dark**, and **System** modes, with colors saved separately for each theme. **Appearance** controls the size of the overlay and its individual elements.
+## Behavior
 
-## Fits your Windows setup
-
-CodexHp adjusts saved placement for monitor bounds, taskbar layouts, and DPI changes. You can also choose when it is visible.
-
-- Starts with Windows by default when installed, and preserves your choice during upgrades.
-- Can stay visible all the time or appear only while the ChatGPT or Claude desktop app is running.
-- Hides automatically when a full-screen app is active on the same monitor.
-- Opens settings when you double-click the overlay or click its notification-area icon.
-
-CodexHp checks GitHub for a newer stable release at startup and every seven days while running. When one is available, **Update available** appears in the tray menu and **Update ↗** appears in Settings. Both open the release page; nothing is downloaded or installed automatically.
+- Starts with Windows (can be turned off)
+- Always visible, or only while ChatGPT or Claude is running
+- Hides when a full-screen app is on the same monitor
+- Adjusts to monitor, taskbar, and DPI changes
+- Double-click the overlay or the tray icon for settings
+- Checks GitHub for updates at startup and weekly; never downloads or installs on its own
 
 ## Install
 
-1. Download `CodexHp-Setup-<version>-x64.exe` from the [latest GitHub Release](https://github.com/netics01/CodexHp/releases/latest).
-2. Run the per-user installer. It places CodexHp under `%LocalAppData%\Programs\CodexHp` and adds Start menu and uninstall entries.
-3. Launch CodexHp from the installer or Start menu. Starting automatically when you sign in is selected by default and can be changed in Settings.
+1. Download `CodexHp-Setup-<version>-x64.exe` from the [latest release](https://github.com/netics01/CodexHp/releases/latest).
+2. Run it. It installs per user under `%LocalAppData%\Programs\CodexHp`.
 
-`CodexHp-Portable-<version>-x64.exe` is also available for temporary use. Move the portable build out of Downloads or other temporary locations before enabling Windows startup; CodexHp disables startup registration from locations likely to be cleaned or moved.
+A portable `CodexHp-Portable-<version>-x64.exe` is also available. Move it out of Downloads before enabling startup.
 
 > [!WARNING]
-> The current release is not Authenticode-signed. Windows SmartScreen or Smart App Control may warn about or block it. Download only from this repository's GitHub Release and verify the files against `SHA256SUMS.txt`. CodexHp is not yet distributed through WinGet.
-
-To calculate the installer's SHA-256 digest in PowerShell, run the following command and compare the result with the matching entry in `SHA256SUMS.txt`:
-
-```powershell
-Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
-```
+> Releases are not code-signed. SmartScreen or Smart App Control may warn or block. Download only from this repository and check `SHA256SUMS.txt`:
+>
+> ```powershell
+> Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
+> ```
 
 ### Requirements
 
 - Windows 11 build 22000 or later (x64)
-- The ChatGPT desktop app installed, signed in, and able to use Codex
-- Optional, for Claude usage: the Claude desktop app installed and signed in
+- ChatGPT desktop app, signed in with Codex access
+- Optional: Claude desktop app, signed in
 
-CodexHp is built for the Codex experience in the ChatGPT desktop app. It does not support other operating systems or ordinary ChatGPT conversations. Claude usage is read only from the Claude desktop app; using Claude only in a browser, Claude Code CLI, or an editor extension does not provide Claude limits.
-
-## Why the name CodexHp?
-
-“HP” comes from health bars in games. CodexHp uses a similar visual shorthand for your remaining usage limit. In reset-credit mode, the ticket uses the weekly gauge's color to connect the credit with the limit it can replenish.
+Claude limits come only from the Claude desktop app. Claude in a browser, the CLI, or an editor alone is not enough.
 
 ## Data and privacy
 
-CodexHp reads the existing Codex authentication cache from `%CODEX_HOME%\auth.json` or `%USERPROFILE%\.codex\auth.json` and local Codex activity data. It uses the cached token only to request Codex usage data from `chatgpt.com`.
+- **Codex**: reads the existing Codex sign-in cache (`%CODEX_HOME%\auth.json` or `%USERPROFILE%\.codex\auth.json`) and uses it only to request usage from `chatgpt.com`.
+- **Claude**: reads the Claude desktop app's usage history and its cached usage response. Never reads Claude sign-in tokens or cookies, and sends no requests to Claude.
+- **Graphs**: local Codex and Claude Code session logs.
+- **Other requests**: public status pages (`status.openai.com`, `status.claude.com`) and GitHub releases.
+- No sign-in, no tokens in settings or logs, no developer server.
+- Relies on non-public endpoints and app files that may change without notice.
 
-It also requests public service-status data from `status.openai.com` and release information from GitHub. Those requests do not include your Codex authentication token.
+## Why "HP"?
 
-For Claude, CodexHp reads two kinds of local data written by the Claude desktop app: the usage history file in `%APPDATA%\Claude` and, from the app's HTTP cache, only the cached Claude usage response. It reads token counts from Claude Code session logs under `%USERPROFILE%\.claude\projects`. It does not read Claude sign-in tokens or cookies and sends no requests to Claude on your behalf; only public service-status data is requested from `status.claude.com`.
-
-CodexHp does not perform sign-in, store the authentication token in its settings or logs, or send it to a separate server operated by the CodexHp developer. It relies on a non-public usage endpoint, the Claude desktop app's internal files, and local activity formats that may change without notice; CodexHp can stop working if they do. If credential handling is a concern, review the source and release checksums before using the app.
+Like a health bar in a game: how much of your limit is left.
 
 ## Build from source
 
-Development requires the .NET 10 SDK pinned by `global.json`. Inno Setup 6 is required only to build the installer.
+Requires the .NET 10 SDK pinned in `global.json`. Inno Setup 6 only for the installer.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Verify-Core.ps1
 .\out\win-x64\CodexHp.exe
 ```
 
-`Verify-Core.ps1` builds, tests, and publishes the development executable to `out\win-x64`. Exit any running CodexHp instance before launching it. To build an installer, run `pwsh -NoProfile -File .\scripts\Build-Installer.ps1`; its output goes to `out\installer`. Both output directories are untracked.
-
-Regular local builds identify themselves as **CodexHp-Dev** in About. The official build created by the release command identifies itself as **CodexHp**.
-
-Development builds also include an isolated [simulation tool](docs/development-simulation.md) for sample usage, reset credits, service incidents, and update notifications. It is not included in official downloads.
-
-For maintainers, official release assets are built only by the following local command. GitHub Actions runs independent CI checks and does not create a second set of release binaries.
-
-```powershell
-pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
-```
+- Output goes to `out\win-x64` (untracked). Exit a running CodexHp first.
+- Installer: `pwsh -NoProfile -File .\scripts\Build-Installer.ps1` → `out\installer`
+- Local builds show **CodexHp-Dev** in About.
+- Development builds include a [simulation tool](docs/development-simulation.md).
+- Official release assets are built only with `pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease`.
 
 ## Project status
 
-CodexHp is an unofficial early-stage project independent of OpenAI and Anthropic. It is not affiliated with, endorsed by, or supported by OpenAI or Anthropic. Changes to ChatGPT, Codex, Claude, Windows, or their internal integration details may temporarily break some features.
+Unofficial and early-stage. Not affiliated with, endorsed by, or supported by OpenAI or Anthropic. Changes to ChatGPT, Codex, Claude, or Windows may break features.
 
 ## Feedback
 
-Have an idea that would make CodexHp more useful on Windows? Please [open an issue](https://github.com/netics01/codexhp/issues) with your use case or feature request.
+Ideas or problems? [Open an issue](https://github.com/netics01/codexhp/issues).
 
 ## License
 
-Licensed under the [Apache License, Version 2.0](LICENSE).
+[Apache License, Version 2.0](LICENSE)

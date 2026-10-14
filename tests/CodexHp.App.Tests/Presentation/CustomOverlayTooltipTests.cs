@@ -40,6 +40,39 @@ public sealed class CustomOverlayTooltipTests
         Assert.Equal(compact, normal.MeasurePreferredSize(320));
     });
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Summary_gauges_use_the_theme_gauge_colors_and_keep_rows_on_one_line(bool light) => StaTest.Run(() =>
+    {
+        var colors = light ? CodexHp.Core.Settings.ColorSettings.LightDefault : CodexHp.Core.Settings.AppSettings.Default.Colors;
+        var summary = new OverlayTooltipRow("Codex", "5H 65% · Week 82%")
+        {
+            Gauges = [new(TooltipGaugeKind.FiveHour, 65), new(TooltipGaugeKind.Weekly, 82)],
+        };
+        var view = new OverlayTooltipView(
+            [new(null, [new("Updated", "4m ago · cache")]), new(null, [summary])], light, colors);
+        var size = view.MeasurePreferredSize(320);
+        Assert.Equal(200, size.Width);
+        AssertRowsAreSingleLine(view, size);
+
+        var bars = FindAll<TooltipGaugeBar>(view).ToArray();
+        Assert.Equal([65, 82], bars.Select(bar => bar.RemainingPercent));
+        Assert.Equal([colors.ManaBar, colors.HpBar], bars.Select(bar => bar.FillColor));
+        Assert.All(bars, bar => Assert.Equal(light, bar.IsLight));
+        Assert.All(bars, bar => Assert.True(bar.ActualWidth > 0));
+    });
+
+    private static IEnumerable<T> FindAll<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match) yield return match;
+            foreach (var nested in FindAll<T>(child)) yield return nested;
+        }
+    }
+
     private static void AssertRowsAreSingleLine(OverlayTooltipView view, Size size)
     {
         view.Arrange(new Rect(new Point(), size));

@@ -22,7 +22,9 @@ public sealed class ClaudeCoordinatorTests
         Assert.Equal(0, state.ProviderLabelEmphasis);
         Assert.Equal(9, state.ManaBar.RemainingPercent);
         Assert.Equal([5, 6], state.TokenBuckets);
-        Assert.Equal(new OverlayTooltipRow("Codex", "5H 80% · Week 60%"), state.TooltipSections[^1].Rows.Single());
+        var summary = state.TooltipSections[^1].Rows.Single();
+        Assert.Equal(("Codex", "5H 80% · Week 60%"), (summary.Label, summary.Value));
+        Assert.Equal([new(TooltipGaugeKind.FiveHour, 80), new TooltipGauge(TooltipGaugeKind.Weekly, 60)], summary.Gauges!);
     }
 
     [Fact]

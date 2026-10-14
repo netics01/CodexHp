@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using CodexHp.App.Infrastructure;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Positioning;
+using CodexHp.Core.Settings;
 
 namespace CodexHp.App.Presentation;
 
@@ -18,6 +19,8 @@ internal sealed class CustomOverlayTooltip : IDisposable
     private OverlayTooltipView? view;
     private string? text;
     private bool isLight;
+    private IReadOnlyList<OverlayTooltipSection>? sections;
+    private ColorSettings? gaugeColors;
     private long? enteredAt;
     private long? leftAt;
     private bool dismissed;
@@ -58,13 +61,23 @@ internal sealed class CustomOverlayTooltip : IDisposable
     internal Development.SimulationTooltipMode SimulationMode { get; set; }
 #endif
 
-    internal void Update(string? text, IReadOnlyList<OverlayTooltipSection>? sections = null, bool isLight = false)
+    internal void Update(
+        string? text,
+        IReadOnlyList<OverlayTooltipSection>? sections = null,
+        bool isLight = false,
+        ColorSettings? gaugeColors = null)
     {
         ObjectDisposedException.ThrowIf(this.disposed, this);
         text = string.IsNullOrWhiteSpace(text) ? null : text;
-        if (this.text == text && this.isLight == isLight) return;
+        // Sections compare by content; rows such as the other-provider summary can change without the plain text.
+        if (this.text == text
+            && this.isLight == isLight
+            && this.gaugeColors == gaugeColors
+            && (this.sections ?? []).SequenceEqual(sections ?? [])) return;
         this.text = text;
         this.isLight = isLight;
+        this.sections = sections;
+        this.gaugeColors = gaugeColors;
         if (text is null)
         {
             this.timer.Stop();
@@ -76,7 +89,7 @@ internal sealed class CustomOverlayTooltip : IDisposable
 #pragma warning disable WPF0001
         this.window.ThemeMode = isLight ? ThemeMode.Light : ThemeMode.Dark;
 #pragma warning restore WPF0001
-        this.view = new OverlayTooltipView(sections is { Count: > 0 } ? sections : [new(null, [new("", text)])], isLight);
+        this.view = new OverlayTooltipView(sections is { Count: > 0 } ? sections : [new(null, [new("", text)])], isLight, gaugeColors);
         this.window.Content = this.view;
         this.viewChanged = true;
         System.Windows.Automation.AutomationProperties.SetName(this.view, text);

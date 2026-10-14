@@ -98,7 +98,10 @@ public sealed class ClaudeUsagePresentationTests
 
         Assert.Equal("Claude", state.ProviderLabel);
         Assert.Equal(1, state.ProviderLabelEmphasis);
-        Assert.Equal(new OverlayTooltipRow("Codex", "5H 78% · Week 42% · Service issue"), state.TooltipSections[^1].Rows.Single());
+        var row = state.TooltipSections[^1].Rows.Single();
+        Assert.Equal(("Codex", "5H 78% · Week 42% · Service issue"), (row.Label, row.Value));
+        Assert.Equal([new(TooltipGaugeKind.FiveHour, 78), new TooltipGauge(TooltipGaugeKind.Weekly, 42)], row.Gauges!);
+        Assert.Equal("Service issue", row.GaugeNote);
     }
 
     [Fact]

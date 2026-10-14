@@ -163,6 +163,7 @@ public static class UsageOverlayStateReducer
         }
 
         var parts = new List<string>();
+        var gauges = new List<TooltipGauge>();
         if (snapshot is null)
         {
             parts.Add("Unavailable");
@@ -174,9 +175,12 @@ public static class UsageOverlayStateReducer
             if (provider != UsageProvider.Codex || sessionPercent < 100)
             {
                 parts.Add($"5H {sessionPercent}%");
+                gauges.Add(new(TooltipGaugeKind.FiveHour, sessionPercent));
             }
 
-            parts.Add($"Week {Math.Clamp(snapshot.WeeklyRemainingPercent, 0, 100)}%");
+            var weeklyPercent = Math.Clamp(snapshot.WeeklyRemainingPercent, 0, 100);
+            parts.Add($"Week {weeklyPercent}%");
+            gauges.Add(new(TooltipGaugeKind.Weekly, weeklyPercent));
         }
 
         if (serviceHealth == ServiceHealthState.Issue)
@@ -184,7 +188,11 @@ public static class UsageOverlayStateReducer
             parts.Add("Service issue");
         }
 
-        return new OverlayTooltipRow(ProviderName(provider), string.Join(" · ", parts));
+        return new OverlayTooltipRow(ProviderName(provider), string.Join(" · ", parts))
+        {
+            Gauges = gauges.Count == 0 ? null : gauges,
+            GaugeNote = gauges.Count > 0 && serviceHealth == ServiceHealthState.Issue ? "Service issue" : null,
+        };
     }
 
     private static bool IsResetPassed(long? resetUnixMs, long nowUnixMs) =>

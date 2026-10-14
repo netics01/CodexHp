@@ -375,7 +375,7 @@ public static class UsageOverlayRenderer
         return layout with { Commands = commands };
     }
 
-    private static ColorValue ReadableText(ColorValue background)
+    internal static ColorValue ReadableText(ColorValue background)
     {
         static double Linear(byte channel)
         {

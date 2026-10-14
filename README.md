@@ -34,7 +34,7 @@ If the Claude desktop app is installed, CodexHp can also show Claude usage limit
 
 - For Claude, the upper gauge always shows the 5-hour limit, and the graph shows token activity from Claude Code sessions on this PC.
 - Claude values are the latest that the Claude desktop app received. Values older than 30 minutes are dimmed, and values older than 2 hours are hidden until the Claude app refreshes them.
-- The tooltip ends with a one-line summary of the other provider.
+- The tooltip ends with a summary of the other provider, drawn as small gauges in the overlay colors.
 - The orange indicator shows issues reported on `status.claude.com` while Claude is shown.
 - To always show one provider, select **Settings → General → Provider → Codex** or **Claude**.
 

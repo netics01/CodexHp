@@ -113,7 +113,7 @@ The tooltip always shows the observation time and source (`cache` or `history`, 
 ### Tooltip
 
 - Existing provider-specific content (reset countdowns, service issues).
-- A final summary line for the other provider, for example `Codex  5H 78% · Week 42%`, including its service issue state. A full Codex 5H limit is left out (`Codex  Week 87%`), matching the Codex tooltip; Claude always shows its 5H value.
+- A final summary line for the other provider, for example `Codex  5H 78% · Week 42%`, including its service issue state. The summary is drawn as small gauges in the theme's 5H and weekly colors with the remaining percent inside; a service issue appears as a note below them. A full Codex 5H limit is left out (`Codex  Week 87%`), matching the Codex tooltip; Claude always shows its 5H value.
 
 ### Visibility
 

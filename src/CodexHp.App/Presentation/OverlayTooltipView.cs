@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using CodexHp.Core.Domain;
+using CodexHp.Core.Settings;
 
 namespace CodexHp.App.Presentation;
 
@@ -11,7 +12,7 @@ internal sealed class OverlayTooltipView : Grid
     private readonly ScrollViewer scroll;
     private readonly double preferredWidth;
 
-    internal OverlayTooltipView(IReadOnlyList<OverlayTooltipSection> sections, bool isLight)
+    internal OverlayTooltipView(IReadOnlyList<OverlayTooltipSection> sections, bool isLight, ColorSettings? gaugeColors = null)
     {
         this.preferredWidth = sections.Any(section => section.IsWarning) ? 320 : 200;
         var background = Brush(isLight ? "#F8FAFC" : "#18212D");
@@ -43,6 +44,12 @@ internal sealed class OverlayTooltipView : Grid
                 var label = Text(row.Label, secondary, 12, false, new(0, 0, 8, 0));
                 label.TextWrapping = TextWrapping.NoWrap;
                 grid.Children.Add(label);
+                if (row.Gauges is { Count: > 0 } gauges && gaugeColors is not null)
+                {
+                    grid.Children.Add(Gauges(gauges, row.GaugeNote, gaugeColors, isLight, warning));
+                    content.Children.Add(grid);
+                    continue;
+                }
                 var value = Text(row.Value, row.Label == "Expires" ? foreground : accent, 13, true, new());
                 value.TextAlignment = TextAlignment.Right;
                 Grid.SetColumn(value, 1);
@@ -83,6 +90,37 @@ internal sealed class OverlayTooltipView : Grid
             TooltipTailEdge.Left => new(24, 13, 16, 13),
             _ => new(16, 13, 24, 13),
         };
+    }
+
+    // Mini gauges in the overlay colors, right-aligned, with an optional note underneath.
+    private static StackPanel Gauges(
+        IReadOnlyList<TooltipGauge> gauges,
+        string? note,
+        ColorSettings colors,
+        bool isLight,
+        Brush noteColor)
+    {
+        var bars = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        foreach (var gauge in gauges)
+        {
+            var color = gauge.Kind == TooltipGaugeKind.FiveHour ? colors.ManaBar : colors.HpBar;
+            bars.Children.Add(new TooltipGaugeBar(gauge.RemainingPercent, color, isLight)
+            {
+                Margin = new(bars.Children.Count == 0 ? 0 : 4, 0, 0, 0),
+            });
+        }
+
+        var panel = new StackPanel();
+        Grid.SetColumn(panel, 1);
+        panel.Children.Add(bars);
+        if (!string.IsNullOrEmpty(note))
+        {
+            var noteText = Text(note, noteColor, 12, false, new(0, 4, 0, 0));
+            noteText.TextAlignment = TextAlignment.Right;
+            panel.Children.Add(noteText);
+        }
+
+        return panel;
     }
 
     private static TextBlock Text(string value, Brush color, double size, bool bold, Thickness margin) => new()

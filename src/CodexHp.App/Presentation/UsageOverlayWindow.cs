@@ -308,7 +308,10 @@ public sealed class UsageOverlayWindow
             this.presentationSettings,
             this.IsOverlayPositionChangeMode);
         this.overlaySurface?.UpdateStatusStripeTooltip(
-            this.usageOverlayState.Tooltip, this.usageOverlayState.TooltipSections, this.presentationSettings.IsLight);
+            this.usageOverlayState.Tooltip,
+            this.usageOverlayState.TooltipSections,
+            this.presentationSettings.IsLight,
+            this.presentationSettings.Colors);
         this.SubmitLayeredSurface();
     }
 

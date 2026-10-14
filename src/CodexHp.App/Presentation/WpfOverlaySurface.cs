@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using CodexHp.Core.Domain;
+using CodexHp.Core.Settings;
 
 namespace CodexHp.App.Presentation;
 
@@ -15,6 +16,7 @@ internal sealed class WpfOverlaySurface : IDisposable
     private string? statusStripeTooltipText;
     private IReadOnlyList<OverlayTooltipSection>? tooltipSections;
     private bool tooltipIsLight;
+    private ColorSettings? tooltipGaugeColors;
     private bool isVisible;
     private bool isStatusStripeTooltipSuppressed;
     private bool isDisposed;
@@ -87,12 +89,17 @@ internal sealed class WpfOverlaySurface : IDisposable
         return true;
     }
 
-    internal void UpdateStatusStripeTooltip(string? text, IReadOnlyList<OverlayTooltipSection>? sections = null, bool isLight = false)
+    internal void UpdateStatusStripeTooltip(
+        string? text,
+        IReadOnlyList<OverlayTooltipSection>? sections = null,
+        bool isLight = false,
+        ColorSettings? gaugeColors = null)
     {
         ObjectDisposedException.ThrowIf(this.isDisposed, this);
         this.statusStripeTooltipText = text;
         this.tooltipSections = sections;
         this.tooltipIsLight = isLight;
+        this.tooltipGaugeColors = gaugeColors;
         this.ApplyStatusStripeTooltip();
     }
 
@@ -145,5 +152,6 @@ internal sealed class WpfOverlaySurface : IDisposable
                 ? this.statusStripeTooltipText
                 : null,
             this.tooltipSections,
-            this.tooltipIsLight);
+            this.tooltipIsLight,
+            this.tooltipGaugeColors);
 }

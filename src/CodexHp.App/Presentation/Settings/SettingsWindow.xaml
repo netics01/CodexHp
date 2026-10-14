@@ -283,23 +283,30 @@
                                   IsEnabled="{Binding CanStartWithWindows}"
                                   Margin="0,0,0,4" />
                         <CheckBox Style="{StaticResource CompactCheckBoxStyle}"
-                                  Content="Show the usage overlay only while the ChatGPT or Claude desktop app is running"
+                                  Content="Show only while ChatGPT or Claude is running"
                                   IsEnabled="{Binding CanChooseProcessVisibility}"
                                   IsChecked="{Binding ShowOnlyWhenChatGptRunning, Mode=TwoWay}" />
-                        <TextBlock Text="Provider" FontWeight="SemiBold" Margin="0,16,0,6" />
-                        <ComboBox x:Name="ProviderModeComboBox" Width="180" HorizontalAlignment="Left"
-                                  AutomationProperties.Name="Usage provider"
-                                  ItemsSource="{Binding ProviderModes}"
-                                  SelectedIndex="{Binding ProviderModeIndex, Mode=TwoWay}" />
-                        <TextBlock Text="Follow the active app switches between Codex and Claude when you use the ChatGPT or Claude desktop app."
-                                   TextWrapping="Wrap" Margin="0,6,0,0" />
-                        <TextBlock Text="Upper bar (Codex)" FontWeight="SemiBold" Margin="0,16,0,6" />
-                        <ComboBox x:Name="UpperBarModeComboBox" Width="180" HorizontalAlignment="Left"
-                                  AutomationProperties.Name="Upper bar display mode"
-                                  ItemsSource="{Binding UpperBarModes}"
-                                  SelectedIndex="{Binding UpperBarModeIndex, Mode=TwoWay}" />
-                        <TextBlock Text="Show the 5-hour limit or banked resets and their next expiry. Claude always shows the 5-hour limit."
-                                   TextWrapping="Wrap" Margin="0,6,0,0" />
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Provider" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <ComboBox x:Name="ProviderModeComboBox" Grid.Column="1" Width="180" HorizontalAlignment="Left"
+                                      AutomationProperties.Name="Usage provider"
+                                      ItemsSource="{Binding ProviderModes}"
+                                      SelectedIndex="{Binding ProviderModeIndex, Mode=TwoWay}" />
+                            <TextBlock Grid.Row="1" Text="Upper bar (Codex)" VerticalAlignment="Center" Margin="0,8,12,0" />
+                            <ComboBox x:Name="UpperBarModeComboBox" Grid.Row="1" Grid.Column="1" Width="180" HorizontalAlignment="Left"
+                                      Margin="0,8,0,0"
+                                      AutomationProperties.Name="Upper bar display mode"
+                                      ItemsSource="{Binding UpperBarModes}"
+                                      SelectedIndex="{Binding UpperBarModeIndex, Mode=TwoWay}" />
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Grid>

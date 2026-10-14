@@ -753,7 +753,7 @@ public sealed class SettingsWindowTests
 
             Assert.Equal("CodexHp Settings", window.Title);
             Assert.Contains("General", userFacingText);
-            Assert.Contains("Show the usage overlay only while the ChatGPT or Claude desktop app is running", userFacingText);
+            Assert.Contains("Show only while ChatGPT or Claude is running", userFacingText);
             Assert.Contains("Provider", userFacingText);
             Assert.Contains("Upper bar (Codex)", userFacingText);
             Assert.Contains("Usage Overlay Width", userFacingText);

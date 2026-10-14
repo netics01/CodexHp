@@ -7,7 +7,7 @@ All notable user-facing changes to CodexHp are documented here.
 ### Added
 
 - Show Claude usage limits from the Claude desktop app without extra setup. Read the app's usage history and its cached usage response only; never read Claude sign-in tokens or cookies. Graph token activity from local Claude Code session logs and show `status.claude.com` incidents while Claude is shown.
-- Show one provider at a time and follow the active window: switch to Claude or Codex after the app stays in the foreground briefly, and keep the last provider while another app is active. A faint Claude/Codex label in the graph names the shown provider and brightens briefly after a switch. Add a Provider setting to follow the active app or always show Codex or Claude.
+- Show one provider at a time and follow the active window: switch to Claude or Codex after the app stays in the foreground briefly, and keep the last provider while another app is active. A faint Claude/Codex label in the graph names the shown provider and brightens slightly after a switch before gently fading back. Add a Provider setting to follow the active app or always show Codex or Claude.
 - End the tooltip with a one-line summary of the other provider.
 
 ### Changed

@@ -12,6 +12,7 @@ public sealed record ClaudeProviderSources(
 
 public sealed class ApplicationCoordinator
 {
+    private static readonly TimeSpan LabelFadeFrameInterval = TimeSpan.FromMilliseconds(50);
     private readonly object sync = new();
     private readonly ICodexCredentialSource credentialSource;
     private readonly IOpenAiUsageClient usageClient;
@@ -30,6 +31,8 @@ public sealed class ApplicationCoordinator
     private ProviderState claudeState = ProviderState.Initial;
     private bool hasVisibility;
     private readonly SemaphoreSlim visibilityWake = new(0, 1);
+    private readonly SemaphoreSlim labelFadeStart = new(0, 1);
+    private int isLabelFading;
     private int hasRun;
 
     public ApplicationCoordinator(
@@ -112,6 +115,7 @@ public sealed class ApplicationCoordinator
             this.RunServiceStatusLoopAsync(cancellationToken),
             this.RunVisibilityLoopAsync(cancellationToken),
             this.RunRefreshGaugeLoopAsync(cancellationToken),
+            this.RunLabelFadeLoopAsync(cancellationToken),
         };
         if (this.claude is not null)
         {
@@ -473,6 +477,20 @@ public sealed class ApplicationCoordinator
         }
     }
 
+    // Redraws at a short interval only while the provider label fades after a switch.
+    private async Task RunLabelFadeLoopAsync(CancellationToken cancellationToken)
+    {
+        while (true)
+        {
+            await this.labelFadeStart.WaitAsync(cancellationToken);
+            while (Volatile.Read(ref this.isLabelFading) != 0)
+            {
+                await this.clock.DelayAsync(LabelFadeFrameInterval, cancellationToken);
+                this.PublishCurrentState(cancellationToken);
+            }
+        }
+    }
+
     private async Task RunRefreshGaugeLoopAsync(CancellationToken cancellationToken)
     {
         while (true)
@@ -519,14 +537,14 @@ public sealed class ApplicationCoordinator
                 settings.ProviderMode == ProviderMode.Claude || (isClaudeAvailable && !isCodexAvailable)
                     ? UsageProvider.Claude
                     : UsageProvider.Codex,
-                false);
+                0);
         var (shown, other, otherProvider, isOtherAvailable) = selection.Provider == UsageProvider.Claude
             ? (this.claudeState, this.providerState, UsageProvider.Codex, isCodexAvailable)
             : (this.providerState, this.claudeState, UsageProvider.Claude, isClaudeAvailable);
         var summary = isOtherAvailable
             ? UsageOverlayStateReducer.CreateProviderSummary(otherProvider, other.Usage, other.ServiceHealth, nowUnixMs)
             : null;
-        return (shown, new ProviderPresentation(selection.Provider, selection.IsLabelEmphasized, summary));
+        return (shown, new ProviderPresentation(selection.Provider, selection.LabelEmphasis, summary));
     }
 
     private void PublishCurrentState(CancellationToken cancellationToken)
@@ -561,6 +579,18 @@ public sealed class ApplicationCoordinator
         {
             this.logger.Log(DiagnosticLevel.Error, "Coordinator", "The usage overlay state could not be reduced.", exception);
             return;
+        }
+
+        if (usageOverlayState.ProviderLabelEmphasis > 0)
+        {
+            if (Interlocked.Exchange(ref this.isLabelFading, 1) == 0)
+            {
+                this.labelFadeStart.Release();
+            }
+        }
+        else
+        {
+            Volatile.Write(ref this.isLabelFading, 0);
         }
 
         var handlers = this.UsageOverlayStateChanged;

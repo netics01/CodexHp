@@ -94,10 +94,10 @@ public sealed class ClaudeUsagePresentationTests
             ServiceHealthState.Issue,
             Now);
 
-        var state = Reduce(Fresh(), presentation: new ProviderPresentation(UsageProvider.Claude, true, summary));
+        var state = Reduce(Fresh(), presentation: new ProviderPresentation(UsageProvider.Claude, 1, summary));
 
         Assert.Equal("Claude", state.ProviderLabel);
-        Assert.True(state.IsProviderLabelEmphasized);
+        Assert.Equal(1, state.ProviderLabelEmphasis);
         Assert.Equal(new OverlayTooltipRow("Codex", "5H 78% · Week 42% · Service issue"), state.TooltipSections[^1].Rows.Single());
     }
 

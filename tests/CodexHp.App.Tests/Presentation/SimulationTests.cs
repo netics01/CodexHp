@@ -166,7 +166,7 @@ public sealed class SimulationTests
         session.Select("claude");
         var current = session.CreateState(1);
         Assert.Equal("Claude", current.ProviderLabel);
-        Assert.False(current.IsProviderLabelEmphasized);
+        Assert.Equal(0, current.ProviderLabelEmphasis);
         Assert.Equal(62, current.ManaBar.RemainingPercent);
         Assert.False(current.ManaBar.IsStale);
         Assert.Null(current.BankedResets);
@@ -180,8 +180,10 @@ public sealed class SimulationTests
         Assert.Equal(0, session.CreateState(1).ManaBar.RefreshFraction);
 
         session.Select("claude-switch");
-        Assert.True(session.CreateState(1).IsProviderLabelEmphasized);
-        session.Clock.Advance(TimeSpan.FromSeconds(3));
-        Assert.False(session.CreateState(1).IsProviderLabelEmphasized);
+        Assert.Equal(1, session.CreateState(1).ProviderLabelEmphasis);
+        session.Clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.InRange(session.CreateState(1).ProviderLabelEmphasis, 0.1, 0.9);
+        session.Clock.Advance(TimeSpan.FromSeconds(2));
+        Assert.Equal(0, session.CreateState(1).ProviderLabelEmphasis);
     }
 }

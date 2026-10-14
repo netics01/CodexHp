@@ -90,10 +90,9 @@ internal sealed class SimulationSession
         new("claude-stale", "Claude — older reading", "Last Claude app reading is 45 minutes old; values are dimmed.", Provider: UsageProvider.Claude),
         new("claude-expired", "Claude — no recent reading", "Last Claude app reading is 3 hours old; values are hidden.", Provider: UsageProvider.Claude),
         new("claude-reset-unknown", "Claude — reset time unknown", "Usage is known, reset times are not; reset gauges stay empty.", Provider: UsageProvider.Claude),
-        new("claude-switch", "Switched to Claude", "Provider label is brighter for 2 seconds after a switch. Resume the clock to watch it settle.", Provider: UsageProvider.Claude),
+        new("claude-switch", "Switched to Claude", "Provider label is brighter right after a switch, then fades out over 2 seconds. Resume the clock to watch it fade.", Provider: UsageProvider.Claude),
     ];
 
-    private const long ClaudeSwitchEmphasisMs = 2_000;
 
     private long scenarioStart;
     internal SimulationClock Clock { get; }
@@ -184,8 +183,13 @@ internal sealed class SimulationSession
             return new(UsageProvider.Codex);
         var codex = UsageProviderState.Current(new UsageSnapshot(100, 70,
             this.scenarioStart + 7_200_000, 18_000, this.scenarioStart + 270_600_000, 604_800));
-        var emphasized = this.Preset.Id == "claude-switch" && this.Clock.Now - this.scenarioStart < ClaudeSwitchEmphasisMs;
-        return new(UsageProvider.Claude, emphasized,
+        var emphasis = this.Preset.Id == "claude-switch"
+            ? ProviderSelector.EmphasisAt(
+                this.Clock.Now - this.scenarioStart,
+                (long)ProviderSelector.DefaultEmphasisHold.TotalMilliseconds,
+                (long)ProviderSelector.DefaultEmphasisFade.TotalMilliseconds)
+            : 0;
+        return new(UsageProvider.Claude, emphasis,
             UsageOverlayStateReducer.CreateProviderSummary(UsageProvider.Codex, codex, ServiceHealthState.Operational, this.Clock.Now));
     }
 }

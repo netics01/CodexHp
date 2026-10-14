@@ -139,7 +139,7 @@ public static class UsageOverlayStateReducer
             BankedResets = bankedResets,
             TooltipSections = tooltipSections,
             ProviderLabel = presentation is null ? null : ProviderName(presentation.Provider),
-            IsProviderLabelEmphasized = presentation?.IsLabelEmphasized ?? false,
+            ProviderLabelEmphasis = presentation?.LabelEmphasis ?? 0,
         };
     }
 

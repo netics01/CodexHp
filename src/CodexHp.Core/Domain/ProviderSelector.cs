@@ -7,19 +7,40 @@ namespace CodexHp.Core.Domain;
 public sealed class ProviderSelector
 {
     public static readonly TimeSpan DefaultDwell = TimeSpan.FromMilliseconds(300);
-    public static readonly TimeSpan DefaultEmphasis = TimeSpan.FromSeconds(2);
+    // After a switch the label stays bright briefly, then fades out gradually so the change does not draw the eye.
+    public static readonly TimeSpan DefaultEmphasisHold = TimeSpan.FromMilliseconds(300);
+    public static readonly TimeSpan DefaultEmphasisFade = TimeSpan.FromSeconds(2);
 
     private readonly long dwellMs;
-    private readonly long emphasisMs;
+    private readonly long emphasisHoldMs;
+    private readonly long emphasisFadeMs;
     private UsageProvider? current;
     private UsageProvider? candidate;
     private long candidateSinceUnixMs;
     private long? switchedAtUnixMs;
 
-    public ProviderSelector(TimeSpan? dwell = null, TimeSpan? emphasis = null)
+    public ProviderSelector(TimeSpan? dwell = null, TimeSpan? emphasisHold = null, TimeSpan? emphasisFade = null)
     {
         this.dwellMs = (long)(dwell ?? DefaultDwell).TotalMilliseconds;
-        this.emphasisMs = (long)(emphasis ?? DefaultEmphasis).TotalMilliseconds;
+        this.emphasisHoldMs = (long)(emphasisHold ?? DefaultEmphasisHold).TotalMilliseconds;
+        this.emphasisFadeMs = (long)(emphasisFade ?? DefaultEmphasisFade).TotalMilliseconds;
+    }
+
+    // Label emphasis for the time since a switch: 1 during the hold, then a smoothstep ease down to 0.
+    public static double EmphasisAt(long sinceSwitchMs, long holdMs, long fadeMs)
+    {
+        if (sinceSwitchMs < 0 || sinceSwitchMs >= holdMs + fadeMs)
+        {
+            return 0;
+        }
+
+        if (sinceSwitchMs <= holdMs)
+        {
+            return 1;
+        }
+
+        var t = (double)(sinceSwitchMs - holdMs) / fadeMs;
+        return 1 - (t * t * (3 - (2 * t)));
     }
 
     // When a different foreground app is waiting out the dwell time, the time it becomes the shown provider.
@@ -54,10 +75,10 @@ public sealed class ProviderSelector
             this.switchedAtUnixMs = nowUnixMs;
         }
 
-        var emphasized = this.switchedAtUnixMs is { } switchedAt
-            && nowUnixMs >= switchedAt
-            && nowUnixMs - switchedAt < this.emphasisMs;
-        return new ProviderSelection(target, emphasized);
+        var emphasis = this.switchedAtUnixMs is { } switchedAt
+            ? EmphasisAt(nowUnixMs - switchedAt, this.emphasisHoldMs, this.emphasisFadeMs)
+            : 0;
+        return new ProviderSelection(target, emphasis);
     }
 
     private UsageProvider SelectAutomatic(

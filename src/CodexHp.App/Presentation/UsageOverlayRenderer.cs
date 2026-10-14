@@ -232,7 +232,7 @@ public static class UsageOverlayRenderer
         var separatorWidth = X(OverlayPixelPolicy.RefreshSeparatorDip);
         AddRefreshSeparators(commands, hpRefreshBounds, 7, separatorWidth, OverlayElementRole.HpRefreshSeparator);
 
-        AddGraph(commands, state.TokenBuckets, settings, height, state.ProviderLabel, state.IsProviderLabelEmphasized);
+        AddGraph(commands, state.TokenBuckets, settings, height, state.ProviderLabel, state.ProviderLabelEmphasis);
 
         if (isOverlayPositionChangeMode)
         {
@@ -476,7 +476,7 @@ public static class UsageOverlayRenderer
         OverlayPresentationSettings settings,
         int overlayHeight,
         string? providerLabel = null,
-        bool isProviderLabelEmphasized = false)
+        double providerLabelEmphasis = 0)
     {
         var chartLeft = TokenGraphViewport.ChartLeft(settings.Appearance);
         var chartRight = TokenGraphViewport.ChartRight(settings.Appearance);
@@ -527,7 +527,8 @@ public static class UsageOverlayRenderer
                 OverlayElementRole.ProviderLabel,
                 new LayoutRect(chartLeft, chartTop, chartRight - chartLeft, chartBottom - chartTop),
                 White,
-                isProviderLabelEmphasized ? ProviderLabelEmphasizedOpacity : ProviderLabelOpacity,
+                ProviderLabelOpacity
+                    + ((ProviderLabelEmphasizedOpacity - ProviderLabelOpacity) * Math.Clamp(providerLabelEmphasis, 0, 1)),
                 providerLabel,
                 labelFont));
         }

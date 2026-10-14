@@ -30,7 +30,7 @@ The upper gauge can instead show **banked resets**: the number of available rese
 
 ## Claude usage, too
 
-If the Claude desktop app is installed, CodexHp can also show Claude usage limits. No extra setup is required. The overlay shows one provider at a time and follows the active window: switch to the Claude app and, after a moment, the overlay shows Claude; switch to the ChatGPT app and it shows Codex again. While another app is active, the overlay keeps the last provider. A small, faint **Claude** or **Codex** label in the graph shows which provider you are looking at; it briefly brightens after a switch.
+If the Claude desktop app is installed, CodexHp can also show Claude usage limits. No extra setup is required. The overlay shows one provider at a time and follows the active window: switch to the Claude app and, after a moment, the overlay shows Claude; switch to the ChatGPT app and it shows Codex again. While another app is active, the overlay keeps the last provider. A small, faint **Claude** or **Codex** label in the graph shows which provider you are looking at; it brightens slightly after a switch and gently fades back.
 
 - For Claude, the upper gauge always shows the 5-hour limit, and the graph shows token activity from Claude Code sessions on this PC.
 - Claude values are the latest that the Claude desktop app received. Values older than 30 minutes are dimmed, and values older than 2 hours are hidden until the Claude app refreshes them.

@@ -19,7 +19,7 @@ public sealed class ClaudeCoordinatorTests
         var state = await harness.PollAllAsync();
 
         Assert.Equal("Claude", state.ProviderLabel);
-        Assert.False(state.IsProviderLabelEmphasized);
+        Assert.Equal(0, state.ProviderLabelEmphasis);
         Assert.Equal(9, state.ManaBar.RemainingPercent);
         Assert.Equal([5, 6], state.TokenBuckets);
         Assert.Equal(new OverlayTooltipRow("Codex", "5H 80% · Week 60%"), state.TooltipSections[^1].Rows.Single());
@@ -36,15 +36,18 @@ public sealed class ClaudeCoordinatorTests
         var during = await harness.PollVisibilityAsync();
         harness.Clock.Now += 400;
         var switched = await harness.PollVisibilityAsync();
-        harness.Clock.Now += 2_100;
+        harness.Clock.Now += 1_300;
+        var fading = await harness.PollVisibilityAsync();
+        harness.Clock.Now += 1_100;
         var settled = await harness.PollVisibilityAsync();
 
         Assert.Equal("Claude", during.ProviderLabel);
         Assert.Equal("Codex", switched.ProviderLabel);
-        Assert.True(switched.IsProviderLabelEmphasized);
+        Assert.Equal(1, switched.ProviderLabelEmphasis);
         Assert.Equal(80, switched.ManaBar.RemainingPercent);
         Assert.Equal([1, 2], switched.TokenBuckets);
-        Assert.False(settled.IsProviderLabelEmphasized);
+        Assert.InRange(fading.ProviderLabelEmphasis, 0.1, 0.9);
+        Assert.Equal(0, settled.ProviderLabelEmphasis);
     }
 
     [Fact]

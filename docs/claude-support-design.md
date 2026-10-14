@@ -86,7 +86,7 @@ CodexHp shows **one provider at a time** and follows the foreground window.
 
 - The graph shows the provider name as small, very faint text in its center: `Codex` or `Claude`.
 - Text only. No company logos.
-- On a provider switch, the label becomes slightly brighter for a moment, then returns to its normal faint level. The change must be noticeable when looking directly at the overlay, but must not draw attention from elsewhere on the screen.
+- On a provider switch, the label becomes slightly brighter for a moment, then fades back to its normal faint level over about 2 seconds (0.3 s hold, then a smooth ease-out; an instant drop was too noticeable). The change must be noticeable when looking directly at the overlay, but must not draw attention from elsewhere on the screen.
 
 ### Token graph
 

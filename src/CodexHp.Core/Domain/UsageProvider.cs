@@ -9,7 +9,8 @@ public enum UsageProvider
 // Describes which provider the overlay shows. Null in the reducer keeps the Codex-only presentation.
 public sealed record ProviderPresentation(
     UsageProvider Provider,
-    bool IsLabelEmphasized = false,
+    double LabelEmphasis = 0,
     OverlayTooltipRow? OtherProviderSummary = null);
 
-public sealed record ProviderSelection(UsageProvider Provider, bool IsLabelEmphasized);
+// LabelEmphasis runs from 1 (just switched) to 0 (settled).
+public sealed record ProviderSelection(UsageProvider Provider, double LabelEmphasis);

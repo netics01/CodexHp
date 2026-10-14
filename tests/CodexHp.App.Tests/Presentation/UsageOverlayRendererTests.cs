@@ -223,14 +223,15 @@ public sealed class UsageOverlayRendererTests
     [Fact]
     public void Provider_label_is_faint_behind_the_token_bars_and_only_slightly_brighter_after_a_switch()
     {
-        OverlayDrawCommand[] Draw(bool emphasized) => UsageOverlayRenderer.CreateLayout(
-                State([1_000, 2_000]) with { ProviderLabel = "Claude", IsProviderLabelEmphasized = emphasized },
+        OverlayDrawCommand[] Draw(double emphasis) => UsageOverlayRenderer.CreateLayout(
+                State([1_000, 2_000]) with { ProviderLabel = "Claude", ProviderLabelEmphasis = emphasis },
                 ReferencePresentation,
                 false)
             .Commands
             .ToArray();
-        var normal = Draw(false);
-        var emphasized = Draw(true);
+        var normal = Draw(0);
+        var emphasized = Draw(1);
+        var halfway = Assert.Single(Draw(0.5), command => command.Role == OverlayElementRole.ProviderLabel);
 
         var label = Assert.Single(normal, command => command.Role == OverlayElementRole.ProviderLabel);
         var emphasizedLabel = Assert.Single(emphasized, command => command.Role == OverlayElementRole.ProviderLabel);
@@ -238,6 +239,7 @@ public sealed class UsageOverlayRendererTests
         Assert.Equal(TokenGraphViewport.ChartLeft(ReferencePresentation.Appearance), label.Bounds.Left);
         Assert.True(label.Opacity <= 0.2);
         Assert.InRange(emphasizedLabel.Opacity, label.Opacity + 0.05, 0.35);
+        Assert.InRange(halfway.Opacity, label.Opacity + 0.01, emphasizedLabel.Opacity - 0.01);
         Assert.True(Array.FindIndex(normal, command => command.Role == OverlayElementRole.ProviderLabel)
             < Array.FindIndex(normal, command => command.Role == OverlayElementRole.TokenBar));
     }

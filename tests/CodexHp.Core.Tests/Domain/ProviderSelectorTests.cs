@@ -15,7 +15,7 @@ public sealed class ProviderSelectorTests
 
         var selection = selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start);
 
-        Assert.Equal(new ProviderSelection(UsageProvider.Claude, false), selection);
+        Assert.Equal(new ProviderSelection(UsageProvider.Claude, 0), selection);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class ProviderSelectorTests
         Assert.Equal(UsageProvider.Codex, selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 350).Provider);
         var switched = selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 400);
 
-        Assert.Equal(new ProviderSelection(UsageProvider.Claude, true), switched);
+        Assert.Equal(new ProviderSelection(UsageProvider.Claude, 1), switched);
         Assert.Null(selector.PendingSwitchUnixMs);
     }
 
@@ -63,18 +63,26 @@ public sealed class ProviderSelectorTests
 
         var selection = selector.Update(ProviderMode.Automatic, null, true, true, Start + 60_000);
 
-        Assert.Equal(new ProviderSelection(UsageProvider.Claude, false), selection);
+        Assert.Equal(new ProviderSelection(UsageProvider.Claude, 0), selection);
     }
 
     [Fact]
-    public void Emphasis_ends_after_the_emphasis_window()
+    public void Emphasis_holds_briefly_then_fades_out_smoothly()
     {
-        var selector = new ProviderSelector(TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        var selector = new ProviderSelector(TimeSpan.Zero, TimeSpan.FromMilliseconds(300), TimeSpan.FromSeconds(2));
         selector.Update(ProviderMode.Automatic, UsageProvider.Codex, true, true, Start);
+        selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 10);
 
-        Assert.True(selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 10).IsLabelEmphasized);
-        Assert.True(selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 2_009).IsLabelEmphasized);
-        Assert.False(selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 2_010).IsLabelEmphasized);
+        double At(long since) => selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 10 + since).LabelEmphasis;
+        var samples = Enumerable.Range(0, 24).Select(i => At(i * 100L)).ToArray();
+
+        Assert.Equal(1, At(300));
+        Assert.Equal(0.5, At(1_300), 3);
+        Assert.Equal(0, At(2_300));
+        Assert.All(samples.Zip(samples.Skip(1)), pair => Assert.True(pair.Second <= pair.First));
+        // The fade starts and ends gently, so neither edge is a visible jump.
+        Assert.True(1 - At(400) < 0.01);
+        Assert.True(At(2_200) < 0.01);
     }
 
     [Theory]

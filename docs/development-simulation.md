@@ -61,7 +61,7 @@ The control window, tray tooltip, sample settings title, and About heading ident
 | `claude-stale` | Claude reading 45 minutes old; values dimmed |
 | `claude-expired` | Claude reading 3 hours old; values hidden |
 | `claude-reset-unknown` | Claude usage known, reset times unknown; reset gauges empty |
-| `claude-switch` | Provider label brighter for 2 seconds after a switch; resume the clock to watch it settle |
+| `claude-switch` | Provider label brighter right after a switch, then fading out over 2 seconds; resume the clock to watch it fade |
 
 Simulated update links display the target release URL in a preview dialog instead of opening a browser. No GitHub request is made. Select `update-available` followed by `update-failed` to verify that a transient failure does not hide a known update.
 

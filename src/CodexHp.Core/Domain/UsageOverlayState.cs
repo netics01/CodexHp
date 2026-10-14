@@ -26,7 +26,8 @@ public sealed record UsageOverlayState(
     // Faint graph caption naming the shown provider. Null in the Codex-only presentation.
     public string? ProviderLabel { get; init; }
 
-    public bool IsProviderLabelEmphasized { get; init; }
+    // 1 right after a provider switch, easing to 0 as the label returns to its faint resting brightness.
+    public double ProviderLabelEmphasis { get; init; }
 
     public string? Tooltip
     {

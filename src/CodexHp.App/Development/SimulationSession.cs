@@ -172,7 +172,7 @@ internal sealed class SimulationSession
             unknownReset ? 0 : this.scenarioStart + 190_800_000, 604_800)
         {
             ObservedUnixMs = this.scenarioStart - observedAgeMs,
-            Source = "app cache",
+            Source = "cache",
         };
     }
 

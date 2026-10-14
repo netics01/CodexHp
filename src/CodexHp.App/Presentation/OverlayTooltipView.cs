@@ -37,10 +37,14 @@ internal sealed class OverlayTooltipView : Grid
                     continue;
                 }
                 var grid = new Grid { Margin = new(0, 3, 0, 3) };
-                grid.ColumnDefinitions.Add(new() { Width = new(1, GridUnitType.Star) });
+                // Labels are short and never break mid-word; a long value wraps within its own column instead.
                 grid.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
-                grid.Children.Add(Text(row.Label, secondary, 12, false, new(0, 0, 8, 0)));
+                grid.ColumnDefinitions.Add(new() { Width = new(1, GridUnitType.Star) });
+                var label = Text(row.Label, secondary, 12, false, new(0, 0, 8, 0));
+                label.TextWrapping = TextWrapping.NoWrap;
+                grid.Children.Add(label);
                 var value = Text(row.Value, row.Label == "Expires" ? foreground : accent, 13, true, new());
+                value.TextAlignment = TextAlignment.Right;
                 Grid.SetColumn(value, 1);
                 grid.Children.Add(value);
                 content.Children.Add(grid);

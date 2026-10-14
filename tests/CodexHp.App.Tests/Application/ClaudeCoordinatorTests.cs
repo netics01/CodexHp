@@ -145,7 +145,7 @@ public sealed class ClaudeCoordinatorTests
         public UsageSnapshot? ClaudeSnapshot { get; set; } = new(9, 87, Start + 3_600_000, 18_000, Start + 86_400_000, 604_800)
         {
             ObservedUnixMs = Start - 60_000,
-            Source = "app cache",
+            Source = "cache",
         };
 
         public async Task<UsageOverlayState> PollAllAsync()

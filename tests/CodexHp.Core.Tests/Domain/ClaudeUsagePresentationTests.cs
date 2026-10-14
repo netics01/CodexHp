@@ -27,7 +27,7 @@ public sealed class ClaudeUsagePresentationTests
         var state = Reduce(Fresh(observedAgoMs: 12 * 60_000));
 
         var rows = state.TooltipSections[0].Rows;
-        Assert.Contains(new OverlayTooltipRow("Updated", "12m ago · app cache"), rows);
+        Assert.Contains(new OverlayTooltipRow("Updated", "12m ago · cache"), rows);
         Assert.False(state.HpBar.IsStale);
     }
 
@@ -119,6 +119,15 @@ public sealed class ClaudeUsagePresentationTests
     }
 
     [Fact]
+    public void A_full_Codex_5H_limit_is_left_out_of_the_summary_but_a_full_Claude_one_is_not()
+    {
+        var full = UsageProviderState.Current(new UsageSnapshot(100, 87, Now + 1, 18_000, Now + 2, 604_800) { ObservedUnixMs = Now });
+
+        Assert.Equal("Week 87%", UsageOverlayStateReducer.CreateProviderSummary(UsageProvider.Codex, full, ServiceHealthState.Operational, Now).Value);
+        Assert.Equal("5H 100% · Week 87%", UsageOverlayStateReducer.CreateProviderSummary(UsageProvider.Claude, full, ServiceHealthState.Operational, Now).Value);
+    }
+
+    [Fact]
     public void Expired_Claude_usage_is_summarized_as_unavailable()
     {
         var summary = UsageOverlayStateReducer.CreateProviderSummary(
@@ -134,7 +143,7 @@ public sealed class ClaudeUsagePresentationTests
         new(9, 87, Now + 3_600_000, 18_000, Now + 200_000_000, 604_800)
         {
             ObservedUnixMs = Now - observedAgoMs,
-            Source = "app cache",
+            Source = "cache",
         };
 
     private static UsageOverlayState Reduce(

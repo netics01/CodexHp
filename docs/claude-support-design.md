@@ -108,12 +108,12 @@ CodexHp shows **one provider at a time** and follows the foreground window.
 | Reset time unknown (no usable cache entry) | Reset gauge shown as unknown; tooltip says the reset time is unavailable |
 | Reset time passed without a newer observation | Show "waiting for update"; do not assume 100% remaining |
 
-The tooltip always shows the observation time and source (app cache or history file).
+The tooltip always shows the observation time and source (`cache` or `history`, kept short so the row fits the 200 DIP tooltip).
 
 ### Tooltip
 
 - Existing provider-specific content (reset countdowns, service issues).
-- A final summary line for the other provider, for example `Codex · 5h 78% · weekly 42%`, including its service issue state.
+- A final summary line for the other provider, for example `Codex  5H 78% · Week 42%`, including its service issue state. A full Codex 5H limit is left out (`Codex  Week 87%`), matching the Codex tooltip; Claude always shows its 5H value.
 
 ### Visibility
 

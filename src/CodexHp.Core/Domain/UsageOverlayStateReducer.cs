@@ -169,7 +169,13 @@ public static class UsageOverlayStateReducer
         }
         else
         {
-            parts.Add($"5H {Math.Clamp(snapshot.SessionRemainingPercent, 0, 100)}%");
+            var sessionPercent = Math.Clamp(snapshot.SessionRemainingPercent, 0, 100);
+            // Like the Codex tooltip, a full 5H limit is not worth a mention.
+            if (provider != UsageProvider.Codex || sessionPercent < 100)
+            {
+                parts.Add($"5H {sessionPercent}%");
+            }
+
             parts.Add($"Week {Math.Clamp(snapshot.WeeklyRemainingPercent, 0, 100)}%");
         }
 

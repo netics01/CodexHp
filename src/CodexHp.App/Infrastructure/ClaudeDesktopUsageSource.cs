@@ -19,8 +19,8 @@ public interface IClaudeUsageSource
 public sealed class ClaudeDesktopUsageSource : IClaudeUsageSource
 {
     public const string PackageFamilyName = "Claude_pzs8sxrjxfjjc";
-    public const string HistorySource = "app history";
-    public const string CacheSource = "app cache";
+    public const string HistorySource = "history";
+    public const string CacheSource = "cache";
     private const string HistoryFileName = "plan-usage-history.json";
     private const string UsageUrlPrefix = "https://claude.ai/api/organizations/";
     private const string UsageUrlSuffix = "/usage";

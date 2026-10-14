@@ -4,6 +4,8 @@
 
 **Codex usage limits and token activity on the Windows 11 taskbar.**
 
+Now also supports Claude. With the Claude desktop app installed, CodexHp shows Claude limits too, with no extra setup.
+
 CodexHp is a small Windows overlay for Codex. It shows remaining usage limits, reset countdowns, and a graph of local token activity without opening a separate window. You can also view your available reset credits (banked resets) and when they expire. Keep it on the taskbar or place it elsewhere on your desktop.
 
 ![CodexHp on the Windows taskbar: normal operation with a weekly reset countdown above the overlay, and a service issue with an orange indicator and details grouped under APIs and Codex.](docs/assets/readme/codexhp-taskbar.png)
@@ -24,19 +26,21 @@ Hover for the weekly reset countdown and, when the 5-hour limit is below 100% re
 
 The upper gauge can instead show **banked resets**: the number of available reset credits and the time until the next known expiry. Select **Settings → General → Upper bar → Banked resets**. The weekly gauge and activity graph remain visible.
 
-![Simulated banked-reset view: a red ticket marked 3 and 2d above the weekly gauge; its tooltip lists three available credits and the two nearest expiry dates.](docs/assets/readme/codexhp-reset-credits.png)
+<img src="docs/assets/readme/codexhp-reset-credits.png" width="220" alt="Simulated banked-reset view: a red ticket marked 3 and 2d above the weekly gauge; its tooltip lists three available credits and the two nearest expiry dates.">
 
 *Simulated reset credits. Hover to see the two nearest expiry times in your local time zone. CodexHp displays this information; it does not redeem credits. Availability depends on your account.*
 
-## Claude usage, too
+## Codex and Claude
 
-If the Claude desktop app is installed, CodexHp can also show Claude usage limits. No extra setup is required. The overlay shows one provider at a time and follows the active window: switch to the Claude app and, after a moment, the overlay shows Claude; switch to the ChatGPT app and it shows Codex again. While another app is active, the overlay keeps the last provider. A small, faint **Claude** or **Codex** label in the graph shows which provider you are looking at; it brightens slightly after a switch and gently fades back.
+![Two taskbar states. With the Claude app active, the overlay shows Claude limits and a faint Claude label in the graph; its tooltip lists reset times and ends with a Codex gauge. With the ChatGPT app active, the overlay shows Codex; its tooltip ends with Claude gauges.](docs/assets/readme/codexhp-claude.png)
 
-- For Claude, the upper gauge always shows the 5-hour limit, and the graph shows token activity from Claude Code sessions on this PC.
-- Claude values are the latest that the Claude desktop app received. Values older than 30 minutes are dimmed, and values older than 2 hours are hidden until the Claude app refreshes them.
-- The tooltip ends with a summary of the other provider, drawn as small gauges in the overlay colors.
-- The orange indicator shows issues reported on `status.claude.com` while Claude is shown.
-- To always show one provider, select **Settings → General → Provider → Codex** or **Claude**.
+*Rendered by CodexHp with sample values.*
+
+The overlay shows the provider of the active app. The faint label in the graph names it, and the last tooltip row shows the other one.
+
+- Claude always shows the 5-hour limit in the upper gauge. The graph shows Claude Code sessions on this PC.
+- Claude values come from the Claude desktop app. They dim after 30 minutes and are hidden after 2 hours without an update.
+- To show only one provider, use **Settings → General → Provider**.
 
 ## Put it anywhere. Make it yours.
 

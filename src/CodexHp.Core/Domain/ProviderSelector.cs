@@ -6,7 +6,7 @@ namespace CodexHp.Core.Domain;
 // ignores brief Alt+Tab passes, and keeps the last provider while another app is active.
 public sealed class ProviderSelector
 {
-    public static readonly TimeSpan DefaultDwell = TimeSpan.FromMilliseconds(1500);
+    public static readonly TimeSpan DefaultDwell = TimeSpan.FromMilliseconds(300);
     public static readonly TimeSpan DefaultEmphasis = TimeSpan.FromSeconds(2);
 
     private readonly long dwellMs;
@@ -21,6 +21,9 @@ public sealed class ProviderSelector
         this.dwellMs = (long)(dwell ?? DefaultDwell).TotalMilliseconds;
         this.emphasisMs = (long)(emphasis ?? DefaultEmphasis).TotalMilliseconds;
     }
+
+    // When a different foreground app is waiting out the dwell time, the time it becomes the shown provider.
+    public long? PendingSwitchUnixMs => this.candidate is null ? null : this.candidateSinceUnixMs + this.dwellMs;
 
     public ProviderSelection Update(
         ProviderMode mode,

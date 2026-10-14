@@ -32,11 +32,14 @@ public sealed class ProviderSelectorTests
         var selector = new ProviderSelector();
         selector.Update(ProviderMode.Automatic, UsageProvider.Codex, true, true, Start);
 
+        Assert.Null(selector.PendingSwitchUnixMs);
         Assert.Equal(UsageProvider.Codex, selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 100).Provider);
-        Assert.Equal(UsageProvider.Codex, selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 1_500).Provider);
-        var switched = selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 1_600);
+        Assert.Equal(Start + 400, selector.PendingSwitchUnixMs);
+        Assert.Equal(UsageProvider.Codex, selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 350).Provider);
+        var switched = selector.Update(ProviderMode.Automatic, UsageProvider.Claude, true, true, Start + 400);
 
         Assert.Equal(new ProviderSelection(UsageProvider.Claude, true), switched);
+        Assert.Null(selector.PendingSwitchUnixMs);
     }
 
     [Fact]

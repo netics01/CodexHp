@@ -34,7 +34,7 @@ public sealed class ClaudeCoordinatorTests
 
         harness.Visibility = harness.Visibility with { ForegroundProvider = UsageProvider.Codex };
         var during = await harness.PollVisibilityAsync();
-        harness.Clock.Now += 1_600;
+        harness.Clock.Now += 400;
         var switched = await harness.PollVisibilityAsync();
         harness.Clock.Now += 2_100;
         var settled = await harness.PollVisibilityAsync();
@@ -83,6 +83,27 @@ public sealed class ClaudeCoordinatorTests
         Assert.Equal("Codex", state.ProviderLabel);
     }
 
+    [Fact]
+    public async Task A_foreground_change_rechecks_the_active_app_without_waiting_for_the_poll_interval()
+    {
+        var harness = new Harness();
+        harness.Visibility = new VisibilityState(true, false, true, UsageProvider.Claude);
+        using var cancellation = new CancellationTokenSource();
+        var reads = 0;
+        var secondRead = new TaskCompletionSource();
+        harness.OnVisibilityRead = () =>
+        {
+            if (Interlocked.Increment(ref reads) == 2) secondRead.TrySetResult();
+        };
+        var run = harness.Coordinator.RunAsync(cancellation.Token);
+
+        harness.Coordinator.RequestVisibilityRefresh();
+
+        await secondRead.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => run);
+    }
+
     private sealed class Harness
     {
         private UsageOverlayState? latest;
@@ -94,7 +115,11 @@ public sealed class ClaudeCoordinatorTests
                 new UsageClient(),
                 new TokenSource([1, 2]),
                 _ => Task.FromResult(OpenAiServiceStatusSnapshot.Unknown(Start) with { Health = ServiceHealthState.Operational }),
-                () => this.Visibility,
+                () =>
+                {
+                    this.OnVisibilityRead?.Invoke();
+                    return this.Visibility;
+                },
                 () => settings ?? AppSettings.Default,
                 this.Clock,
                 new NullLogger(),
@@ -109,6 +134,8 @@ public sealed class ClaudeCoordinatorTests
         public ApplicationCoordinator Coordinator { get; }
 
         public ManualClock Clock { get; } = new() { Now = Start };
+
+        public Action? OnVisibilityRead { get; set; }
 
         public VisibilityState Visibility { get; set; } = new(true, false, true);
 

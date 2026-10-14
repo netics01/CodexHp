@@ -28,6 +28,7 @@ public partial class App : System.Windows.Application
     private SettingsWindowController? settingsWindowController;
     private OverlayPositionController? positionController;
     private DisplayEnvironmentWatcher? displayEnvironmentWatcher;
+    private ForegroundWindowWatcher? foregroundWindowWatcher;
     private OverlayPlacementRecovery? placementRecovery;
     private AppSettings activeSettings = AppSettings.Default;
     private bool systemUsesLightColors;
@@ -184,6 +185,7 @@ public partial class App : System.Windows.Application
                 new ClaudeTokenUsageScanner(),
                 claudeStatusPoller.ReadAsync));
         coordinator.UsageOverlayStateChanged += this.OnUsageOverlayStateChanged;
+        this.foregroundWindowWatcher = new ForegroundWindowWatcher(coordinator.RequestVisibilityRefresh);
         this.coordinatorTask = this.RunCoordinatorAsync(coordinator, this.lifetimeCancellation.Token);
         this.updateHttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10), MaxResponseContentBufferSize = 1024 * 1024 };
         var updateClient = new GitHubUpdateClient(this.updateHttpClient, typeof(App).Assembly.GetName().Version!);
@@ -443,6 +445,8 @@ public partial class App : System.Windows.Application
         this.trayIcon = null;
         this.displayEnvironmentWatcher?.Dispose();
         this.displayEnvironmentWatcher = null;
+        this.foregroundWindowWatcher?.Dispose();
+        this.foregroundWindowWatcher = null;
         this.usageOverlayWindow?.CloseForShutdown();
         this.usageOverlayWindow = null;
         this.httpClient?.Dispose();

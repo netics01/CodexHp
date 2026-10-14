@@ -70,7 +70,7 @@ CodexHp shows **one provider at a time** and follows the foreground window.
 | Claude desktop app is the foreground window | Show Claude |
 | Any other foreground window (browser, Explorer, terminal, VS Code) | Keep the last shown provider |
 | Codex or Claude CLI running in a terminal, or used through an editor extension | Not detected in the first version; keep the last shown provider |
-| Quick Alt+Tab passes | Switch only after the target window stays in the foreground for about 1–2 seconds |
+| Quick Alt+Tab passes | Switch only after the target window stays in the foreground for 0.3 seconds. Foreground changes are observed through a Windows event, so the switch is not delayed by the 1-second poll. (Originally 1–2 seconds; shortened on 2026-10-14 because switching felt slow.) |
 | User preference | Setting: `Automatic` / `Always Codex` / `Always Claude` |
 | Only one provider is available | Show that provider; no switching |
 

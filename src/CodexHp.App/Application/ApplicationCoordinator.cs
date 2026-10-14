@@ -29,6 +29,7 @@ public sealed class ApplicationCoordinator
     private ProviderState providerState = ProviderState.Initial;
     private ProviderState claudeState = ProviderState.Initial;
     private bool hasVisibility;
+    private readonly SemaphoreSlim visibilityWake = new(0, 1);
     private int hasRun;
 
     public ApplicationCoordinator(
@@ -58,6 +59,19 @@ public sealed class ApplicationCoordinator
     }
 
     public event Action<UsageOverlayState>? UsageOverlayStateChanged;
+
+    // Rechecks visibility and the foreground app now instead of at the next poll. Safe from any thread.
+    public void RequestVisibilityRefresh()
+    {
+        try
+        {
+            this.visibilityWake.Release();
+        }
+        catch (SemaphoreFullException)
+        {
+            // A refresh is already pending.
+        }
+    }
 
     public ProviderState CurrentProviderState
     {
@@ -427,7 +441,35 @@ public sealed class ApplicationCoordinator
         while (true)
         {
             await this.PollVisibilityOnceAsync(cancellationToken);
-            await this.clock.DelayAsync(this.schedule.Visibility, cancellationToken);
+            await this.WaitForNextVisibilityPollAsync(cancellationToken);
+        }
+    }
+
+    // Waits for the regular interval, a foreground-change wake-up, or the end of a pending provider switch.
+    private async Task WaitForNextVisibilityPollAsync(CancellationToken cancellationToken)
+    {
+        var delay = this.schedule.Visibility;
+        lock (this.sync)
+        {
+            if (this.providerSelector.PendingSwitchUnixMs is { } switchAt)
+            {
+                var untilSwitch = TimeSpan.FromMilliseconds(Math.Max(10, switchAt - this.clock.UnixTimeMilliseconds));
+                delay = untilSwitch < delay ? untilSwitch : delay;
+            }
+        }
+
+        using var stopWaiting = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var delayTask = this.clock.DelayAsync(delay, stopWaiting.Token);
+        var wakeTask = this.visibilityWake.WaitAsync(stopWaiting.Token);
+        await Task.WhenAny(delayTask, wakeTask);
+        stopWaiting.Cancel();
+        try
+        {
+            await Task.WhenAll(delayTask, wakeTask);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // The other wait was stopped because one finished first.
         }
     }
 

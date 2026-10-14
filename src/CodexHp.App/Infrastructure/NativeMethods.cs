@@ -210,6 +210,33 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern nint GetForegroundWindow();
 
+    internal const uint EventSystemForeground = 0x0003;
+    internal const uint WinEventOutOfContext = 0x0000;
+    internal const uint WinEventSkipOwnProcess = 0x0002;
+
+    internal delegate void WinEventProc(
+        nint hookHandle,
+        uint eventType,
+        nint window,
+        int objectId,
+        int childId,
+        uint eventThread,
+        uint eventTimeMs);
+
+    [DllImport("user32.dll")]
+    internal static extern nint SetWinEventHook(
+        uint eventMin,
+        uint eventMax,
+        nint moduleHandle,
+        WinEventProc callback,
+        uint processId,
+        uint threadId,
+        uint flags);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UnhookWinEvent(nint hookHandle);
+
     [DllImport("user32.dll")]
     internal static extern nint WindowFromPoint(NativePoint point);
 

@@ -2,9 +2,9 @@
 
 [한국어](README.ko.md)
 
-**Codex usage limits and token activity on the Windows 11 taskbar.**
+**Codex/Claude usage limits and token activity on the Windows 11 taskbar.**
 
-Now also supports Claude. With the Claude desktop app installed, CodexHp shows Claude limits too, with no extra setup.
+Now supports Claude too. If the Claude desktop app is installed, it just works. No setup required.
 
 CodexHp is a small Windows overlay for Codex. It shows remaining usage limits, reset countdowns, and a graph of local token activity without opening a separate window. You can also view your available reset credits (banked resets) and when they expire. Keep it on the taskbar or place it elsewhere on your desktop.
 

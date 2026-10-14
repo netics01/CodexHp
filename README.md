@@ -19,7 +19,7 @@ Now supports Claude too. If the Claude desktop app is installed, it just works. 
 
 - **Bars**: remaining 5-hour (blue) and weekly (red) limits
 - **Thin gauges**: time until reset, in hours and days
-- **Graph**: token activity from sessions on this PC, not account totals
+- **Graph**: token activity from sessions on this PC[^graph]
 - **Orange stripe**: service issue; hover for affected services
 - **Tooltip**: reset countdowns and details
 
@@ -27,10 +27,9 @@ Now supports Claude too. If the Claude desktop app is installed, it just works. 
 
 <img src="docs/assets/readme/codexhp-reset-credits.png" width="220" alt="Banked-reset view: a red ticket marked 3 and 2d above the weekly gauge; its tooltip lists three available credits and the two nearest expiry dates.">
 
-The upper bar can show your banked resets instead of the 5-hour limit. Above: 3 credits, the next one expires in 2 days.
+The upper bar can show your banked resets instead of the 5-hour limit. Above: 3 credits, the next one expires in 2 days.[^banked]
 
 - Turn on: **Settings → General → Upper bar → Banked resets**
-- Display only. CodexHp does not redeem credits. Availability depends on your account.
 
 ## Codex and Claude
 
@@ -40,8 +39,7 @@ The upper bar can show your banked resets instead of the 5-hour limit. Above: 3 
 - **Right:** while you use the ChatGPT app, it shows Codex.
 - The faint label in the graph tells you which one you are looking at.
 - The last tooltip row shows the other one.
-- Claude always shows the 5-hour limit. The graph shows Claude Code sessions.
-- Claude values dim after 30 minutes and hide after 2 hours without an update.
+- Claude always shows the 5-hour limit. The graph shows Claude Code sessions.[^claude-values]
 - To show only one: **Settings → General → Provider**
 
 ## Placement and appearance
@@ -79,9 +77,7 @@ A portable `CodexHp-Portable-<version>-x64.exe` is also available. Move it out o
 
 - Windows 11 build 22000 or later (x64)
 - ChatGPT desktop app, signed in with Codex access
-- Optional: Claude desktop app, signed in
-
-Claude limits come only from the Claude desktop app. Claude in a browser, the CLI, or an editor alone is not enough.
+- Optional: Claude desktop app, signed in[^claude-app]
 
 ## Data and privacy
 
@@ -122,3 +118,8 @@ Ideas or problems? [Open an issue](https://github.com/netics01/codexhp/issues).
 ## License
 
 [Apache License, Version 2.0](LICENSE)
+
+[^graph]: Not an account-wide usage or billing total.
+[^banked]: Display only. CodexHp does not redeem credits. Availability depends on your account.
+[^claude-values]: Claude values come from the Claude desktop app. They dim after 30 minutes and are hidden after 2 hours without an update.
+[^claude-app]: Claude limits come only from the Claude desktop app. Using Claude only in a browser, the CLI, or an editor is not enough.

@@ -8,7 +8,8 @@
 
 ![Windows 작업 표시줄의 CodexHp: 정상 상태에서는 오버레이 위로 주간 초기화 시간 툴팁이 표시되고, 장애 상태에서는 주황색 표시등과 APIs·Codex별 장애 상세가 표시됩니다.](docs/assets/readme/codexhp-taskbar.ko.png)
 
-*예시 값으로 찍은 앱 캡처입니다. 오버레이에 마우스를 올리면 툴팁이 나옵니다.*
+- **왼쪽:** 평소 상태. 마우스를 올리면 주간 한도 초기화까지 남은 시간이 보입니다.
+- **오른쪽:** OpenAI 서비스 장애 상태. 주황색 줄이 나타나고, 툴팁에 영향받는 서비스가 표시됩니다.
 
 **[최신 릴리스 받기](https://github.com/netics01/CodexHp/releases/latest)** · 미서명, [설치](#설치) 참고
 
@@ -24,20 +25,21 @@
 
 ## 초기화권(Banked resets)
 
-<img src="docs/assets/readme/codexhp-reset-credits.png" width="220" alt="초기화권 시뮬레이션: 주간 게이지 위의 붉은 티켓에 3장·2d가 표시되고, 툴팁에는 보유 수량 3장과 가까운 두 만료 시각이 표시됩니다.">
+<img src="docs/assets/readme/codexhp-reset-credits.png" width="220" alt="초기화권 표시: 주간 게이지 위의 붉은 티켓에 3장·2d가 표시되고, 툴팁에는 보유 수량 3장과 가까운 두 만료 시각이 표시됩니다.">
 
-- 상단 막대에 보유 초기화권 수와 가장 가까운 만료를 표시할 수 있습니다.
-- **Settings → General → Upper bar → Banked resets**
+상단 막대에 5시간 한도 대신 보유한 초기화권을 표시할 수 있습니다. 위 그림: 3장 보유, 가장 가까운 만료까지 2일.
+
+- 켜기: **Settings → General → Upper bar → Banked resets**
 - 표시만 합니다. 초기화권을 사용하지 않습니다. 제공 여부는 계정에 따라 다릅니다.
 
 ## Codex와 Claude
 
 ![작업 표시줄의 두 상태. Claude 앱이 활성이면 오버레이가 Claude 한도와 그래프 안의 연한 Claude 글자를 표시하고, 툴팁은 초기화 시간과 마지막 줄의 Codex 게이지를 보여 줍니다. ChatGPT 앱이 활성이면 오버레이가 Codex를 표시하고, 툴팁 마지막 줄에 Claude 게이지가 나옵니다.](docs/assets/readme/codexhp-claude.ko.png)
 
-*예시 값으로 CodexHp가 그린 화면입니다.*
-
-- 활성 앱의 제공자를 표시합니다. 그래프 안의 연한 글자가 이름을 알려 줍니다.
-- 툴팁 마지막 줄에 다른 제공자가 표시됩니다.
+- **왼쪽:** Claude 앱을 쓰는 동안에는 Claude를 표시합니다.
+- **오른쪽:** ChatGPT 앱을 쓰는 동안에는 Codex를 표시합니다.
+- 그래프 안의 연한 글자로 지금 무엇을 보고 있는지 알 수 있습니다.
+- 툴팁 마지막 줄에 다른 쪽이 표시됩니다.
 - Claude는 항상 5시간 한도를 표시합니다. 그래프는 Claude Code 세션입니다.
 - Claude 값은 갱신 없이 30분이 지나면 흐려지고, 2시간이 지나면 숨겨집니다.
 - 하나만 표시하려면: **Settings → General → Provider**

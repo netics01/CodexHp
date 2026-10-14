@@ -8,7 +8,8 @@ Now supports Claude too. If the Claude desktop app is installed, it just works. 
 
 ![CodexHp on the Windows taskbar: normal operation with a weekly reset countdown above the overlay, and a service issue with an orange indicator and details grouped under APIs and Codex.](docs/assets/readme/codexhp-taskbar.png)
 
-*App captures with simulated values. Hover the overlay for the tooltip.*
+- **Left:** normal. Hover to see when the weekly limit resets.
+- **Right:** an OpenAI service issue. An orange stripe appears, and the tooltip lists the affected services.
 
 **[Get the latest release](https://github.com/netics01/CodexHp/releases/latest)** · unsigned, see [Install](#install)
 
@@ -24,20 +25,21 @@ Now supports Claude too. If the Claude desktop app is installed, it just works. 
 
 ## Banked resets
 
-<img src="docs/assets/readme/codexhp-reset-credits.png" width="220" alt="Simulated banked-reset view: a red ticket marked 3 and 2d above the weekly gauge; its tooltip lists three available credits and the two nearest expiry dates.">
+<img src="docs/assets/readme/codexhp-reset-credits.png" width="220" alt="Banked-reset view: a red ticket marked 3 and 2d above the weekly gauge; its tooltip lists three available credits and the two nearest expiry dates.">
 
-- The upper bar can show available reset credits and the next expiry.
-- **Settings → General → Upper bar → Banked resets**
+The upper bar can show your banked resets instead of the 5-hour limit. Above: 3 credits, the next one expires in 2 days.
+
+- Turn on: **Settings → General → Upper bar → Banked resets**
 - Display only. CodexHp does not redeem credits. Availability depends on your account.
 
 ## Codex and Claude
 
 ![Two taskbar states. With the Claude app active, the overlay shows Claude limits and a faint Claude label in the graph; its tooltip lists reset times and ends with a Codex gauge. With the ChatGPT app active, the overlay shows Codex; its tooltip ends with Claude gauges.](docs/assets/readme/codexhp-claude.png)
 
-*Rendered by CodexHp with sample values.*
-
-- Shows the provider of the active app. A faint label in the graph names it.
-- The last tooltip row shows the other provider.
+- **Left:** while you use the Claude app, the overlay shows Claude.
+- **Right:** while you use the ChatGPT app, it shows Codex.
+- The faint label in the graph tells you which one you are looking at.
+- The last tooltip row shows the other one.
 - Claude always shows the 5-hour limit. The graph shows Claude Code sessions.
 - Claude values dim after 30 minutes and hide after 2 hours without an update.
 - To show only one: **Settings → General → Provider**

@@ -3,7 +3,7 @@
 This document records the agreed design for adding Claude as a second usage provider next to Codex. It is a decision record for implementation, not end-user documentation.
 
 - **Decided:** 2026-10-14
-- **Status:** Policy agreed; not implemented
+- **Status:** Implemented on `main` (unreleased)
 - **Open:** see [Open items](#open-items)
 
 ## Goals
@@ -133,8 +133,8 @@ When samples or cache entries exist for more than one Claude organization, use t
 
 - Product name.
 - Release scope and order (for example, all Claude features in one release, or graph and service status first).
-- Extending the development simulator with Claude states: stale data, unknown reset time, and provider switching.
-- zstd decompression in .NET 10 (likely an external package; confirm).
+- Resolved: the development simulator has Claude presets (`claude`, `claude-stale`, `claude-expired`, `claude-reset-unknown`, `claude-switch`).
+- Resolved: .NET 10 has no zstd decoder; cache bodies are decoded with the `ZstdSharp.Port` package (MIT).
 - Meaning of other `usage` response fields (`limits`, `spend`, `extra_usage`, `cedar_ember`); not used for now.
 - Optional status line source for CLI-only users.
 

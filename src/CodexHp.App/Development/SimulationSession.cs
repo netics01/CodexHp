@@ -7,7 +7,8 @@ namespace CodexHp.App.Development;
 
 internal enum SimulationTooltipMode { Hover, Pinned, Hidden }
 
-internal sealed record SimulationPreset(string Id, string Name, string Description, bool BankedResets = false)
+internal sealed record SimulationPreset(
+    string Id, string Name, string Description, bool BankedResets = false, UsageProvider Provider = UsageProvider.Codex)
 {
     public override string ToString() => this.Name;
 }
@@ -85,7 +86,14 @@ internal sealed class SimulationSession
         new("update-available", "Update available", "A sample newer version appears in the tray and sample Settings. Links preview their target without opening a browser."),
         new("update-current", "No newer version", "Successful update check: no newer version; update links are hidden."),
         new("update-failed", "Update check failed", "Silent check failure. Any previously detected sample update stays available; otherwise links remain hidden."),
+        new("claude", "Claude", "Claude app usage read 3 minutes ago; tooltip summarizes Codex.", Provider: UsageProvider.Claude),
+        new("claude-stale", "Claude — older reading", "Last Claude app reading is 45 minutes old; values are dimmed.", Provider: UsageProvider.Claude),
+        new("claude-expired", "Claude — no recent reading", "Last Claude app reading is 3 hours old; values are hidden.", Provider: UsageProvider.Claude),
+        new("claude-reset-unknown", "Claude — reset time unknown", "Usage is known, reset times are not; reset gauges stay empty.", Provider: UsageProvider.Claude),
+        new("claude-switch", "Switched to Claude", "Provider label is brighter for 2 seconds after a switch. Resume the clock to watch it settle.", Provider: UsageProvider.Claude),
     ];
+
+    private const long ClaudeSwitchEmphasisMs = 2_000;
 
     private long scenarioStart;
     internal SimulationClock Clock { get; }
@@ -126,6 +134,8 @@ internal sealed class SimulationSession
         };
         var snapshot = new UsageSnapshot(id == "low-usage" ? 35 : 100, id == "low-usage" ? 8 : 70,
             this.scenarioStart + 7_200_000, 18_000, this.scenarioStart + 270_600_000, 604_800) { ResetCredits = credits };
+        if (this.Preset.Provider == UsageProvider.Claude)
+            snapshot = this.CreateClaudeSnapshot(id);
         var usage = id switch
         {
             "loading" => UsageProviderState.Waiting,
@@ -146,6 +156,36 @@ internal sealed class SimulationSession
         return UsageOverlayStateReducer.Reduce(usage, TokenActivityProviderState.Current(buckets),
             issue ? ServiceHealthState.Issue : id == "status-unknown" ? ServiceHealthState.Unknown : ServiceHealthState.Operational,
             issue ? "Partial System Degradation" : "", new(true, false), this.Settings, this.Clock.Now,
-            affectedServiceComponentGroups: groups);
+            affectedServiceComponentGroups: groups, presentation: this.CreatePresentation());
+    }
+
+    private UsageSnapshot CreateClaudeSnapshot(string id)
+    {
+        var observedAgeMs = id switch
+        {
+            "claude-stale" => 2_700_000,
+            "claude-expired" => 10_800_000,
+            _ => 180_000,
+        };
+        var unknownReset = id == "claude-reset-unknown";
+        return new UsageSnapshot(62, 81,
+            unknownReset ? 0 : this.scenarioStart + 5_400_000, 18_000,
+            unknownReset ? 0 : this.scenarioStart + 190_800_000, 604_800)
+        {
+            ObservedUnixMs = this.scenarioStart - observedAgeMs,
+            Source = "app cache",
+        };
+    }
+
+    // Codex presets keep the label the product shows when Claude is unavailable; Claude presets summarize a sample Codex.
+    private ProviderPresentation CreatePresentation()
+    {
+        if (this.Preset.Provider == UsageProvider.Codex)
+            return new(UsageProvider.Codex);
+        var codex = UsageProviderState.Current(new UsageSnapshot(100, 70,
+            this.scenarioStart + 7_200_000, 18_000, this.scenarioStart + 270_600_000, 604_800));
+        var emphasized = this.Preset.Id == "claude-switch" && this.Clock.Now - this.scenarioStart < ClaudeSwitchEmphasisMs;
+        return new(UsageProvider.Claude, emphasized,
+            UsageOverlayStateReducer.CreateProviderSummary(UsageProvider.Codex, codex, ServiceHealthState.Operational, this.Clock.Now));
     }
 }

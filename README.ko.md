@@ -28,6 +28,16 @@ CodexHp는 Codex를 위한 작은 Windows 오버레이입니다. 별도의 창�
 
 *초기화권 예시입니다. 마우스를 올리면 가장 가까운 두 만료 시각을 사용자 시간대로 확인할 수 있습니다. CodexHp는 정보를 표시할 뿐 초기화권을 사용하지는 않습니다. 제공 여부는 계정에 따라 다릅니다.*
 
+## Claude 사용량도 함께
+
+Claude 데스크톱 앱이 설치되어 있으면 CodexHp는 Claude 사용 한도도 표시할 수 있습니다. 추가 설정은 필요 없습니다. 오버레이는 한 번에 하나의 제공자만 표시하며 활성 창을 따라갑니다. Claude 앱으로 전환하면 잠시 후 Claude를, ChatGPT 앱으로 전환하면 다시 Codex를 표시합니다. 다른 앱이 활성 상태일 때는 마지막 제공자를 유지합니다. 그래프 안의 작고 연한 **Claude** 또는 **Codex** 글자가 지금 보고 있는 제공자를 알려 주며, 전환 직후 잠시 조금 밝아집니다.
+
+- Claude에서는 상단 게이지에 항상 5시간 한도를 표시하고, 그래프에는 이 PC의 Claude Code 세션에서 발생한 토큰 활동을 표시합니다.
+- Claude 값은 Claude 데스크톱 앱이 마지막으로 받은 값입니다. 30분이 지난 값은 흐리게 표시하고, 2시간이 지난 값은 Claude 앱이 갱신할 때까지 숨깁니다.
+- 툴팁 마지막 줄에는 다른 제공자의 한 줄 요약이 표시됩니다.
+- Claude를 표시하는 동안 주황색 표시등은 `status.claude.com`에 보고된 장애를 나타냅니다.
+- 항상 하나의 제공자만 표시하려면 **Settings → General → Provider**에서 **Codex** 또는 **Claude**를 선택합니다.
+
 ## 어디에나 놓고, 내 환경에 맞추세요
 
 ![작업 표시줄이나 데스크톱의 원하는 위치에 CodexHp를 배치하고, 색상과 오버레이·개별 요소의 크기를 조절하는 개념도](docs/assets/readme/codexhp-placement.ko.png)
@@ -45,7 +55,7 @@ CodexHp는 Codex를 위한 작은 Windows 오버레이입니다. 별도의 창�
 CodexHp는 모니터 범위, 작업 표시줄 배치, DPI 변화에 맞춰 저장된 위치를 보정합니다. 언제 표시할지도 선택할 수 있습니다.
 
 - 설치 시 기본적으로 Windows와 함께 시작하며 업그레이드 후에도 사용자의 선택을 유지합니다.
-- 항상 표시하거나 ChatGPT가 실행되는 동안에만 표시할 수 있습니다.
+- 항상 표시하거나 ChatGPT 또는 Claude 데스크톱 앱이 실행되는 동안에만 표시할 수 있습니다.
 - 같은 모니터에서 전체 화면 앱이 실행되면 자동으로 숨깁니다.
 - 오버레이를 두 번 클릭하거나 알림 영역 아이콘을 클릭하면 설정을 엽니다.
 
@@ -72,8 +82,9 @@ Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
 
 - Windows 11 빌드 22000 이상(x64)
 - 설치 및 로그인되어 있고 Codex를 사용할 수 있는 ChatGPT 데스크톱 앱
+- 선택 사항(Claude 사용량용): 설치 및 로그인된 Claude 데스크톱 앱
 
-CodexHp는 ChatGPT 데스크톱 앱의 Codex 환경을 대상으로 합니다. 다른 운영 체제나 일반적인 ChatGPT 대화는 지원하지 않습니다.
+CodexHp는 ChatGPT 데스크톱 앱의 Codex 환경을 대상으로 합니다. 다른 운영 체제나 일반적인 ChatGPT 대화는 지원하지 않습니다. Claude 사용량은 Claude 데스크톱 앱에서만 읽습니다. 브라우저, Claude Code CLI, 편집기 확장에서만 Claude를 사용하면 Claude 한도를 표시할 수 없습니다.
 
 ## 왜 CodexHp라는 이름인가요?
 
@@ -85,7 +96,9 @@ CodexHp는 기존 Codex 인증 캐시 `%CODEX_HOME%\auth.json` 또는 `%USERPROF
 
 서비스 상태는 `status.openai.com`의 공개 데이터로, 새 버전은 GitHub의 릴리스 정보로 확인합니다. 이 요청에는 Codex 인증 토큰을 포함하지 않습니다.
 
-CodexHp는 로그인 과정을 수행하지 않으며 인증 토큰을 설정이나 로그에 저장하거나 CodexHp 개발자가 운영하는 별도 서버로 전송하지 않습니다. CodexHp는 공개 API가 아닌 사용량 엔드포인트와 로컬 활동 형식에 의존하므로 예고 없이 동작이 바뀔 수 있습니다. 인증 정보 처리 방식이 우려된다면 사용 전에 소스 코드와 릴리스 체크섬을 확인하세요.
+Claude의 경우 CodexHp는 Claude 데스크톱 앱이 기록한 두 종류의 로컬 데이터를 읽습니다. `%APPDATA%\Claude`의 사용량 기록 파일과, 앱의 HTTP 캐시 중 캐시된 Claude 사용량 응답만 읽습니다. 토큰 수는 `%USERPROFILE%\.claude\projects` 아래의 Claude Code 세션 로그에서 읽습니다. Claude 로그인 토큰이나 쿠키는 읽지 않으며 사용자를 대신해 Claude에 요청을 보내지 않습니다. `status.claude.com`에는 공개 서비스 상태 데이터만 요청합니다.
+
+CodexHp는 로그인 과정을 수행하지 않으며 인증 토큰을 설정이나 로그에 저장하거나 CodexHp 개발자가 운영하는 별도 서버로 전송하지 않습니다. CodexHp는 공개 API가 아닌 사용량 엔드포인트, Claude 데스크톱 앱의 내부 파일, 로컬 활동 형식에 의존하므로 예고 없이 동작이 바뀔 수 있습니다. 인증 정보 처리 방식이 우려된다면 사용 전에 소스 코드와 릴리스 체크섬을 확인하세요.
 
 ## 소스에서 빌드
 
@@ -110,7 +123,7 @@ pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
 
 ## 프로젝트 상태
 
-CodexHp는 OpenAI와 무관한 비공식 초기 단계 프로젝트입니다. OpenAI와 제휴·보증·지원 관계가 없으며 ChatGPT, Codex, Windows 또는 내부 연동 방식이 변경되면 일부 기능이 일시적으로 동작하지 않을 수 있습니다.
+CodexHp는 OpenAI 및 Anthropic과 무관한 비공식 초기 단계 프로젝트입니다. OpenAI나 Anthropic과 제휴·보증·지원 관계가 없으며 ChatGPT, Codex, Claude, Windows 또는 내부 연동 방식이 변경되면 일부 기능이 일시적으로 동작하지 않을 수 있습니다.
 
 ## 피드백
 

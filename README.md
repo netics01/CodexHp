@@ -28,6 +28,16 @@ The upper gauge can instead show **banked resets**: the number of available rese
 
 *Simulated reset credits. Hover to see the two nearest expiry times in your local time zone. CodexHp displays this information; it does not redeem credits. Availability depends on your account.*
 
+## Claude usage, too
+
+If the Claude desktop app is installed, CodexHp can also show Claude usage limits. No extra setup is required. The overlay shows one provider at a time and follows the active window: switch to the Claude app and, after a moment, the overlay shows Claude; switch to the ChatGPT app and it shows Codex again. While another app is active, the overlay keeps the last provider. A small, faint **Claude** or **Codex** label in the graph shows which provider you are looking at; it briefly brightens after a switch.
+
+- For Claude, the upper gauge always shows the 5-hour limit, and the graph shows token activity from Claude Code sessions on this PC.
+- Claude values are the latest that the Claude desktop app received. Values older than 30 minutes are dimmed, and values older than 2 hours are hidden until the Claude app refreshes them.
+- The tooltip ends with a one-line summary of the other provider.
+- The orange indicator shows issues reported on `status.claude.com` while Claude is shown.
+- To always show one provider, select **Settings → General → Provider → Codex** or **Claude**.
+
 ## Put it anywhere. Make it yours.
 
 ![Conceptual guide to placing CodexHp on the taskbar or anywhere on the desktop, choosing colors, and independently adjusting overlay and element dimensions](docs/assets/readme/codexhp-placement.png)
@@ -45,7 +55,7 @@ Open **Overlay Position** in Settings and drag the outlined overlay to place it.
 CodexHp adjusts saved placement for monitor bounds, taskbar layouts, and DPI changes. You can also choose when it is visible.
 
 - Starts with Windows by default when installed, and preserves your choice during upgrades.
-- Can stay visible all the time or appear only while ChatGPT is running.
+- Can stay visible all the time or appear only while the ChatGPT or Claude desktop app is running.
 - Hides automatically when a full-screen app is active on the same monitor.
 - Opens settings when you double-click the overlay or click its notification-area icon.
 
@@ -72,8 +82,9 @@ Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256
 
 - Windows 11 build 22000 or later (x64)
 - The ChatGPT desktop app installed, signed in, and able to use Codex
+- Optional, for Claude usage: the Claude desktop app installed and signed in
 
-CodexHp is built for the Codex experience in the ChatGPT desktop app. It does not support other operating systems or ordinary ChatGPT conversations.
+CodexHp is built for the Codex experience in the ChatGPT desktop app. It does not support other operating systems or ordinary ChatGPT conversations. Claude usage is read only from the Claude desktop app; using Claude only in a browser, Claude Code CLI, or an editor extension does not provide Claude limits.
 
 ## Why the name CodexHp?
 
@@ -85,7 +96,9 @@ CodexHp reads the existing Codex authentication cache from `%CODEX_HOME%\auth.js
 
 It also requests public service-status data from `status.openai.com` and release information from GitHub. Those requests do not include your Codex authentication token.
 
-CodexHp does not perform sign-in, store the authentication token in its settings or logs, or send it to a separate server operated by the CodexHp developer. It relies on a non-public usage endpoint and local activity formats that may change without notice; CodexHp can stop working if they do. If credential handling is a concern, review the source and release checksums before using the app.
+For Claude, CodexHp reads two kinds of local data written by the Claude desktop app: the usage history file in `%APPDATA%\Claude` and, from the app's HTTP cache, only the cached Claude usage response. It reads token counts from Claude Code session logs under `%USERPROFILE%\.claude\projects`. It does not read Claude sign-in tokens or cookies and sends no requests to Claude on your behalf; only public service-status data is requested from `status.claude.com`.
+
+CodexHp does not perform sign-in, store the authentication token in its settings or logs, or send it to a separate server operated by the CodexHp developer. It relies on a non-public usage endpoint, the Claude desktop app's internal files, and local activity formats that may change without notice; CodexHp can stop working if they do. If credential handling is a concern, review the source and release checksums before using the app.
 
 ## Build from source
 
@@ -110,7 +123,7 @@ pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease
 
 ## Project status
 
-CodexHp is an unofficial early-stage project independent of OpenAI. It is not affiliated with, endorsed by, or supported by OpenAI. Changes to ChatGPT, Codex, Windows, or their internal integration details may temporarily break some features.
+CodexHp is an unofficial early-stage project independent of OpenAI and Anthropic. It is not affiliated with, endorsed by, or supported by OpenAI or Anthropic. Changes to ChatGPT, Codex, Claude, Windows, or their internal integration details may temporarily break some features.
 
 ## Feedback
 

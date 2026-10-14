@@ -92,6 +92,11 @@ public sealed class SimulationTests
     [InlineData("update-available")]
     [InlineData("update-current")]
     [InlineData("update-failed")]
+    [InlineData("claude")]
+    [InlineData("claude-stale")]
+    [InlineData("claude-expired")]
+    [InlineData("claude-reset-unknown")]
+    [InlineData("claude-switch")]
     public void Every_named_preset_produces_visible_content_without_external_inputs(string id)
     {
         Assert.Equal(id, SimulationLaunchOptions.Parse(["--simulate", id]));
@@ -150,5 +155,33 @@ public sealed class SimulationTests
         Assert.True(session.CreateState(1).BankedResets!.IsStale);
         session.Select("normal");
         Assert.False(session.CreateState(1).HpBar.IsStale);
+    }
+
+    [Fact]
+    public void Claude_presets_show_the_provider_label_age_rules_and_a_Codex_summary()
+    {
+        var session = new SimulationSession(1_000_000);
+        Assert.Equal("Codex", session.CreateState(1).ProviderLabel);
+
+        session.Select("claude");
+        var current = session.CreateState(1);
+        Assert.Equal("Claude", current.ProviderLabel);
+        Assert.False(current.IsProviderLabelEmphasized);
+        Assert.Equal(62, current.ManaBar.RemainingPercent);
+        Assert.False(current.ManaBar.IsStale);
+        Assert.Null(current.BankedResets);
+        Assert.Equal("Codex", current.TooltipSections[^1].Rows.Single().Label);
+
+        session.Select("claude-stale");
+        Assert.True(session.CreateState(1).ManaBar.IsStale);
+        session.Select("claude-expired");
+        Assert.Null(session.CreateState(1).ManaBar.RemainingPercent);
+        session.Select("claude-reset-unknown");
+        Assert.Equal(0, session.CreateState(1).ManaBar.RefreshFraction);
+
+        session.Select("claude-switch");
+        Assert.True(session.CreateState(1).IsProviderLabelEmphasized);
+        session.Clock.Advance(TimeSpan.FromSeconds(3));
+        Assert.False(session.CreateState(1).IsProviderLabelEmphasized);
     }
 }

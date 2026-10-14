@@ -57,14 +57,19 @@ The control window, tray tooltip, sample settings title, and About heading ident
 | `update-available` | Sample newer release; show the tray and Settings update links |
 | `update-current` | Successful check with no newer release; hide the update links |
 | `update-failed` | Failed check; retain a previously confirmed sample update, if any |
+| `claude` | Claude shown: reading 3 minutes old, 5H gauge, Codex summary in the tooltip |
+| `claude-stale` | Claude reading 45 minutes old; values dimmed |
+| `claude-expired` | Claude reading 3 hours old; values hidden |
+| `claude-reset-unknown` | Claude usage known, reset times unknown; reset gauges empty |
+| `claude-switch` | Provider label brighter for 2 seconds after a switch; resume the clock to watch it settle |
 
 Simulated update links display the target release URL in a preview dialog instead of opening a browser. No GitHub request is made. Select `update-available` followed by `update-failed` to verify that a transient failure does not hide a known update.
 
 ## Isolation and limits
 
-Simulation starts from product defaults, not personal configuration. All setting edits are discarded on exit. It does not read credentials, token-history files, or saved settings; does not call usage, status, or update APIs; and does not change startup registration or production logs. Operating-system monitor, taskbar, theme, and window APIs remain real.
+Simulation starts from product defaults, not personal configuration. All setting edits are discarded on exit. It does not read credentials, token-history files, Claude desktop app data, or saved settings; does not call usage, status, or update APIs; and does not change startup registration or production logs. Operating-system monitor, taskbar, theme, and window APIs remain real.
 
-The simulator creates provider states and feeds the same `UsageOverlayStateReducer`, overlay renderer, tooltip, and taskbar host used by the product. It does **not** exercise HTTP parsing, authentication, network retry timing, or real Codex token scanning. Those require their own tests.
+The simulator creates provider states and feeds the same `UsageOverlayStateReducer`, overlay renderer, tooltip, and taskbar host used by the product. It does **not** exercise HTTP parsing, authentication, network retry timing, real Codex or Claude token scanning, Claude app cache parsing, or foreground-app switching. Those require their own tests.
 
 The virtual clock starts at the launch minute. Restarting a scenario repeats the same timestamps within that session. Advancing beyond a reset or credit expiry intentionally shows pending/expired data; it does not fabricate a subsequent successful server response or replenish inventory. Select/restart a preset to begin again.
 

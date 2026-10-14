@@ -4,6 +4,8 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-14
+
 ### Added
 
 - Show Claude usage limits from the Claude desktop app without extra setup. Read the app's usage history and its cached usage response only; never read Claude sign-in tokens or cookies. Graph token activity from local Claude Code session logs and show `status.claude.com` incidents while Claude is shown.
@@ -14,6 +16,7 @@ All notable user-facing changes to CodexHp are documented here.
 
 - For Claude, always show the 5-hour limit in the upper gauge, dim values older than 30 minutes, hide values older than 2 hours, and show reset times as unknown or waiting for an update when the app has no newer data. The Upper bar setting now applies to Codex only.
 - The visibility option now shows the overlay while either the ChatGPT or Claude desktop app is running.
+- Shorten the General settings so they fit without scrolling, and keep tooltip labels on one line when a value is long.
 
 ### Development
 

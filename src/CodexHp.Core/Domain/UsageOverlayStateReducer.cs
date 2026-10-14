@@ -4,6 +4,10 @@ namespace CodexHp.Core.Domain;
 
 public static class UsageOverlayStateReducer
 {
+    // Claude values come from the desktop app's own refreshes; age decides how much to trust them.
+    public const long ClaudeStaleAfterMs = 30 * 60 * 1000L;
+    public const long ClaudeExpiredAfterMs = 2 * 60 * 60 * 1000L;
+
     public static UsageOverlayState Reduce(
         UsageProviderState usage,
         TokenActivityProviderState tokenActivity,
@@ -14,7 +18,8 @@ public static class UsageOverlayStateReducer
         long nowUnixMs,
         IReadOnlyList<string>? affectedServiceComponents = null,
         IReadOnlyList<string>? affectedServiceGroups = null,
-        IReadOnlyList<ServiceStatusComponentGroup>? affectedServiceComponentGroups = null)
+        IReadOnlyList<ServiceStatusComponentGroup>? affectedServiceComponentGroups = null,
+        ProviderPresentation? presentation = null)
     {
         ArgumentNullException.ThrowIfNull(usage);
         ArgumentNullException.ThrowIfNull(tokenActivity);
@@ -22,22 +27,27 @@ public static class UsageOverlayStateReducer
         ArgumentNullException.ThrowIfNull(visibility);
         ArgumentNullException.ThrowIfNull(settings);
 
+        var isClaude = presentation?.Provider == UsageProvider.Claude;
         var isVisible = !visibility.IsFullscreenOnOverlayMonitor
-            && (!settings.ShowOnlyWhenChatGptRunning || visibility.IsChatGptRunning);
-        var isUsageStale = usage.Availability == ProviderAvailability.Failed
-            && usage.LastSuccessful is not null;
-        var snapshot = usage.LastSuccessful;
+            && (!settings.ShowOnlyWhenChatGptRunning || visibility.IsChatGptRunning || visibility.IsClaudeRunning);
+        var observationAgeMs = isClaude && usage.LastSuccessful?.ObservedUnixMs is { } observedUnixMs
+            ? Math.Max(0, nowUnixMs - observedUnixMs)
+            : (long?)null;
+        var isExpired = observationAgeMs > ClaudeExpiredAfterMs;
+        var isUsageStale = (usage.Availability == ProviderAvailability.Failed && usage.LastSuccessful is not null)
+            || observationAgeMs > ClaudeStaleAfterMs;
+        var snapshot = isExpired ? null : usage.LastSuccessful;
         var manaBar = CreateGauge(
             snapshot?.SessionRemainingPercent,
             snapshot?.SessionResetUnixMs ?? 0,
             snapshot?.SessionWindowSeconds ?? 0,
-            isUsageStale,
+            isUsageStale || (isClaude && IsResetPassed(snapshot?.SessionResetUnixMs, nowUnixMs)),
             nowUnixMs);
         var hpBar = CreateGauge(
             snapshot?.WeeklyRemainingPercent,
             snapshot?.WeeklyResetUnixMs ?? 0,
             snapshot?.WeeklyWindowSeconds ?? 0,
-            isUsageStale,
+            isUsageStale || (isClaude && IsResetPassed(snapshot?.WeeklyResetUnixMs, nowUnixMs)),
             nowUnixMs);
         var buckets = tokenActivity.Availability == ProviderAvailability.Current
             ? tokenActivity.LastSuccessful?.Buckets ?? []
@@ -50,14 +60,17 @@ public static class UsageOverlayStateReducer
         };
         var serviceTooltip = serviceHealth == ServiceHealthState.Issue
             ? BuildServiceIssueTooltip(
+                isClaude ? "Claude" : "OpenAI",
                 serviceStatusDescription,
                 affectedServiceComponents,
                 affectedServiceGroups,
                 affectedServiceComponentGroups)
             : ((string Text, OverlayTooltipSection Section)?)null;
         var statusStripeTooltip = serviceTooltip?.Text;
-        var contentStatus = CreateContentStatus(usage, nowUnixMs);
-        var bankedResets = settings.UpperBarMode == UpperBarMode.BankedResets
+        var contentStatus = isClaude
+            ? CreateClaudeContentStatus(usage, snapshot, isExpired, observationAgeMs, nowUnixMs)
+            : CreateContentStatus(usage, nowUnixMs);
+        var bankedResets = !isClaude && settings.UpperBarMode == UpperBarMode.BankedResets
             ? ResetCreditsDisplayState.Create(snapshot?.ResetCredits, nowUnixMs, isUsageStale)
             : null;
         if (bankedResets is not null && snapshot is not null)
@@ -75,19 +88,29 @@ public static class UsageOverlayStateReducer
         {
             var resetRows = new List<OverlayTooltipRow>
             {
-                CreateResetRow("Week", snapshot.WeeklyResetUnixMs, nowUnixMs),
+                CreateResetRow("Week", snapshot.WeeklyResetUnixMs, nowUnixMs, isClaude),
             };
             if (manaBar.RemainingPercent < 100)
             {
-                resetRows.Add(CreateResetRow("5H", snapshot.SessionResetUnixMs, nowUnixMs));
+                resetRows.Add(CreateResetRow("5H", snapshot.SessionResetUnixMs, nowUnixMs, isClaude));
                 if (bankedResets is not null)
                     resetRows.Add(new("5H remaining", $"{manaBar.RemainingPercent}%"));
             }
-            if (isUsageStale)
+            if (observationAgeMs is { } ageMs)
+                resetRows.Add(new("Updated", FormatObservation(ageMs, snapshot.Source)));
+            if (isUsageStale && !isClaude)
                 resetRows.Add(new("", "Reset times based on last successful update."));
             tooltipSections.Add(new(null, resetRows));
             if (bankedResets is not null)
                 tooltipSections.Add(new("Banked resets", bankedResets.TooltipRows));
+        }
+        else if (isExpired && observationAgeMs is { } expiredAgeMs)
+        {
+            tooltipSections.Add(new("No recent Claude usage",
+            [
+                new("Updated", FormatObservation(expiredAgeMs, usage.LastSuccessful?.Source)),
+                new("", "Open the Claude desktop app to refresh usage."),
+            ]));
         }
         else if (contentStatus.Tooltip is not null)
         {
@@ -96,6 +119,10 @@ public static class UsageOverlayStateReducer
         if (serviceTooltip is { } issue)
         {
             tooltipSections.Add(issue.Section);
+        }
+        if (presentation?.OtherProviderSummary is { } summary)
+        {
+            tooltipSections.Add(new(null, [summary]));
         }
 
         return new UsageOverlayState(
@@ -111,7 +138,96 @@ public static class UsageOverlayStateReducer
             ServiceHealth = serviceHealth,
             BankedResets = bankedResets,
             TooltipSections = tooltipSections,
+            ProviderLabel = presentation is null ? null : ProviderName(presentation.Provider),
+            IsProviderLabelEmphasized = presentation?.IsLabelEmphasized ?? false,
         };
+    }
+
+    public static string ProviderName(UsageProvider provider) =>
+        provider == UsageProvider.Claude ? "Claude" : "Codex";
+
+    // One-line summary of the provider that is not shown, for the bottom of the tooltip.
+    public static OverlayTooltipRow CreateProviderSummary(
+        UsageProvider provider,
+        UsageProviderState usage,
+        ServiceHealthState serviceHealth,
+        long nowUnixMs)
+    {
+        ArgumentNullException.ThrowIfNull(usage);
+        var snapshot = usage.LastSuccessful;
+        if (provider == UsageProvider.Claude
+            && snapshot?.ObservedUnixMs is { } observedUnixMs
+            && nowUnixMs - observedUnixMs > ClaudeExpiredAfterMs)
+        {
+            snapshot = null;
+        }
+
+        var parts = new List<string>();
+        if (snapshot is null)
+        {
+            parts.Add("Unavailable");
+        }
+        else
+        {
+            parts.Add($"5H {Math.Clamp(snapshot.SessionRemainingPercent, 0, 100)}%");
+            parts.Add($"Week {Math.Clamp(snapshot.WeeklyRemainingPercent, 0, 100)}%");
+        }
+
+        if (serviceHealth == ServiceHealthState.Issue)
+        {
+            parts.Add("Service issue");
+        }
+
+        return new OverlayTooltipRow(ProviderName(provider), string.Join(" · ", parts));
+    }
+
+    private static bool IsResetPassed(long? resetUnixMs, long nowUnixMs) =>
+        resetUnixMs is > 0 && resetUnixMs <= nowUnixMs;
+
+    private static (string? Message, string? Tooltip) CreateClaudeContentStatus(
+        UsageProviderState usage,
+        UsageSnapshot? snapshot,
+        bool isExpired,
+        long? observationAgeMs,
+        long nowUnixMs)
+    {
+        if (snapshot is not null)
+        {
+            var lines = new List<string>
+            {
+                FormatResetTime("Week", snapshot.WeeklyResetUnixMs, nowUnixMs, isClaude: true),
+            };
+            if (Math.Clamp(snapshot.SessionRemainingPercent, 0, 100) < 100)
+            {
+                lines.Add(FormatResetTime("5H", snapshot.SessionResetUnixMs, nowUnixMs, isClaude: true));
+            }
+
+            if (observationAgeMs is { } ageMs)
+            {
+                lines.Add($"Updated {FormatObservation(ageMs, snapshot.Source)}");
+            }
+
+            return (null, string.Join("\r\n", lines));
+        }
+
+        if (isExpired)
+        {
+            return (null, "No recent Claude usage. Open the Claude desktop app to refresh usage.");
+        }
+
+        return usage.Availability == ProviderAvailability.Waiting
+            ? ("Loading…", "CodexHp is checking Claude usage.")
+            : ("Open Claude", "Claude usage appears after the Claude desktop app updates it. Open the Claude desktop app.");
+    }
+
+    private static string FormatObservation(long ageMs, string? source)
+    {
+        var age = ageMs < 60_000
+            ? "<1m ago"
+            : ageMs < 3_600_000
+                ? $"{ageMs / 60_000}m ago"
+                : $"{ageMs / 3_600_000}h {ageMs % 3_600_000 / 60_000}m ago";
+        return string.IsNullOrWhiteSpace(source) ? age : $"{age} · {source}";
     }
 
     private static (string? Message, string? Tooltip) CreateContentStatus(
@@ -158,25 +274,33 @@ public static class UsageOverlayStateReducer
         };
     }
 
-    private static OverlayTooltipRow CreateResetRow(string label, long resetUnixMs, long nowUnixMs)
+    private static OverlayTooltipRow CreateResetRow(string label, long resetUnixMs, long nowUnixMs, bool isClaude = false)
     {
-        var value = FormatResetValue(resetUnixMs, nowUnixMs);
-        return new(value is "Unavailable" or "Pending" ? $"{label} reset" : $"{label} resets in", value);
+        var value = FormatResetValue(resetUnixMs, nowUnixMs, isClaude);
+        return new(value is "Unavailable" or "Pending" or "Waiting for update" ? $"{label} reset" : $"{label} resets in", value);
     }
 
-    private static string FormatResetTime(string label, long resetUnixMs, long nowUnixMs)
+    private static string FormatResetTime(string label, long resetUnixMs, long nowUnixMs, bool isClaude = false)
     {
-        var value = FormatResetValue(resetUnixMs, nowUnixMs);
+        var value = FormatResetValue(resetUnixMs, nowUnixMs, isClaude);
         return value switch
         {
             "Unavailable" => $"{label} reset time unavailable",
             "Pending" => $"{label} reset pending",
+            "Waiting for update" => $"{label} reset passed; waiting for update",
             _ => $"{label} resets in {value}",
         };
     }
 
-    private static string FormatResetValue(long resetUnixMs, long nowUnixMs)
+    // Claude values are only as new as the desktop app's last refresh; a passed reset is not
+    // proof of a full allowance until the app reports again.
+    private static string FormatResetValue(long resetUnixMs, long nowUnixMs, bool isClaude = false)
     {
+        if (isClaude && resetUnixMs > 0 && resetUnixMs <= nowUnixMs)
+        {
+            return "Waiting for update";
+        }
+
         // A missing 5H window is represented by long.MaxValue in the usage client.
         if (resetUnixMs <= 0 || resetUnixMs > DateTimeOffset.MaxValue.ToUnixTimeMilliseconds())
         {
@@ -214,14 +338,15 @@ public static class UsageOverlayStateReducer
     }
 
     private static (string Text, OverlayTooltipSection Section) BuildServiceIssueTooltip(
+        string serviceName,
         string serviceStatusDescription,
         IReadOnlyList<string>? affectedServiceComponents,
         IReadOnlyList<string>? affectedServiceGroups,
         IReadOnlyList<ServiceStatusComponentGroup>? affectedServiceComponentGroups)
     {
         var issueText = string.IsNullOrWhiteSpace(serviceStatusDescription)
-            ? "OpenAI service issue detected."
-            : $"OpenAI service issue: {serviceStatusDescription.Trim()}";
+            ? $"{serviceName} service issue detected."
+            : $"{serviceName} service issue: {serviceStatusDescription.Trim()}";
         (string, OverlayTooltipSection) Finish(IEnumerable<string> details)
         {
             var lines = details.ToArray();
@@ -229,7 +354,7 @@ public static class UsageOverlayStateReducer
             if (!string.IsNullOrWhiteSpace(serviceStatusDescription))
                 rows.Add(new("", serviceStatusDescription.Trim()));
             rows.AddRange(lines.Select(line => new OverlayTooltipRow("", line)));
-            return ($"{issueText}\r\n{string.Join("\r\n", lines)}", new("OpenAI service issue", rows, true));
+            return ($"{issueText}\r\n{string.Join("\r\n", lines)}", new($"{serviceName} service issue", rows, true));
         }
         var componentNames = affectedServiceComponents?
             .Where(component => !string.IsNullOrWhiteSpace(component))

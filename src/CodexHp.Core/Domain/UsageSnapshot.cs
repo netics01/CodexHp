@@ -9,6 +9,11 @@ public sealed record UsageSnapshot(
     int WeeklyWindowSeconds)
 {
     public ResetCreditsSnapshot? ResetCredits { get; init; }
+
+    // Set by sources that read values another app fetched (Claude). Null means fetched just now.
+    public long? ObservedUnixMs { get; init; }
+
+    public string? Source { get; init; }
 }
 
 public enum ProviderAvailability

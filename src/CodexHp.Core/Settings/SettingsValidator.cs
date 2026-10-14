@@ -35,6 +35,12 @@ public static class SettingsValidator
             colorMode = OverlayColorMode.System;
             correctedFields.Add("ColorMode");
         }
+        var providerMode = settings.ProviderMode;
+        if (!Enum.IsDefined(providerMode))
+        {
+            providerMode = ProviderMode.Automatic;
+            correctedFields.Add("ProviderMode");
+        }
 
         var overlayWidth = ValidateRange(
             appearance.OverlayWidth,
@@ -84,6 +90,7 @@ public static class SettingsValidator
         {
             ColorMode = colorMode,
             UpperBarMode = upperBarMode,
+            ProviderMode = providerMode,
             Appearance = new AppearanceSettings(
                 overlayWidth,
                 overlayHeight,

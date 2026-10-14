@@ -23,6 +23,11 @@ public sealed record UsageOverlayState(
 
     public IReadOnlyList<OverlayTooltipSection> TooltipSections { get; init; } = [];
 
+    // Faint graph caption naming the shown provider. Null in the Codex-only presentation.
+    public string? ProviderLabel { get; init; }
+
+    public bool IsProviderLabelEmphasized { get; init; }
+
     public string? Tooltip
     {
         get

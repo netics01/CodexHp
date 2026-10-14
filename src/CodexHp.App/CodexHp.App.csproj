@@ -26,8 +26,7 @@
     <Compile Remove="Development\**\*.cs" />
   </ItemGroup>
   <Target Name="ValidateBuildFlavor" BeforeTargets="PrepareForBuild">
-    <Error Condition="'$(CodexHpBuildFlavor)' != 'Development' and '$(CodexHpBuildFlavor)' != 'Official'"
-           Text="CodexHpBuildFlavor must be Development or Official." />
+    <Error Condition="'$(CodexHpBuildFlavor)' != 'Development' and '$(CodexHpBuildFlavor)' != 'Official'" Text="CodexHpBuildFlavor must be Development or Official." />
   </Target>
   <ItemGroup>
     <AssemblyMetadata Include="CodexHpBuildFlavor" Value="$(CodexHpBuildFlavor)" />
@@ -39,5 +38,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\CodexHp.ico" LogicalName="CodexHp.App.Assets.CodexHp.ico" />
     <EmbeddedResource Include="Assets\CodexHp.Light.ico" LogicalName="CodexHp.App.Assets.CodexHp.Light.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ZstdSharp.Port" Version="0.8.8" />
   </ItemGroup>
 </Project>

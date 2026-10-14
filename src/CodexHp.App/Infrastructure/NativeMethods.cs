@@ -447,4 +447,6 @@ internal static class NativeMethods
         ref uint packageFamilyNameLength,
         StringBuilder? packageFamilyName);
 
+    [DllImport("user32.dll")]
+    internal static extern uint GetWindowThreadProcessId(nint windowHandle, out uint processId);
 }

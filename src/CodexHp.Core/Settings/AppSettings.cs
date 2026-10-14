@@ -6,6 +6,13 @@ public enum UpperBarMode
     BankedResets,
 }
 
+public enum ProviderMode
+{
+    Automatic,
+    Codex,
+    Claude,
+}
+
 public enum OverlayColorMode
 {
     System,
@@ -49,7 +56,10 @@ public sealed record AppSettings(
 
     public OverlayColorMode ColorMode { get; init; } = OverlayColorMode.System;
 
+    // Applies to Codex only. Claude always shows the 5-hour limit.
     public UpperBarMode UpperBarMode { get; init; } = UpperBarMode.FiveHourUsage;
+
+    public ProviderMode ProviderMode { get; init; } = ProviderMode.Automatic;
 
     // Keep the existing Colors profile as the dark palette for backward compatibility.
     public ColorSettings LightColors { get; init; } = ColorSettings.LightDefault;

@@ -64,10 +64,10 @@ The upper bar can show your banked resets instead of the 5-hour limit. Above: 3 
 1. Download `CodexHp-Setup-<version>-x64.exe` from the [latest release](https://github.com/netics01/CodexHp/releases/latest).
 2. Run it. It installs per user under `%LocalAppData%\Programs\CodexHp`.
 
-A portable `CodexHp-Portable-<version>-x64.exe` is also available. Move it out of Downloads before enabling startup.
+A portable `CodexHp-Portable-<version>-x64.exe` is also available. Move it out of Downloads before enabling startup. CodexHp is not yet distributed through WinGet.
 
 > [!WARNING]
-> Releases are not code-signed. SmartScreen or Smart App Control may warn or block. Download only from this repository and check `SHA256SUMS.txt`:
+> The current release is not Authenticode-signed. SmartScreen or Smart App Control may warn or block. Download only from this repository and check `SHA256SUMS.txt`:
 >
 > ```powershell
 > Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256

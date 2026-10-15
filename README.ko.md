@@ -64,10 +64,10 @@
 1. [최신 릴리스](https://github.com/netics01/CodexHp/releases/latest)에서 `CodexHp-Setup-<version>-x64.exe`를 내려받습니다.
 2. 실행합니다. 현재 사용자용으로 `%LocalAppData%\Programs\CodexHp`에 설치됩니다.
 
-포터블 `CodexHp-Portable-<version>-x64.exe`도 있습니다. 자동 시작을 켜기 전에 다운로드 폴더 밖으로 옮기세요.
+포터블 `CodexHp-Portable-<version>-x64.exe`도 있습니다. 자동 시작을 켜기 전에 다운로드 폴더 밖으로 옮기세요. CodexHp는 아직 WinGet으로 배포하지 않습니다.
 
 > [!WARNING]
-> 릴리스는 코드 서명이 없습니다. SmartScreen이나 Smart App Control이 경고하거나 차단할 수 있습니다. 이 저장소에서만 내려받고 `SHA256SUMS.txt`로 확인하세요.
+> 현재 릴리스는 Authenticode 코드 서명이 없습니다. SmartScreen이나 Smart App Control이 경고하거나 차단할 수 있습니다. 이 저장소에서만 내려받고 `SHA256SUMS.txt`로 확인하세요.
 >
 > ```powershell
 > Get-FileHash .\CodexHp-Setup-<version>-x64.exe -Algorithm SHA256

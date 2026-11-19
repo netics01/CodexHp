@@ -61,6 +61,29 @@ public sealed class ClaudeDesktopUsageSourceTests : IDisposable
         Assert.Equal(Now - 300_000, snapshot.ObservedUnixMs);
     }
 
+    [Theory]
+    [InlineData("Roaming", "Claude")]
+    [InlineData("Local", @"Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude")]
+    [InlineData("Local", @"Claude-Data\claude_pzs8sxrjxfjjc")]
+    public void Default_paths_find_usage_history_for_each_windows_profile_location(string appData, string profilePath)
+    {
+        var roaming = Path.Combine(this.root, "Roaming");
+        var local = Path.Combine(this.root, "Local");
+        var profile = Path.Combine(this.root, appData, profilePath);
+        WriteHistory(profile, (Now - 60_000, 20, 30));
+        var directories = ClaudeDesktopUsageSource.DefaultAppDataDirectories(new Dictionary<string, string>
+        {
+            ["APPDATA"] = roaming,
+            ["LOCALAPPDATA"] = local,
+        });
+
+        var snapshot = new ClaudeDesktopUsageSource(directories).Read(Now);
+
+        Assert.NotNull(snapshot);
+        Assert.Equal(80, snapshot.SessionRemainingPercent);
+        Assert.Equal(70, snapshot.WeeklyRemainingPercent);
+    }
+
     [Fact]
     public void No_desktop_app_data_returns_null()
     {
@@ -103,9 +126,11 @@ public sealed class ClaudeDesktopUsageSourceTests : IDisposable
     private Core.Domain.UsageSnapshot? Read() =>
         new ClaudeDesktopUsageSource([Path.Combine(this.root, "Claude")]).Read(Now);
 
-    private void WriteHistory(params (long T, int Fh, int Sd)[] samples)
+    private void WriteHistory(params (long T, int Fh, int Sd)[] samples) =>
+        WriteHistory(Path.Combine(this.root, "Claude"), samples);
+
+    private static void WriteHistory(string directory, params (long T, int Fh, int Sd)[] samples)
     {
-        var directory = Path.Combine(this.root, "Claude");
         Directory.CreateDirectory(directory);
         var json = "{\"version\":2,\"samples\":["
             + string.Join(",", samples.Select(s => $"{{\"t\":{s.T},\"org\":\"{Org}\",\"u\":{{\"fh\":{s.Fh},\"sd\":{s.Sd}}}}}"))

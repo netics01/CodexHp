@@ -126,15 +126,15 @@ public sealed class ReleaseConfigurationTests
     }
 
     [Fact]
-    public void Readme_pair_discloses_unsigned_distribution_and_no_winget_availability()
+    public void Readme_pair_discloses_unsigned_GitHub_distribution()
     {
         var english = ReadRequiredRepositoryFile("README.md");
         var korean = ReadRequiredRepositoryFile("README.ko.md");
 
-        Assert.Contains("The current release is not Authenticode-signed", english, StringComparison.Ordinal);
-        Assert.Contains("CodexHp is not yet distributed through WinGet", english, StringComparison.Ordinal);
-        Assert.Contains("현재 릴리스는 Authenticode 코드 서명이 없습니다", korean, StringComparison.Ordinal);
-        Assert.Contains("CodexHp는 아직 WinGet으로 배포하지 않습니다", korean, StringComparison.Ordinal);
+        Assert.Contains("Releases are not code-signed", english, StringComparison.Ordinal);
+        Assert.Contains("Download only from this repository", english, StringComparison.Ordinal);
+        Assert.Contains("릴리스는 코드 서명이 없습니다", korean, StringComparison.Ordinal);
+        Assert.Contains("이 저장소에서만 내려받고", korean, StringComparison.Ordinal);
     }
 
     [Fact]

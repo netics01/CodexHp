@@ -4,6 +4,12 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-19
+
+### Fixed
+
+- Restore Claude usage gauges and token activity on Windows by reading usage data from the relocated Claude Desktop profile.
+
 ## [0.6.0] - 2026-10-14
 
 ### Added

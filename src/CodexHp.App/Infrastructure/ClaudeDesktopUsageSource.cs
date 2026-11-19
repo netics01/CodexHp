@@ -50,9 +50,11 @@ public sealed class ClaudeDesktopUsageSource : IClaudeUsageSource
             directories.Add(Path.Combine(roaming, "Claude"));
         }
 
-        // MSIX installs may virtualize Roaming writes into the package's LocalCache.
         if (environment.TryGetValue("LOCALAPPDATA", out var local) && !string.IsNullOrWhiteSpace(local))
         {
+            // Newer MSIX installs relocate the profile outside the package's LocalCache.
+            directories.Add(Path.Combine(local, "Claude-Data", PackageFamilyName.ToLowerInvariant()));
+            // Older MSIX installs may virtualize Roaming writes into the package's LocalCache.
             directories.Add(Path.Combine(local, "Packages", PackageFamilyName, "LocalCache", "Roaming", "Claude"));
         }
 

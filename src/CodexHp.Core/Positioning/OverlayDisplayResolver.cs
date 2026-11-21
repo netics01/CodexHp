@@ -252,7 +252,7 @@ public static class OverlayDisplayResolver
         int height,
         double scaleX)
     {
-        var minimumChartWidth = ScaleValue(20, scaleX);
+        var minimumChartWidth = ScaleValue(SettingsValidator.MinimumChartWidth, scaleX);
         var maximumGaugeWidth = Math.Max(1, width - Math.Min(width - 1, minimumChartWidth));
         return appearance with
         {

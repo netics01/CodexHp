@@ -6,9 +6,9 @@ namespace CodexHp.App.Application;
 
 internal static class DefaultAppearanceFactory
 {
-    private const int MinimumOverlayWidth = 120;
+    private const int MinimumResetOverlayWidth = 120;
     private const int MaximumOverlayWidth = 4096;
-    private const int TargetVisibleBucketCount = 20 * 60 / TokenGraphViewport.BucketSeconds;
+    private const int TwentyMinuteBucketCount = 20 * 60 / TokenGraphViewport.BucketSeconds;
 
     public static AppearanceSettings? CreateInitial(
         AppSettings template,
@@ -19,11 +19,30 @@ internal static class DefaultAppearanceFactory
             return null;
         }
 
-        var initial = template with { Appearance = template.Appearance with { OverlayHeight = height } };
-        return Create(initial, settings => OverlayDisplayResolver.Resolve(settings, displays).Appearance);
+        var defaults = AppearanceSettings.Default;
+        var heightRatio = (double)height / defaults.OverlayHeight;
+        int ScaleWidth(int width) => (int)Math.Round(width * heightRatio, MidpointRounding.AwayFromZero);
+        var initial = template.Appearance with
+        {
+            OverlayHeight = height,
+            OverlayWidth = ScaleWidth(defaults.OverlayWidth),
+            GaugePaneWidth = ScaleWidth(defaults.GaugePaneWidth),
+        };
+
+        var minimumWidth = Math.Max(SettingsValidator.MinimumOverlayWidth,
+            initial.GaugePaneWidth + SettingsValidator.MinimumChartWidth);
+        while (initial.OverlayWidth > minimumWidth
+            && TokenGraphViewport.CalculateVisibleBucketCount(
+                OverlayDisplayResolver.Resolve(template with { Appearance = initial }, displays).Appearance)
+                > TwentyMinuteBucketCount)
+        {
+            initial = initial with { OverlayWidth = initial.OverlayWidth - 1 };
+        }
+
+        return initial;
     }
 
-    public static AppearanceSettings Create(
+    public static AppearanceSettings CreateForReset(
         AppSettings template,
         Func<AppSettings, EffectiveAppearanceSettings> resolveAppearance)
     {
@@ -32,12 +51,12 @@ internal static class DefaultAppearanceFactory
 
         var preferredWidth = Math.Clamp(
             template.Appearance.OverlayWidth,
-            MinimumOverlayWidth,
+            MinimumResetOverlayWidth,
             MaximumOverlayWidth);
         var bestAppearance = template.Appearance with { OverlayWidth = preferredWidth };
         var bestDifference = int.MaxValue;
         var bestWidthDistance = int.MaxValue;
-        var minimumWidth = MinimumOverlayWidth;
+        var minimumWidth = MinimumResetOverlayWidth;
         var maximumWidth = MaximumOverlayWidth;
 
         while (minimumWidth <= maximumWidth)
@@ -46,7 +65,7 @@ internal static class DefaultAppearanceFactory
             var candidate = template.Appearance with { OverlayWidth = width };
             var effective = resolveAppearance(template with { Appearance = candidate });
             var bucketCount = TokenGraphViewport.CalculateVisibleBucketCount(effective);
-            var difference = Math.Abs(bucketCount - TargetVisibleBucketCount);
+            var difference = Math.Abs(bucketCount - TwentyMinuteBucketCount);
             var widthDistance = Math.Abs(width - preferredWidth);
             if (difference < bestDifference
                 || (difference == bestDifference && widthDistance < bestWidthDistance))
@@ -56,11 +75,11 @@ internal static class DefaultAppearanceFactory
                 bestWidthDistance = widthDistance;
             }
 
-            if (bucketCount < TargetVisibleBucketCount)
+            if (bucketCount < TwentyMinuteBucketCount)
             {
                 minimumWidth = width + 1;
             }
-            else if (bucketCount > TargetVisibleBucketCount)
+            else if (bucketCount > TwentyMinuteBucketCount)
             {
                 maximumWidth = width - 1;
             }

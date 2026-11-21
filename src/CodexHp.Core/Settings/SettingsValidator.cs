@@ -4,12 +4,14 @@ public sealed record SettingsValidationResult(AppSettings Settings, IReadOnlyLis
 
 public static class SettingsValidator
 {
-    private const int MinimumOverlayWidth = 120;
+    public static int MinimumOverlayWidth { get; } =
+        AppearanceSettings.Default.GaugePaneWidth + MinimumChartWidth;
+
+    public const int MinimumChartWidth = 20;
     private const int MaximumOverlayWidth = 4096;
     internal const int MinimumOverlayHeight = 24;
     internal const int MaximumOverlayHeight = 512;
     private const int MinimumGaugePaneWidth = 20;
-    private const int MinimumChartWidth = 20;
     private const int MinimumGraphBarWidth = 1;
     private const int MaximumGraphBarWidth = 20;
     private const int MinimumGraphBarGap = 0;

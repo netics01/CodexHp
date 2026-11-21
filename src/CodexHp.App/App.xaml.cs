@@ -294,7 +294,7 @@ public partial class App : System.Windows.Application
         }
 
         var template = settings with { Appearance = AppearanceSettings.Default };
-        return DefaultAppearanceFactory.Create(
+        return DefaultAppearanceFactory.CreateForReset(
             template,
             candidate => this.positionController.Resolve(candidate).Appearance);
     }

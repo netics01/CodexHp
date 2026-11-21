@@ -99,18 +99,22 @@ public sealed class JsonSettingsStoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData(1, 48, 80, 43, 43, 12)]
-    [InlineData(1, 42, 80, 40, 40, 11)]
-    [InlineData(1.25, 60, 87, 34, 43, 12)]
-    [InlineData(1.5, 48, 80, 30, 45, 13)]
-    [InlineData(1.5, 63, 80, 32, 48, 13)]
-    [InlineData(1.5, 64, 80, 37, 56, 15)]
-    [InlineData(1.5, 72, 80, 37, 56, 15)]
-    [InlineData(2, 96, 80, 32, 64, 17)]
-    [InlineData(2.5, 120, 80, 32, 80, 22)]
-    [InlineData(3, 144, 80, 32, 96, 26)]
-    public void First_run_fits_gauge_text_and_targets_twenty_minutes_within_minimum_width(
-        double scale, int taskbarHeight, int expectedBuckets, int expectedHeightDip, int expectedHeight, int expectedFont)
+    [InlineData(1, 48, 80, 43, 43, 12, 147, 65)]
+    [InlineData(1, 42, 80, 40, 40, 11, 142, 60)]
+    [InlineData(1.25, 60, 79, 34, 43, 12, 117, 51)]
+    [InlineData(1.25, 32, 75, 24, 30, 11, 98, 36)]
+    [InlineData(1.49, 38, 80, 24, 36, 13, 92, 36)]
+    [InlineData(1.5, 48, 56, 30, 45, 13, 122, 45)]
+    [InlineData(1.5, 63, 60, 32, 48, 13, 130, 48)]
+    [InlineData(1.5, 64, 69, 37, 56, 15, 150, 56)]
+    [InlineData(1.5, 72, 69, 37, 56, 15, 150, 56)]
+    [InlineData(1.75, 84, 70, 32, 56, 15, 130, 48)]
+    [InlineData(2, 96, 80, 32, 64, 17, 130, 48)]
+    [InlineData(2.5, 120, 66, 32, 80, 22, 130, 48)]
+    [InlineData(3, 144, 80, 32, 96, 26, 130, 48)]
+    public void First_run_fits_gauge_text_and_caps_proportional_width_at_twenty_minutes(
+        double scale, int taskbarHeight, int expectedBuckets, int expectedHeightDip, int expectedHeight, int expectedFont,
+        int expectedWidthDip, int expectedGaugeWidthDip)
     {
         var taskbarTop = 2160 - taskbarHeight;
         var monitor = new MonitorGeometry(
@@ -134,8 +138,9 @@ public sealed class JsonSettingsStoreTests : IDisposable
 
         Assert.Equal(AppearanceSettings.Default with
         {
-            OverlayWidth = settings.Appearance.OverlayWidth,
+            OverlayWidth = expectedWidthDip,
             OverlayHeight = expectedHeightDip,
+            GaugePaneWidth = expectedGaugeWidthDip,
         }, settings.Appearance);
         Assert.Equal(settings, store.Load());
         Assert.Equal(OverlayPlacementTarget.Taskbar, resolution.EffectiveTarget);
@@ -144,15 +149,6 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Equal(taskbarTop + (taskbarHeight - expectedHeight) / 2, resolution.Placement.PhysicalTop);
         var rowHeight = OverlayPixelPolicy.CalculateGaugeRowHeight(expectedHeight, scale);
         Assert.Equal(expectedFont, OverlayPixelPolicy.CalculateGaugeFontHeight(rowHeight, scale));
-        if (scale == 2)
-        {
-            Assert.Equal(130, settings.Appearance.OverlayWidth);
-        }
-        if (scale == 1.25)
-        {
-            // The 120 DIP minimum width fits 87 buckets at this scale.
-            Assert.Equal(120, settings.Appearance.OverlayWidth);
-        }
         Assert.Equal(OverlayLocationSettings.Default, settings.Location);
         Assert.Equal(
             TimeSpan.FromSeconds(expectedBuckets * 15),
@@ -160,17 +156,27 @@ public sealed class JsonSettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public void Existing_height_is_preserved_even_if_the_old_auto_flag_was_set()
+    public void Existing_size_is_preserved_even_if_the_old_auto_flag_was_set()
     {
-        var store = new JsonSettingsStore(this.localAppData);
+        var monitor = new MonitorGeometry("DISPLAY", new(0, 0, 1920, 1080),
+            new(0, 0, 1920, 1032), 1, 1, true);
+        var taskbar = new PhysicalRect(0, 1032, 1920, 48);
+        var store = new JsonSettingsStore(this.localAppData, monitors: () => [monitor], taskbarBounds: _ => taskbar);
         Directory.CreateDirectory(store.SettingsDirectory);
         File.WriteAllText(store.SettingsPath, """
-            { "schemaVersion": 4, "appearance": { "overlayHeight": 32, "automaticOverlayHeight": true } }
+            {
+                "schemaVersion": 4,
+                "appearance": { "overlayHeight": 32, "overlayWidth": 400, "gaugePaneWidth": 60, "automaticOverlayHeight": true }
+            }
             """);
 
-        var settings = store.Load();
+        var settings = store.LoadForStartup();
 
         Assert.Equal(32, settings.Appearance.OverlayHeight);
+        Assert.Equal(400, settings.Appearance.OverlayWidth);
+        Assert.Equal(60, settings.Appearance.GaugePaneWidth);
+        var resolution = OverlayDisplayResolver.Resolve(settings, [new DisplayEnvironment(monitor, taskbar)]);
+        Assert.True(TokenGraphViewport.CalculateVisibleDuration(resolution.Appearance) > TimeSpan.FromMinutes(20));
         Assert.DoesNotContain("automaticOverlayHeight", File.ReadAllText(store.SettingsPath), StringComparison.Ordinal);
         Assert.Equal(settings, store.Load());
     }

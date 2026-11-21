@@ -196,7 +196,7 @@ internal sealed class SimulationHost : IDisposable
         var vm = new SettingsWindowViewModel(this.session.Settings, Preview, this.overlay.SetOverlayPositionChangeMode,
             settings => { Preview(settings); return this.session.Settings; }, canStartWithWindows: false,
             calculateVisibleTokenHistory: settings => TokenGraphViewport.CalculateVisibleDuration(this.positions.Resolve(settings).Appearance),
-            resolveDefaultAppearance: settings => DefaultAppearanceFactory.Create(settings with { Appearance = AppearanceSettings.Default },
+            resolveDefaultAppearance: settings => DefaultAppearanceFactory.CreateForReset(settings with { Appearance = AppearanceSettings.Default },
                 value => this.positions.Resolve(value).Appearance),
             systemUsesLightColors: () => WindowsShellTheme.Read() == TrayIconTheme.Light,
             openUpdate: this.PreviewUpdateLink)

@@ -4,6 +4,14 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-21
+
+### Changed
+
+- Choose the initial overlay height for readable percentage labels and fit it to the Windows taskbar.
+- Scale the initial overlay and gauge widths to match that height. Shorten the activity graph if it would initially show more than 20 minutes. Existing installations keep their saved dimensions.
+- Document the initial overlay sizing policy in Korean.
+
 ## [0.6.1] - 2026-11-19
 
 ### Fixed

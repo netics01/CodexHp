@@ -131,9 +131,9 @@ public sealed class ReleaseConfigurationTests
         var english = ReadRequiredRepositoryFile("README.md");
         var korean = ReadRequiredRepositoryFile("README.ko.md");
 
-        Assert.Contains("Releases are not code-signed", english, StringComparison.Ordinal);
+        Assert.Contains("The current release is not Authenticode-signed", english, StringComparison.Ordinal);
         Assert.Contains("Download only from this repository", english, StringComparison.Ordinal);
-        Assert.Contains("릴리스는 코드 서명이 없습니다", korean, StringComparison.Ordinal);
+        Assert.Contains("현재 릴리스는 Authenticode 코드 서명이 없습니다", korean, StringComparison.Ordinal);
         Assert.Contains("이 저장소에서만 내려받고", korean, StringComparison.Ordinal);
     }
 

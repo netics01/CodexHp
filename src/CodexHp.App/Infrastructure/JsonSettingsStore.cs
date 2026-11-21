@@ -122,6 +122,11 @@ public sealed class JsonSettingsStore : ISettingsStore
                 document.Appearance?.GraphBarWidth ?? defaults.Appearance.GraphBarWidth,
                 document.Appearance?.GraphBarGap ?? defaults.Appearance.GraphBarGap,
                 document.Appearance?.StatusStripeWidth ?? defaults.Appearance.StatusStripeWidth)
+            {
+                // Older settings cannot distinguish a saved default from an explicit height.
+                AutomaticOverlayHeight = document.Appearance?.AutomaticOverlayHeight
+                    ?? (document.Appearance?.OverlayHeight is null && document.Appearance?.LegacyV2Height is null),
+            }
             : defaults.Appearance;
         var appearance = persistedAppearance;
         var location = defaults.Location;
@@ -186,13 +191,17 @@ public sealed class JsonSettingsStore : ISettingsStore
             return (physicalAppearance, legacyLocation);
         }
 
-        var logicalAppearance = new AppearanceSettings(
-            ToLogical(physicalAppearance.OverlayWidth, monitor.ScaleX),
-            ToLogical(physicalAppearance.OverlayHeight, monitor.ScaleY),
-            ToLogical(physicalAppearance.GaugePaneWidth, monitor.ScaleX),
-            ToLogical(physicalAppearance.GraphBarWidth, monitor.ScaleX),
-            physicalAppearance.GraphBarGap == 0 ? 0 : ToLogical(physicalAppearance.GraphBarGap, monitor.ScaleX),
-            ToLogical(physicalAppearance.StatusStripeWidth, monitor.ScaleX));
+        var logicalAppearance = physicalAppearance with
+        {
+            OverlayWidth = ToLogical(physicalAppearance.OverlayWidth, monitor.ScaleX),
+            OverlayHeight = ToLogical(physicalAppearance.OverlayHeight, monitor.ScaleY),
+            GaugePaneWidth = ToLogical(physicalAppearance.GaugePaneWidth, monitor.ScaleX),
+            GraphBarWidth = ToLogical(physicalAppearance.GraphBarWidth, monitor.ScaleX),
+            GraphBarGap = physicalAppearance.GraphBarGap == 0
+                ? 0
+                : ToLogical(physicalAppearance.GraphBarGap, monitor.ScaleX),
+            StatusStripeWidth = ToLogical(physicalAppearance.StatusStripeWidth, monitor.ScaleX),
+        };
         var overlayBounds = new PhysicalRect(
             monitor.Bounds.Left + legacyLocation.X,
             monitor.Bounds.Top + legacyLocation.Y,
@@ -365,6 +374,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             {
                 OverlayWidth = settings.Appearance.OverlayWidth,
                 OverlayHeight = settings.Appearance.OverlayHeight,
+                AutomaticOverlayHeight = settings.Appearance.AutomaticOverlayHeight,
                 GaugePaneWidth = settings.Appearance.GaugePaneWidth,
                 GraphBarWidth = settings.Appearance.GraphBarWidth,
                 GraphBarGap = settings.Appearance.GraphBarGap,
@@ -405,6 +415,8 @@ public sealed class JsonSettingsStore : ISettingsStore
         public int? OverlayWidth { get; set; }
 
         public int? OverlayHeight { get; set; }
+
+        public bool? AutomaticOverlayHeight { get; set; }
 
         [JsonPropertyName("screenWidth")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

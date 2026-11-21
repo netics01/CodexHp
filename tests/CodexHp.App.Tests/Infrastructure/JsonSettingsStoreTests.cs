@@ -99,23 +99,28 @@ public sealed class JsonSettingsStoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData(1, 80)]
-    [InlineData(1.25, 87)]
-    [InlineData(1.5, 80)]
-    [InlineData(2, 80)]
-    [InlineData(2.5, 80)]
-    [InlineData(3, 80)]
-    public void First_run_preserves_default_shape_and_targets_twenty_minutes_within_minimum_width(double scale, int expectedBuckets)
+    [InlineData(1, 48, 80, 43, 12)]
+    [InlineData(1, 42, 80, 40, 11)]
+    [InlineData(1.25, 60, 87, 43, 12)]
+    [InlineData(1.5, 67, 80, 48, 13)]
+    [InlineData(1.5, 68, 80, 56, 15)]
+    [InlineData(1.5, 72, 80, 56, 15)]
+    [InlineData(2, 96, 80, 64, 17)]
+    [InlineData(2.5, 120, 80, 80, 22)]
+    [InlineData(3, 144, 80, 96, 26)]
+    public void First_run_fits_gauge_text_and_targets_twenty_minutes_within_minimum_width(
+        double scale, int taskbarHeight, int expectedBuckets, int expectedHeight, int expectedFont)
     {
+        var taskbarTop = 2160 - taskbarHeight;
         var monitor = new MonitorGeometry(
             "DISPLAY2",
             new PhysicalRect(0, 0, 3840, 2160),
-            new PhysicalRect(0, 0, 3840, 2064),
+            new PhysicalRect(0, 0, 3840, taskbarTop),
             scale,
             scale,
             true,
             "MONITOR-STABLE-2");
-        var taskbar = new PhysicalRect(0, 2064, 3840, 96);
+        var taskbar = new PhysicalRect(0, taskbarTop, 3840, taskbarHeight);
         var store = new JsonSettingsStore(
             this.localAppData,
             monitors: () => [monitor],
@@ -126,7 +131,14 @@ public sealed class JsonSettingsStoreTests : IDisposable
             settings,
             [new DisplayEnvironment(monitor, taskbar)]);
 
-        Assert.Equal(new AppearanceSettings(settings.Appearance.OverlayWidth, 32, 48, 1, 0, 2), settings.Appearance);
+        Assert.Equal(AppearanceSettings.Default with { OverlayWidth = settings.Appearance.OverlayWidth }, settings.Appearance);
+        Assert.Equal(settings, store.Load());
+        Assert.Equal(OverlayPlacementTarget.Taskbar, resolution.EffectiveTarget);
+        Assert.Equal(expectedHeight, resolution.Appearance.OverlayHeight);
+        Assert.Equal(expectedHeight, resolution.Placement.PhysicalHeight);
+        Assert.Equal(taskbarTop + (taskbarHeight - expectedHeight) / 2, resolution.Placement.PhysicalTop);
+        var rowHeight = OverlayPixelPolicy.CalculateGaugeRowHeight(expectedHeight, scale);
+        Assert.Equal(expectedFont, OverlayPixelPolicy.CalculateGaugeFontHeight(rowHeight, scale));
         if (scale == 2)
         {
             Assert.Equal(130, settings.Appearance.OverlayWidth);
@@ -140,6 +152,22 @@ public sealed class JsonSettingsStoreTests : IDisposable
         Assert.Equal(
             TimeSpan.FromSeconds(expectedBuckets * 15),
             TokenGraphViewport.CalculateVisibleDuration(resolution.Appearance));
+    }
+
+    [Fact]
+    public void Existing_height_equal_to_the_old_default_stays_manual()
+    {
+        var store = new JsonSettingsStore(this.localAppData);
+        Directory.CreateDirectory(store.SettingsDirectory);
+        File.WriteAllText(store.SettingsPath, """
+            { "schemaVersion": 4, "appearance": { "overlayHeight": 32 } }
+            """);
+
+        var settings = store.Load();
+
+        Assert.Equal(32, settings.Appearance.OverlayHeight);
+        Assert.False(settings.Appearance.AutomaticOverlayHeight);
+        Assert.Equal(settings, store.Load());
     }
 
     [Fact]

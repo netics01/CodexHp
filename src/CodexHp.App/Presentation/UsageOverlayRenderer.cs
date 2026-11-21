@@ -84,8 +84,6 @@ public sealed record OverlayPresentationSettings(
 
 public static class UsageOverlayRenderer
 {
-    private const int ReferenceGaugeRowHeight = 27;
-    private const int ReferenceGaugeFontHeight = 16;
     private const double StaleOpacity = 0.55;
     // The provider caption sits behind the token bars. The switch emphasis is a small step up
     // that is legible when looked at directly but does not pull attention from elsewhere.
@@ -169,10 +167,7 @@ public static class UsageOverlayRenderer
         var gaugeRight = gaugePaneWidth - X(OverlayPixelPolicy.GaugeRightInsetDip);
         var gaugeTop = verticalInset;
         var gaugeBottom = height - verticalInset;
-        var gaugeHeight = Math.Max(1, gaugeBottom - gaugeTop);
-        var quotaHeight = Math.Max(
-            1,
-            (gaugeHeight - (refreshHeight * 2) - gaugeGroupGap) / 2);
+        var quotaHeight = OverlayPixelPolicy.CalculateGaugeRowHeight(height, appearance.DisplayScaleY);
         var gaugeWidth = Math.Max(1, gaugeRight - gaugeLeft);
         var manaBounds = new LayoutRect(gaugeLeft, gaugeTop, gaugeWidth, quotaHeight);
         var manaRefreshBounds = new LayoutRect(
@@ -191,7 +186,7 @@ public static class UsageOverlayRenderer
             hpRefreshTop,
             gaugeWidth,
             Math.Max(1, Math.Min(refreshHeight, gaugeBottom - hpRefreshTop)));
-        var fontSize = CalculateGaugeFontHeight(quotaHeight, appearance.DisplayScaleY);
+        var fontSize = OverlayPixelPolicy.CalculateGaugeFontHeight(quotaHeight, appearance.DisplayScaleY);
 
         if (state.BankedResets is { } bankedResets)
         {
@@ -388,20 +383,6 @@ public static class UsageOverlayRenderer
         var luminance = Luminance(background);
         return 1.05 / (luminance + .05) >= (luminance + .05) / (Luminance(dark) + .05)
             ? White : dark;
-    }
-
-    private static int CalculateGaugeFontHeight(int gaugeRowHeight, double displayScaleY)
-    {
-        var proportionalHeight = Math.Max(
-            1,
-            (int)Math.Round(
-                gaugeRowHeight * ReferenceGaugeFontHeight / (double)ReferenceGaugeRowHeight,
-                MidpointRounding.AwayFromZero));
-        var validDisplayScale = double.IsFinite(displayScaleY) && displayScaleY > 0
-            ? displayScaleY
-            : 1;
-        var minimumHeight = (int)Math.Ceiling(OverlayPixelPolicy.MinimumGaugeFontDip * validDisplayScale);
-        return Math.Max(proportionalHeight, minimumHeight);
     }
 
     private static void AddGauge(

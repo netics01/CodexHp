@@ -15,6 +15,10 @@ public static class OverlayDisplayResolver
     private const int EdgeInsetDip = 2;
     private const int MinimumReadableWidthDip = 120;
     private const int MinimumReadableHeightDip = 24;
+    private const int MinimumTaskbarMarginPixels = 1;
+    private const int PreferredTaskbarMarginPixels = 6;
+    private const int MinimumGaugeFontPixels = 12;
+    private const int PreferredGaugeFontPixels = 15;
 
     public static OverlayDisplayResolution Resolve(
         AppSettings settings,
@@ -39,6 +43,7 @@ public static class OverlayDisplayResolver
         var taskbar = IntersectTaskbar(display.TaskbarBounds, monitor.Bounds);
         var taskbarWasUnavailable = effectiveTarget == OverlayPlacementTarget.Taskbar
             && taskbar is null;
+        var centerVertically = false;
 
         if (effectiveTarget == OverlayPlacementTarget.Taskbar && taskbar is { } taskbarBounds)
         {
@@ -47,10 +52,22 @@ public static class OverlayDisplayResolver
             {
                 var availableHeight = Math.Max(0, taskbarBounds.Height - (edgeInsetY * 2));
                 var minimumHeight = ScaleValue(MinimumReadableHeightDip, monitor.ScaleY);
-                if (availableHeight >= minimumHeight)
+                int? fittedHeight = null;
+                if (settings.Appearance.AutomaticOverlayHeight)
                 {
-                    height = Math.Min(height, availableHeight);
+                    fittedHeight = FitAutomaticTaskbarHeight(
+                        height, taskbarBounds.Height, availableHeight, minimumHeight, monitor.ScaleY);
+                }
+                else if (availableHeight >= minimumHeight)
+                {
+                    fittedHeight = Math.Min(height, availableHeight);
+                }
+
+                if (fittedHeight is { } taskbarHeight)
+                {
+                    height = taskbarHeight;
                     width = Math.Min(width, Math.Max(1, taskbarBounds.Width - (edgeInsetX * 2)));
+                    centerVertically = settings.Appearance.AutomaticOverlayHeight;
                 }
                 else
                 {
@@ -97,6 +114,10 @@ public static class OverlayDisplayResolver
             preservePhysicalOffset,
             edgeInsetX,
             edgeInsetY);
+        if (centerVertically)
+        {
+            bounds = bounds with { Top = container.Top + (container.Height - bounds.Height) / 2 };
+        }
         var placement = new OverlayPlacement(
             monitor.Id,
             bounds.Left,
@@ -158,16 +179,58 @@ public static class OverlayDisplayResolver
     private static EffectiveAppearanceSettings Scale(
         AppearanceSettings appearance,
         double scaleX,
-        double scaleY) =>
-        new(
+        double scaleY)
+    {
+        var height = appearance.AutomaticOverlayHeight ? AppearanceSettings.Default.OverlayHeight : appearance.OverlayHeight;
+        return new(
             ScaleValue(appearance.OverlayWidth, scaleX),
-            ScaleValue(appearance.OverlayHeight, scaleY),
+            ScaleValue(height, scaleY),
             ScaleValue(appearance.GaugePaneWidth, scaleX),
             ScaleValue(appearance.GraphBarWidth, scaleX),
             appearance.GraphBarGap == 0 ? 0 : ScaleValue(appearance.GraphBarGap, scaleX),
             ScaleValue(appearance.StatusStripeWidth, scaleX),
             scaleX,
             scaleY);
+    }
+
+    private static int? FitAutomaticTaskbarHeight(
+        int defaultHeight,
+        int taskbarHeight,
+        int heightWithinDefaultMargins,
+        int minimumHeight,
+        double scaleY)
+    {
+        var maximumHeight = taskbarHeight - 2 * MinimumTaskbarMarginPixels;
+        if (maximumHeight < minimumHeight)
+        {
+            return null;
+        }
+
+        var height = Math.Clamp(Math.Min(defaultHeight, heightWithinDefaultMargins), minimumHeight, maximumHeight);
+        height = GrowForFont(height, maximumHeight, MinimumGaugeFontPixels, scaleY);
+        if (OverlayPixelPolicy.CalculateGaugeRowHeight(height, scaleY) < GaugeFontHeight(height, scaleY))
+        {
+            return null;
+        }
+
+        var preferredLimit = taskbarHeight - 2 * PreferredTaskbarMarginPixels;
+        var preferredHeight = GrowForFont(height, preferredLimit, PreferredGaugeFontPixels, scaleY);
+        return GaugeFontHeight(preferredHeight, scaleY) >= PreferredGaugeFontPixels ? preferredHeight : height;
+    }
+
+    private static int GrowForFont(int height, int limit, int fontPixels, double scaleY)
+    {
+        while (height < limit && GaugeFontHeight(height, scaleY) < fontPixels)
+        {
+            height++;
+        }
+
+        return height;
+    }
+
+    private static int GaugeFontHeight(int height, double scaleY) =>
+        OverlayPixelPolicy.CalculateGaugeFontHeight(
+            OverlayPixelPolicy.CalculateGaugeRowHeight(height, scaleY), scaleY);
 
     private static EffectiveAppearanceSettings FitInternalAppearance(
         EffectiveAppearanceSettings appearance,

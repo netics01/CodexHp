@@ -239,8 +239,20 @@ public sealed class SettingsWindowViewModel : INotifyPropertyChanged
     public int OverlayHeight
     {
         get => this.Working.Appearance.OverlayHeight;
-        set => this.UpdateAppearance(this.Working.Appearance with { OverlayHeight = value });
+        set => this.UpdateAppearance(this.Working.Appearance with
+        {
+            OverlayHeight = value,
+            AutomaticOverlayHeight = false,
+        });
     }
+
+    public bool AutomaticOverlayHeight
+    {
+        get => this.Working.Appearance.AutomaticOverlayHeight;
+        set => this.UpdateAppearance(this.Working.Appearance with { AutomaticOverlayHeight = value });
+    }
+
+    public bool CanEditOverlayHeight => !this.AutomaticOverlayHeight;
 
     public int GaugePaneWidth
     {

@@ -62,6 +62,36 @@ public sealed class OverlayDisplayResolverTests
     }
 
     [Fact]
+    public void Automatic_height_keeps_the_manual_value_and_recalculates_when_the_taskbar_changes()
+    {
+        var monitor = Monitor("DISPLAY1", "MONITOR-1",
+            new PhysicalRect(0, 0, 3840, 2160), new PhysicalRect(0, 0, 3840, 2088), scale: 1.5, isPrimary: true);
+        var automatic = AppSettings.Default with
+        {
+            Appearance = AppearanceSettings.Default with { OverlayHeight = 28 },
+            Location = OverlayLocationSettings.Default with
+            {
+                MonitorId = monitor.Id, X = 200, Y = 2090, NormalizedX = 0.05, NormalizedY = 0,
+            },
+        };
+        var manual = automatic with { Appearance = automatic.Appearance with { AutomaticOverlayHeight = false } };
+        var bar = new PhysicalRect(0, 2088, 3840, 72);
+
+        var resolved = OverlayDisplayResolver.Resolve(automatic, [new DisplayEnvironment(monitor, bar)]);
+        Assert.Equal(56, resolved.Placement.PhysicalHeight);
+        Assert.Equal(bar.Top + 8, resolved.Placement.PhysicalTop);
+
+        resolved = OverlayDisplayResolver.Resolve(manual, [new DisplayEnvironment(monitor, bar)]);
+        Assert.Equal(42, resolved.Placement.PhysicalHeight);
+        Assert.Equal(2090, resolved.Placement.PhysicalTop);
+
+        var thinBar = new PhysicalRect(0, 2123, 3840, 37);
+        resolved = OverlayDisplayResolver.Resolve(automatic, [new DisplayEnvironment(monitor, thinBar)]);
+        Assert.Equal(OverlayPlacementTarget.Desktop, resolved.EffectiveTarget);
+        Assert.Equal(28, automatic.Appearance.OverlayHeight);
+    }
+
+    [Fact]
     public void Oversized_desktop_preference_is_effectively_clamped_instead_of_throwing()
     {
         var monitor = Monitor(

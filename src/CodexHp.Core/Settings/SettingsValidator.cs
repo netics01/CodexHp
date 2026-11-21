@@ -91,13 +91,15 @@ public static class SettingsValidator
             ColorMode = colorMode,
             UpperBarMode = upperBarMode,
             ProviderMode = providerMode,
-            Appearance = new AppearanceSettings(
-                overlayWidth,
-                overlayHeight,
-                gaugePaneWidth,
-                graphBarWidth,
-                graphBarGap,
-                statusStripeWidth),
+            Appearance = appearance with
+            {
+                OverlayWidth = overlayWidth,
+                OverlayHeight = overlayHeight,
+                GaugePaneWidth = gaugePaneWidth,
+                GraphBarWidth = graphBarWidth,
+                GraphBarGap = graphBarGap,
+                StatusStripeWidth = statusStripeWidth,
+            },
         };
 
         return new SettingsValidationResult(validated, correctedFields);

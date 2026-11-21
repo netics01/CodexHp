@@ -16,10 +16,17 @@ public sealed class OverlayPlacementRecoveryTests
     };
 
     [Theory]
-    [InlineData(false, "TaskbarUnavailable")]
-    [InlineData(true, "TaskbarTooSmall")]
-    public void Startup_fallback_is_retained_without_repeated_moves_then_recovers(bool shortTaskbar, string reason)
+    [InlineData(false, "TaskbarUnavailable", false, 2081)]
+    [InlineData(true, "TaskbarTooSmall", false, 2081)]
+    [InlineData(false, "TaskbarUnavailable", true, 2080)]
+    [InlineData(true, "TaskbarTooSmall", true, 2080)]
+    public void Startup_fallback_is_retained_without_repeated_moves_then_recovers(
+        bool shortTaskbar, string reason, bool automaticHeight, int restoredTop)
     {
+        var settings = Settings with
+        {
+            Appearance = Settings.Appearance with { AutomaticOverlayHeight = automaticHeight },
+        };
         PhysicalRect? taskbar = shortTaskbar ? new(0, 2112, 3840, 48) : null;
         var applied = new List<OverlayDisplayResolution>();
         var logger = new RecordingLogger();
@@ -27,23 +34,23 @@ public sealed class OverlayPlacementRecoveryTests
             settings => OverlayDisplayResolver.Resolve(settings, [new(Monitor, taskbar)]),
             (_, resolution) => applied.Add(resolution), _ => null, logger);
 
-        Assert.True(recovery.Update(Settings, allowFallback: true));
+        Assert.True(recovery.Update(settings, allowFallback: true));
         var fallback = Assert.Single(applied).Placement;
         Assert.Equal(Monitor.WorkArea.Bottom - fallback.PhysicalHeight, fallback.PhysicalTop);
         for (var retry = 0; retry < 12; retry++)
         {
-            Assert.True(recovery.Refresh(Settings, positionEditing: false));
+            Assert.True(recovery.Refresh(settings, positionEditing: false));
         }
         Assert.Single(applied);
         Assert.Contains(reason, Assert.Single(logger.Messages));
 
         taskbar = Taskbar;
-        Assert.False(recovery.Refresh(Settings, positionEditing: false));
+        Assert.False(recovery.Refresh(settings, positionEditing: false));
         Assert.Equal(2, applied.Count);
-        Assert.Equal(2081, applied[^1].Placement.PhysicalTop);
+        Assert.Equal(restoredTop, applied[^1].Placement.PhysicalTop);
         Assert.Contains("Recovery completed", logger.Messages[^1]);
-        Assert.Equal(OverlayPlacementTarget.Taskbar, Settings.Location.Target);
-        Assert.Equal(2081, Settings.Location.Y);
+        Assert.Equal(OverlayPlacementTarget.Taskbar, settings.Location.Target);
+        Assert.Equal(2081, settings.Location.Y);
     }
 
     [Theory]

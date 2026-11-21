@@ -48,14 +48,26 @@ public sealed class JsonSettingsStore : ISettingsStore
 
     public string SettingsPath { get; }
 
-    public AppSettings Load()
+    internal bool HasSavedSettings => File.Exists(this.SettingsPath);
+
+    public AppSettings Load() => this.Load(deferInitialSize: false);
+
+    internal AppSettings LoadForStartup() => this.Load(deferInitialSize: true);
+
+    private AppSettings Load(bool deferInitialSize)
     {
         Directory.CreateDirectory(this.SettingsDirectory);
-        if (!File.Exists(this.SettingsPath))
+        if (!this.HasSavedSettings)
         {
-            var defaults = this.CreateDefaultSettings();
-            this.Save(defaults);
-            return defaults;
+            if (this.TrySaveInitialSize(AppSettings.Default) is { } initial)
+            {
+                return initial;
+            }
+
+            if (!this.HasSavedSettings && (deferInitialSize || this.WriteSettings(AppSettings.Default, overwrite: false)))
+            {
+                return AppSettings.Default;
+            }
         }
 
         try
@@ -75,7 +87,9 @@ public sealed class JsonSettingsStore : ISettingsStore
         }
     }
 
-    public void Save(AppSettings settings)
+    public void Save(AppSettings settings) => this.WriteSettings(settings, overwrite: true);
+
+    private bool WriteSettings(AppSettings settings, bool overwrite)
     {
         ArgumentNullException.ThrowIfNull(settings);
         Directory.CreateDirectory(this.SettingsDirectory);
@@ -87,7 +101,12 @@ public sealed class JsonSettingsStore : ISettingsStore
         try
         {
             File.WriteAllText(temporaryPath, json, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-            File.Move(temporaryPath, this.SettingsPath, overwrite: true);
+            File.Move(temporaryPath, this.SettingsPath, overwrite);
+            return true;
+        }
+        catch (IOException) when (!overwrite && this.HasSavedSettings)
+        {
+            return false;
         }
         finally
         {
@@ -122,11 +141,6 @@ public sealed class JsonSettingsStore : ISettingsStore
                 document.Appearance?.GraphBarWidth ?? defaults.Appearance.GraphBarWidth,
                 document.Appearance?.GraphBarGap ?? defaults.Appearance.GraphBarGap,
                 document.Appearance?.StatusStripeWidth ?? defaults.Appearance.StatusStripeWidth)
-            {
-                // Older settings cannot distinguish a saved default from an explicit height.
-                AutomaticOverlayHeight = document.Appearance?.AutomaticOverlayHeight
-                    ?? (document.Appearance?.OverlayHeight is null && document.Appearance?.LegacyV2Height is null),
-            }
             : defaults.Appearance;
         var appearance = persistedAppearance;
         var location = defaults.Location;
@@ -230,21 +244,23 @@ public sealed class JsonSettingsStore : ISettingsStore
         return (logicalAppearance, location);
     }
 
-    private AppSettings CreateDefaultSettings()
+    internal AppSettings? TrySaveInitialSize(AppSettings settings)
     {
-        var availableMonitors = this.monitors();
-        if (availableMonitors.Count == 0)
+        if (this.HasSavedSettings)
         {
-            return AppSettings.Default;
+            return null;
         }
 
-        var displays = availableMonitors
+        var displays = this.monitors()
             .Select(monitor => new DisplayEnvironment(monitor, this.TryGetTaskbarBounds(monitor.Id)))
             .ToArray();
-        var appearance = DefaultAppearanceFactory.Create(
-            AppSettings.Default,
-            settings => OverlayDisplayResolver.Resolve(settings, displays).Appearance);
-        return AppSettings.Default with { Appearance = appearance };
+        if (DefaultAppearanceFactory.CreateInitial(settings, displays) is not { } appearance)
+        {
+            return null;
+        }
+
+        var initial = settings with { Appearance = appearance };
+        return this.WriteSettings(initial, overwrite: false) ? initial : null;
     }
 
     private PhysicalRect? TryGetTaskbarBounds(string monitorId)
@@ -374,7 +390,6 @@ public sealed class JsonSettingsStore : ISettingsStore
             {
                 OverlayWidth = settings.Appearance.OverlayWidth,
                 OverlayHeight = settings.Appearance.OverlayHeight,
-                AutomaticOverlayHeight = settings.Appearance.AutomaticOverlayHeight,
                 GaugePaneWidth = settings.Appearance.GaugePaneWidth,
                 GraphBarWidth = settings.Appearance.GraphBarWidth,
                 GraphBarGap = settings.Appearance.GraphBarGap,
@@ -415,8 +430,6 @@ public sealed class JsonSettingsStore : ISettingsStore
         public int? OverlayWidth { get; set; }
 
         public int? OverlayHeight { get; set; }
-
-        public bool? AutomaticOverlayHeight { get; set; }
 
         [JsonPropertyName("screenWidth")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

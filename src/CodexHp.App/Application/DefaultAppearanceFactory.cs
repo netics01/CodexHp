@@ -1,4 +1,5 @@
 using CodexHp.Core.Domain;
+using CodexHp.Core.Positioning;
 using CodexHp.Core.Settings;
 
 namespace CodexHp.App.Application;
@@ -8,6 +9,19 @@ internal static class DefaultAppearanceFactory
     private const int MinimumOverlayWidth = 120;
     private const int MaximumOverlayWidth = 4096;
     private const int TargetVisibleBucketCount = 20 * 60 / TokenGraphViewport.BucketSeconds;
+
+    public static AppearanceSettings? CreateInitial(
+        AppSettings template,
+        IReadOnlyList<DisplayEnvironment> displays)
+    {
+        if (displays.Count == 0 || OverlayDisplayResolver.ChooseInitialHeight(template, displays) is not { } height)
+        {
+            return null;
+        }
+
+        var initial = template with { Appearance = template.Appearance with { OverlayHeight = height } };
+        return Create(initial, settings => OverlayDisplayResolver.Resolve(settings, displays).Appearance);
+    }
 
     public static AppearanceSettings Create(
         AppSettings template,

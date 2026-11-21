@@ -89,9 +89,10 @@ public sealed class OverlayPositionPreviewIntegrationTests
 
         var resolution = controller.Resolve(AppSettings.Default);
 
-        Assert.Equal(new EffectiveAppearanceSettings(260, 48, 96, 2, 0, 4, 2, 2), resolution.Appearance);
+        Assert.Equal(new EffectiveAppearanceSettings(260, 54, 96, 2, 0, 4, 2, 2), resolution.Appearance);
         Assert.Equal(resolution.Appearance.OverlayWidth, resolution.Placement.PhysicalWidth);
         Assert.Equal(resolution.Appearance.OverlayHeight, resolution.Placement.PhysicalHeight);
+        Assert.Equal(taskbar.Top + 1, resolution.Placement.PhysicalTop);
         Assert.Equal(OverlayPlacementTarget.Taskbar, resolution.EffectiveTarget);
         Assert.True(resolution.WasSizeAdjusted);
     }

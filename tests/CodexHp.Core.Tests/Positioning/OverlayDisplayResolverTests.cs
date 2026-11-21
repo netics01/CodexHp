@@ -55,40 +55,40 @@ public sealed class OverlayDisplayResolverTests
             settings,
             [new DisplayEnvironment(monitor, new PhysicalRect(0, 1032, 1920, 48))]);
 
-        Assert.Equal(44, result.Appearance.OverlayHeight);
-        Assert.Equal(new PhysicalRect(2, 1034, 144, 44), result.Placement.Bounds);
+        Assert.Equal(46, result.Appearance.OverlayHeight);
+        Assert.Equal(new PhysicalRect(2, 1033, 144, 46), result.Placement.Bounds);
         Assert.Equal(OverlayPlacementTarget.Taskbar, result.EffectiveTarget);
         Assert.True(result.WasSizeAdjusted);
     }
 
     [Fact]
-    public void Automatic_height_keeps_the_manual_value_and_recalculates_when_the_taskbar_changes()
+    public void Saved_height_and_position_are_used_until_the_taskbar_is_too_small()
     {
         var monitor = Monitor("DISPLAY1", "MONITOR-1",
             new PhysicalRect(0, 0, 3840, 2160), new PhysicalRect(0, 0, 3840, 2088), scale: 1.5, isPrimary: true);
-        var automatic = AppSettings.Default with
+        var settings = AppSettings.Default with
         {
-            Appearance = AppearanceSettings.Default with { OverlayHeight = 28 },
+            Appearance = AppearanceSettings.Default with { OverlayHeight = 40 },
             Location = OverlayLocationSettings.Default with
             {
                 MonitorId = monitor.Id, X = 200, Y = 2090, NormalizedX = 0.05, NormalizedY = 0,
             },
         };
-        var manual = automatic with { Appearance = automatic.Appearance with { AutomaticOverlayHeight = false } };
         var bar = new PhysicalRect(0, 2088, 3840, 72);
 
-        var resolved = OverlayDisplayResolver.Resolve(automatic, [new DisplayEnvironment(monitor, bar)]);
-        Assert.Equal(56, resolved.Placement.PhysicalHeight);
-        Assert.Equal(bar.Top + 8, resolved.Placement.PhysicalTop);
-
-        resolved = OverlayDisplayResolver.Resolve(manual, [new DisplayEnvironment(monitor, bar)]);
-        Assert.Equal(42, resolved.Placement.PhysicalHeight);
+        var resolved = OverlayDisplayResolver.Resolve(settings, [new DisplayEnvironment(monitor, bar)]);
+        Assert.Equal(60, resolved.Placement.PhysicalHeight);
         Assert.Equal(2090, resolved.Placement.PhysicalTop);
 
-        var thinBar = new PhysicalRect(0, 2123, 3840, 37);
-        resolved = OverlayDisplayResolver.Resolve(automatic, [new DisplayEnvironment(monitor, thinBar)]);
+        var thinBar = new PhysicalRect(0, 2112, 3840, 48);
+        resolved = OverlayDisplayResolver.Resolve(settings, [new DisplayEnvironment(monitor, thinBar)]);
+        Assert.Equal(46, resolved.Placement.PhysicalHeight);
+        Assert.Equal(thinBar.Top + 1, resolved.Placement.PhysicalTop);
+
+        var tooThinBar = new PhysicalRect(0, 2123, 3840, 37);
+        resolved = OverlayDisplayResolver.Resolve(settings, [new DisplayEnvironment(monitor, tooThinBar)]);
         Assert.Equal(OverlayPlacementTarget.Desktop, resolved.EffectiveTarget);
-        Assert.Equal(28, automatic.Appearance.OverlayHeight);
+        Assert.Equal(40, settings.Appearance.OverlayHeight);
     }
 
     [Fact]

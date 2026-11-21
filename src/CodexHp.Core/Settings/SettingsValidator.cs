@@ -6,8 +6,8 @@ public static class SettingsValidator
 {
     private const int MinimumOverlayWidth = 120;
     private const int MaximumOverlayWidth = 4096;
-    private const int MinimumOverlayHeight = 24;
-    private const int MaximumOverlayHeight = 512;
+    internal const int MinimumOverlayHeight = 24;
+    internal const int MaximumOverlayHeight = 512;
     private const int MinimumGaugePaneWidth = 20;
     private const int MinimumChartWidth = 20;
     private const int MinimumGraphBarWidth = 1;

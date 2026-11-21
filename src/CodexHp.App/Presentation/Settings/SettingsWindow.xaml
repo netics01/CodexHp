@@ -445,16 +445,8 @@
                         <TextBox Grid.Row="0" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding OverlayWidth, UpdateSourceTrigger=LostFocus}" />
                         <TextBlock Grid.Row="0" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock Grid.Row="1" VerticalAlignment="Center" Text="Usage Overlay Height" />
-                        <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}"
-                                 IsEnabled="{Binding CanEditOverlayHeight}"
-                                 Text="{Binding OverlayHeight, UpdateSourceTrigger=LostFocus}" />
-                        <StackPanel Grid.Row="1" Grid.Column="2" Margin="8,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
-                            <CheckBox Margin="14,0,0,0" Style="{StaticResource CompactCheckBoxStyle}"
-                                      AutomationProperties.Name="Automatic overlay height"
-                                      ToolTip="Fit the height to the taskbar for readable percentages."
-                                      Content="Auto" IsChecked="{Binding AutomaticOverlayHeight}" />
-                        </StackPanel>
+                        <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding OverlayHeight, UpdateSourceTrigger=LostFocus}" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />
                         <TextBlock Grid.Row="2" VerticalAlignment="Center" Text="Gauge Area Width" />
                         <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource CompactTextBoxStyle}" Text="{Binding GaugePaneWidth, UpdateSourceTrigger=LostFocus}" />
                         <TextBlock Grid.Row="2" Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="DIP" />

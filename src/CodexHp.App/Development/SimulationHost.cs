@@ -44,7 +44,8 @@ internal sealed class SimulationHost : IDisposable
         this.session.Select(preset);
         this.session.Settings = this.session.Settings with
         {
-            Appearance = DefaultAppearanceFactory.Create(this.session.Settings, value => this.positions.Resolve(value).Appearance),
+            Appearance = DefaultAppearanceFactory.CreateInitial(this.session.Settings, this.positions.GetDisplays())
+                ?? this.session.Settings.Appearance,
         };
         this.resolution = this.positions.Resolve(this.session.Settings);
         this.overlay = new(new OverlayWindowHost(taskbar, monitors));

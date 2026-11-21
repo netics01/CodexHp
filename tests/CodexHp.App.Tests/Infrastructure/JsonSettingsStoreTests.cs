@@ -99,17 +99,18 @@ public sealed class JsonSettingsStoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData(1, 48, 80, 43, 12)]
-    [InlineData(1, 42, 80, 40, 11)]
-    [InlineData(1.25, 60, 87, 43, 12)]
-    [InlineData(1.5, 67, 80, 48, 13)]
-    [InlineData(1.5, 68, 80, 56, 15)]
-    [InlineData(1.5, 72, 80, 56, 15)]
-    [InlineData(2, 96, 80, 64, 17)]
-    [InlineData(2.5, 120, 80, 80, 22)]
-    [InlineData(3, 144, 80, 96, 26)]
+    [InlineData(1, 48, 80, 43, 43, 12)]
+    [InlineData(1, 42, 80, 40, 40, 11)]
+    [InlineData(1.25, 60, 87, 34, 43, 12)]
+    [InlineData(1.5, 48, 80, 30, 45, 13)]
+    [InlineData(1.5, 63, 80, 32, 48, 13)]
+    [InlineData(1.5, 64, 80, 37, 56, 15)]
+    [InlineData(1.5, 72, 80, 37, 56, 15)]
+    [InlineData(2, 96, 80, 32, 64, 17)]
+    [InlineData(2.5, 120, 80, 32, 80, 22)]
+    [InlineData(3, 144, 80, 32, 96, 26)]
     public void First_run_fits_gauge_text_and_targets_twenty_minutes_within_minimum_width(
-        double scale, int taskbarHeight, int expectedBuckets, int expectedHeight, int expectedFont)
+        double scale, int taskbarHeight, int expectedBuckets, int expectedHeightDip, int expectedHeight, int expectedFont)
     {
         var taskbarTop = 2160 - taskbarHeight;
         var monitor = new MonitorGeometry(
@@ -126,12 +127,16 @@ public sealed class JsonSettingsStoreTests : IDisposable
             monitors: () => [monitor],
             taskbarBounds: _ => taskbar);
 
-        var settings = store.Load();
+        var settings = store.LoadForStartup();
         var resolution = OverlayDisplayResolver.Resolve(
             settings,
             [new DisplayEnvironment(monitor, taskbar)]);
 
-        Assert.Equal(AppearanceSettings.Default with { OverlayWidth = settings.Appearance.OverlayWidth }, settings.Appearance);
+        Assert.Equal(AppearanceSettings.Default with
+        {
+            OverlayWidth = settings.Appearance.OverlayWidth,
+            OverlayHeight = expectedHeightDip,
+        }, settings.Appearance);
         Assert.Equal(settings, store.Load());
         Assert.Equal(OverlayPlacementTarget.Taskbar, resolution.EffectiveTarget);
         Assert.Equal(expectedHeight, resolution.Appearance.OverlayHeight);
@@ -155,19 +160,49 @@ public sealed class JsonSettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public void Existing_height_equal_to_the_old_default_stays_manual()
+    public void Existing_height_is_preserved_even_if_the_old_auto_flag_was_set()
     {
         var store = new JsonSettingsStore(this.localAppData);
         Directory.CreateDirectory(store.SettingsDirectory);
         File.WriteAllText(store.SettingsPath, """
-            { "schemaVersion": 4, "appearance": { "overlayHeight": 32 } }
+            { "schemaVersion": 4, "appearance": { "overlayHeight": 32, "automaticOverlayHeight": true } }
             """);
 
         var settings = store.Load();
 
         Assert.Equal(32, settings.Appearance.OverlayHeight);
-        Assert.False(settings.Appearance.AutomaticOverlayHeight);
+        Assert.DoesNotContain("automaticOverlayHeight", File.ReadAllText(store.SettingsPath), StringComparison.Ordinal);
         Assert.Equal(settings, store.Load());
+    }
+
+    [Theory]
+    [InlineData(false, 37)]
+    [InlineData(true, 35)]
+    public void Startup_waits_for_the_taskbar_unless_settings_have_already_been_saved(
+        bool userSavedHeight, int expectedHeight)
+    {
+        var monitor = new MonitorGeometry("DISPLAY", new(0, 0, 3840, 2160),
+            new(0, 0, 3840, 2088), 1.5, 1.5, true);
+        PhysicalRect? taskbar = null;
+        var store = new JsonSettingsStore(this.localAppData, monitors: () => [monitor], taskbarBounds: _ => taskbar);
+
+        var provisional = store.LoadForStartup();
+        Assert.False(store.HasSavedSettings);
+        Assert.Null(store.TrySaveInitialSize(provisional));
+
+        if (userSavedHeight)
+        {
+            store.Save(provisional with { Appearance = provisional.Appearance with { OverlayHeight = 35 } });
+        }
+
+        taskbar = new(0, 2088, 3840, 72);
+        var initialized = store.TrySaveInitialSize(provisional);
+        Assert.Equal(userSavedHeight, initialized is null);
+        Assert.Equal(expectedHeight, store.LoadForStartup().Appearance.OverlayHeight);
+
+        taskbar = new(0, 2097, 3840, 63);
+        Assert.Equal(expectedHeight, store.LoadForStartup().Appearance.OverlayHeight);
+        Assert.Null(store.TrySaveInitialSize(provisional));
     }
 
     [Fact]

@@ -89,7 +89,6 @@ public sealed class SettingsWindowViewModelTests
             {
                 OverlayWidth = 400,
                 OverlayHeight = 28,
-                AutomaticOverlayHeight = false,
             },
         };
         var viewModel = CreateViewModel(
@@ -99,15 +98,9 @@ public sealed class SettingsWindowViewModelTests
         viewModel.ResetAppearanceToDefaults();
 
         Assert.Equal(135, viewModel.OverlayWidth);
-        Assert.True(viewModel.AutomaticOverlayHeight);
-        Assert.False(viewModel.CanEditOverlayHeight);
-
-        viewModel.AutomaticOverlayHeight = false;
+        Assert.Equal(32, viewModel.OverlayHeight);
         viewModel.OverlayHeight = 36;
-        Assert.True(viewModel.CanEditOverlayHeight);
-        viewModel.AutomaticOverlayHeight = true;
         Assert.Equal(36, viewModel.OverlayHeight);
-        Assert.False(viewModel.CanEditOverlayHeight);
     }
 
     [Fact]

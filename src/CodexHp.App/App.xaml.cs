@@ -28,6 +28,7 @@ public partial class App : System.Windows.Application
     private SettingsWindowController? settingsWindowController;
     private OverlayPositionController? positionController;
     private DisplayEnvironmentWatcher? displayEnvironmentWatcher;
+    private JsonSettingsStore? initialSizeStore;
     private ForegroundWindowWatcher? foregroundWindowWatcher;
     private OverlayPlacementRecovery? placementRecovery;
     private AppSettings activeSettings = AppSettings.Default;
@@ -108,10 +109,14 @@ public partial class App : System.Windows.Application
             taskbarBounds: taskbarBounds);
         var startupRegistration = new StartupRegistration(
             Environment.ProcessPath ?? throw new InvalidOperationException("The executable path is not available."));
-        this.activeSettings = settingsStore.Load() with
+        this.activeSettings = settingsStore.LoadForStartup() with
         {
             StartWithWindows = startupRegistration.IsEnabled(),
         };
+        if (!settingsStore.HasSavedSettings)
+        {
+            this.initialSizeStore = settingsStore;
+        }
         this.systemUsesLightColors = WindowsShellTheme.Read() == TrayIconTheme.Light;
         var settingsCommitService = new SettingsCommitService(settingsStore, startupRegistration);
         this.positionController = new OverlayPositionController(monitorService, taskbarBounds);
@@ -329,8 +334,23 @@ public partial class App : System.Windows.Application
                 this.settingsWindowController?.Current?.RefreshSystemColorMode();
             }
         }
+        if (this.initialSizeStore is { } store)
+        {
+            if (store.HasSavedSettings)
+            {
+                this.initialSizeStore = null;
+            }
+            else if (this.settingsWindowController?.Current is null && !this.usageOverlayWindow.IsOverlayPositionChangeMode
+                && store.TrySaveInitialSize(this.activeSettings) is { } initial)
+            {
+                this.initialSizeStore = null;
+                this.activeSettings = initial;
+                return this.placementRecovery.Update(initial, allowFallback: true);
+            }
+        }
+
         return this.placementRecovery.Refresh(
-            this.activeSettings, this.usageOverlayWindow.IsOverlayPositionChangeMode);
+            this.activeSettings, this.usageOverlayWindow.IsOverlayPositionChangeMode) || this.initialSizeStore is not null;
     }
 
     private void OpenSettings()

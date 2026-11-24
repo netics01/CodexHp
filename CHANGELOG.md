@@ -4,6 +4,12 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-11-24
+
+### Fixed
+
+- Show Claude usage gauges when the latest cached usage response has query parameters in its URL.
+
 ## [0.6.2] - 2026-11-21
 
 ### Changed

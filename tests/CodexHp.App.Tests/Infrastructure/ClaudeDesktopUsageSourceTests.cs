@@ -10,11 +10,13 @@ public sealed class ClaudeDesktopUsageSourceTests : IDisposable
     private const long Now = 1_792_000_000_000;
     private readonly string root = Path.Combine(Path.GetTempPath(), "CodexHp.Tests", Guid.NewGuid().ToString("N"));
 
-    [Fact]
-    public void A_newer_cached_response_supplies_percentages_and_reset_times()
+    [Theory]
+    [InlineData("")]
+    [InlineData("?skip_spend=1")]
+    public void A_newer_cached_response_supplies_percentages_and_reset_times(string query)
     {
         this.WriteHistory((Now - 600_000, 40, 10));
-        this.WriteCache((Now - 60_000, UsageJson(91, "2026-10-14T12:39:59.898177+00:00", 13.4, "2026-10-17T01:59:59+00:00")));
+        this.WriteCache(Now - 60_000, UsageJson(91, "2026-10-14T12:39:59.898177+00:00", 13.4, "2026-10-17T01:59:59+00:00"), query);
 
         var snapshot = this.Read();
 
@@ -34,7 +36,7 @@ public sealed class ClaudeDesktopUsageSourceTests : IDisposable
         var sessionReset = DateTimeOffset.FromUnixTimeMilliseconds(Now - 120_000);
         var weeklyReset = DateTimeOffset.FromUnixTimeMilliseconds(Now + 86_400_000);
         this.WriteHistory((Now - 60_000, 5, 14));
-        this.WriteCache((Now - 3_600_000, UsageJson(91, sessionReset.ToString("O"), 13, weeklyReset.ToString("O"))));
+        this.WriteCache(Now - 3_600_000, UsageJson(91, sessionReset.ToString("O"), 13, weeklyReset.ToString("O")));
 
         var snapshot = this.Read();
 
@@ -107,9 +109,12 @@ public sealed class ClaudeDesktopUsageSourceTests : IDisposable
     [Theory]
     [InlineData("1/0/https://claude.ai/api/organizations/" + Org + "/usage", Org)]
     [InlineData("https://claude.ai/api/organizations/" + Org + "/usage", Org)]
+    [InlineData("1/0/https://claude.ai/api/organizations/" + Org + "/usage?skip_spend=1&other=2", Org)]
     [InlineData("1/0/https://claude.ai/api/organizations/" + Org + "/usage/extra", null)]
+    [InlineData("1/0/https://claude.ai/api/organizations/" + Org + "/usage/extra?skip_spend=1", null)]
     [InlineData("1/0/https://claude.ai/api/organizations/a/b/usage", null)]
     [InlineData("1/0/https://evil.test/?https://claude.ai/api/organizations/x/usage", null)]
+    [InlineData("1/0/https://evil.test/?url=/https://claude.ai/api/organizations/x/usage", null)]
     public void Parses_the_organization_from_usage_cache_keys(string key, string? expected)
     {
         Assert.Equal(expected, ClaudeDesktopUsageSource.ParseOrganization(key));
@@ -138,16 +143,13 @@ public sealed class ClaudeDesktopUsageSourceTests : IDisposable
         File.WriteAllText(Path.Combine(directory, "plan-usage-history.json"), json, Encoding.UTF8);
     }
 
-    private void WriteCache(params (long ResponseUnixMs, string Json)[] responses)
+    private void WriteCache(long responseUnixMs, string json, string query = "")
     {
         var fixture = new ChromiumCacheFixture();
-        foreach (var (time, json) in responses)
-        {
-            fixture.Add($"1/0/https://claude.ai/api/organizations/{Org}/usage", time,
-                "HTTP/1.1 200\r\ncontent-type: application/json\r\ncontent-encoding: zstd", ChromiumCacheFixture.Zstd(json));
-        }
+        fixture.Add($"1/0/https://claude.ai/api/organizations/{Org}/usage{query}", responseUnixMs,
+            "HTTP/1.1 200\r\ncontent-type: application/json\r\ncontent-encoding: zstd", ChromiumCacheFixture.Zstd(json));
 
-        fixture.Add("1/0/https://claude.ai/api/organizations/other/usage", Now,
+        fixture.Add($"1/0/https://claude.ai/api/organizations/other/usage{query}", Now,
             "HTTP/1.1 200\r\ncontent-type: application/json", Encoding.UTF8.GetBytes(UsageJson(1, null, 1, null)));
         fixture.Write(Path.Combine(this.root, "Claude", "Cache", "Cache_Data"));
     }

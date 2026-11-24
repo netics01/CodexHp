@@ -254,14 +254,16 @@ public sealed class ClaudeDesktopUsageSource : IClaudeUsageSource
     // Cache keys carry a partition prefix such as "1/0/" before the URL.
     internal static string? ParseOrganization(string key)
     {
-        var start = key.IndexOf(UsageUrlPrefix, StringComparison.Ordinal);
-        if (start < 0 || (start > 0 && key[start - 1] is not '/' and not ' ')
-            || !key.EndsWith(UsageUrlSuffix, StringComparison.Ordinal))
+        var queryStart = key.IndexOf('?');
+        var keyWithoutQuery = queryStart < 0 ? key : key[..queryStart];
+        var start = keyWithoutQuery.IndexOf(UsageUrlPrefix, StringComparison.Ordinal);
+        if (start < 0 || (start > 0 && keyWithoutQuery[start - 1] is not '/' and not ' ')
+            || !keyWithoutQuery.EndsWith(UsageUrlSuffix, StringComparison.Ordinal))
         {
             return null;
         }
 
-        var organization = key[(start + UsageUrlPrefix.Length)..^UsageUrlSuffix.Length];
+        var organization = keyWithoutQuery[(start + UsageUrlPrefix.Length)..^UsageUrlSuffix.Length];
         return organization.Length is > 0 and <= 64 && organization.All(c => char.IsAsciiLetterOrDigit(c) || c == '-')
             ? organization
             : null;

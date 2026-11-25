@@ -2,7 +2,8 @@
 param(
     [Parameter(Mandatory)][ValidatePattern('^\d+\.\d+\.\d+$')][string]$ExpectedVersion,
     [switch]$RequireStartupEnabled,
-    [ValidateRange(1, 120)][int]$StartMenuTimeoutSeconds = 30
+    [ValidateRange(1, 120)][int]$StartMenuTimeoutSeconds = 30,
+    [switch]$AllowMissingStartupRegistration
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,7 +89,8 @@ if (-not [string]::Equals($installedVersion, $ExpectedVersion, [StringComparison
 
 $expectedRunValue = '"' + $installedExecutablePath + '"'
 $actualRunValue = Get-RealRegistryString $runSubKey 'CodexHp'
-if (-not [string]::Equals($actualRunValue, $expectedRunValue, [StringComparison]::OrdinalIgnoreCase)) {
+if (-not ($AllowMissingStartupRegistration -and $null -eq $actualRunValue) -and
+    -not [string]::Equals($actualRunValue, $expectedRunValue, [StringComparison]::OrdinalIgnoreCase)) {
     throw "Real Windows startup path is '$actualRunValue'; expected '$expectedRunValue'."
 }
 
@@ -104,8 +106,9 @@ if (-not [string]::Equals($actualDisplayName, "CodexHp $ExpectedVersion", [Strin
 
 $approval = Get-RealRegistryBinary $startupApprovedSubKey 'CodexHp'
 $startupEnabled = $null -eq $approval -or ($approval.Length -gt 0 -and $approval[0] -eq 2)
+$startupEnabled = $null -ne $actualRunValue -and $startupEnabled
 if ($RequireStartupEnabled -and -not $startupEnabled) {
-    $renderedApproval = [BitConverter]::ToString($approval)
+    $renderedApproval = if ($null -eq $approval) { 'none' } else { [BitConverter]::ToString($approval) }
     throw "Real Windows startup approval is disabled or invalid: $renderedApproval"
 }
 

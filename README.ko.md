@@ -94,7 +94,7 @@
 
 ## 소스에서 빌드
 
-`global.json`에 고정된 .NET 10 SDK가 필요합니다. Inno Setup 6은 설치 프로그램 빌드에만 필요합니다.
+`global.json`의 최소 버전을 충족하는 정식 .NET 10 SDK 중 설치된 가장 최신 버전으로 빌드합니다. 설치 프로그램을 빌드하려면 Inno Setup 6이 필요합니다.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Verify-Core.ps1
@@ -106,6 +106,7 @@ pwsh -NoProfile -File .\scripts\Verify-Core.ps1
 - 로컬 빌드는 About에 **CodexHp-Dev**로 표시됩니다.
 - 개발 빌드에는 [시뮬레이션 도구](docs/development-simulation.md)가 들어 있습니다.
 - 공식 릴리스 자산은 `pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease`로만 만듭니다.
+- 공식 릴리스마다 실행 파일 빌드와 검증에 사용한 .NET SDK 버전을 기록합니다.
 
 ## 프로젝트 상태
 

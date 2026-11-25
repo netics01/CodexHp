@@ -303,13 +303,9 @@ try {
     $tag = "v$version"
     $changelogSection = Get-ChangelogSection -Path $changelogPath -Version $version
 
-    $sdkConfiguration = Get-Content -LiteralPath (Join-Path $repositoryRoot 'global.json') -Raw | ConvertFrom-Json
-    $requiredSdkVersion = $sdkConfiguration.sdk.version
-    $actualSdkVersion = Get-CheckedCommandOutput dotnet @('--version') 'Unable to read the .NET SDK version.'
-    if ($actualSdkVersion -cne $requiredSdkVersion) {
-        throw ".NET SDK version '$actualSdkVersion' was found; required version is '$requiredSdkVersion'."
-    }
-    Write-Host ".NET SDK: $actualSdkVersion"
+    $dotnet = (Get-Command dotnet -CommandType Application -ErrorAction Stop).Source
+    $sdkVersion = Get-CheckedCommandOutput $dotnet @('--version') 'Unable to select a .NET SDK using global.json.'
+    Write-Host ".NET SDK: $sdkVersion"
 
     $resolvedCompilerPath = Get-InnoSetupCompiler
 
@@ -358,7 +354,7 @@ try {
     $executableNames = @($setupName, $portableName)
 
     if (-not $releaseExists) {
-        & $verifyScript -BuildFlavor Official
+        & $verifyScript -BuildFlavor Official -ExpectedSdkVersion $sdkVersion
         if ($LASTEXITCODE -ne 0) { throw "Verify-Core.ps1 failed with exit code $LASTEXITCODE." }
 
         & $buildInstallerScript -CompilerPath $resolvedCompilerPath -UseExistingVerifiedPublish
@@ -388,7 +384,7 @@ try {
 > [!WARNING]
 > This release is not code-signed. Windows SmartScreen or Smart App Control may warn about or block these files. Download them only from this GitHub Release and verify the SHA-256 checksums.
 
-CodexHp {version} for Windows 11.
+CodexHp {version} for Windows 11. Built with .NET SDK `{sdkVersion}`.
 
 ## Changes
 
@@ -400,7 +396,7 @@ CodexHp {version} for Windows 11.
 - `CodexHp-Portable-{version}-x64.exe` is the secondary portable build.
 - `SHA256SUMS.txt` contains the SHA-256 digest for both executables.
 - This release is not submitted to WinGet.
-'@.Replace('{version}', $version).Replace('{changes}', $changelogSection)
+'@.Replace('{version}', $version).Replace('{sdkVersion}', $sdkVersion).Replace('{changes}', $changelogSection)
         $notesPath = Join-Path $outDirectory "release-notes-$tag.md"
         $notes | Set-Content -LiteralPath $notesPath -Encoding utf8NoBOM
 

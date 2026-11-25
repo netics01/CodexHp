@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Development', 'Official')][string]$BuildFlavor = 'Development'
+    [ValidateSet('Development', 'Official')][string]$BuildFlavor = 'Development',
+    [string]$ExpectedSdkVersion
 )
 
 $ErrorActionPreference = 'Stop'
@@ -24,17 +25,37 @@ if (-not $publishDirectoryFull.StartsWith($requiredPrefix, [StringComparison]::O
 
 Push-Location $repositoryRoot
 try {
-    & dotnet restore $solutionPath
+    $dotnet = (Get-Command dotnet -CommandType Application -ErrorAction Stop).Source
+    $sdkVersion = & $dotnet --version
+    if ($LASTEXITCODE -ne 0) { throw "dotnet --version failed with exit code $LASTEXITCODE." }
+    $sdkVersion = $sdkVersion.Trim()
+    if ($ExpectedSdkVersion -and $sdkVersion -cne $ExpectedSdkVersion) {
+        throw ".NET SDK selection changed from '$ExpectedSdkVersion' to '$sdkVersion' before verification."
+    }
+
+    $installedSdks = & $dotnet --list-sdks
+    if ($LASTEXITCODE -ne 0) { throw "dotnet --list-sdks failed with exit code $LASTEXITCODE." }
+    $sdkPattern = '^' + [regex]::Escape($sdkVersion) + ' \[(.+)\]$'
+    $sdkEntry = $installedSdks | Select-String -Pattern $sdkPattern | Select-Object -First 1
+    if ($null -eq $sdkEntry) {
+        throw "Could not locate the selected .NET SDK '$sdkVersion'."
+    }
+
+    # Run the selected SDK's CLI directly so each command uses the same SDK.
+    $sdkCli = Join-Path $sdkEntry.Matches[0].Groups[1].Value "$sdkVersion\dotnet.dll"
+    Write-Host ".NET SDK: $sdkVersion"
+
+    & $dotnet exec $sdkCli restore $solutionPath
     if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed with exit code $LASTEXITCODE." }
 
-    & dotnet build $solutionPath --no-restore
+    & $dotnet exec $sdkCli build $solutionPath --no-restore
     if ($LASTEXITCODE -ne 0) { throw "dotnet build failed with exit code $LASTEXITCODE." }
 
-    & dotnet test $solutionPath --no-build
+    & $dotnet exec $sdkCli test $solutionPath --no-build
     if ($LASTEXITCODE -ne 0) { throw "dotnet test failed with exit code $LASTEXITCODE." }
 
     New-Item -ItemType Directory -Path $temporaryPublishDirectoryFull -Force | Out-Null
-    & dotnet publish $projectPath -c Release -r win-x64 --self-contained true `
+    & $dotnet exec $sdkCli publish $projectPath -c Release -r win-x64 --self-contained true `
         -p:PublishSingleFile=true `
         -p:IncludeNativeLibrariesForSelfExtract=true `
         -p:CodexHpBuildFlavor=$BuildFlavor `

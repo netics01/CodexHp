@@ -94,7 +94,7 @@ Like a health bar in a game: how much of your limit is left.
 
 ## Build from source
 
-Requires the .NET 10 SDK pinned in `global.json`. Inno Setup 6 only for the installer.
+Builds use the newest installed stable .NET 10 SDK that meets the minimum in `global.json`. Inno Setup 6 is required to build the installer.
 
 ```powershell
 pwsh -NoProfile -File .\scripts\Verify-Core.ps1
@@ -106,6 +106,7 @@ pwsh -NoProfile -File .\scripts\Verify-Core.ps1
 - Local builds show **CodexHp-Dev** in About.
 - Development builds include a [simulation tool](docs/development-simulation.md).
 - Official release assets are built only with `pwsh -NoProfile -File .\scripts\Publish-LocalRelease.ps1 -AllowUnsignedRelease`.
+- Each official release records the .NET SDK version used to build and verify the binaries.
 
 ## Project status
 

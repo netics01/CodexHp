@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Xunit;
 
 namespace CodexHp.App.Tests.Application;
@@ -43,12 +44,23 @@ public sealed class ReleaseConfigurationTests
     }
 
     [Fact]
-    public void Local_release_pins_the_build_toolchain_and_derives_assets_from_the_project_version()
+    public void Build_uses_the_newest_installed_stable_dotnet_10_sdk()
     {
-        var sdk = ReadRequiredRepositoryFile("global.json");
+        using var global = JsonDocument.Parse(ReadRequiredRepositoryFile("global.json"));
+        var sdk = global.RootElement.GetProperty("sdk");
+        var minimum = Version.Parse(sdk.GetProperty("version").GetString()!);
+
+        Assert.Equal(10, minimum.Major);
+        Assert.Equal(0, minimum.Minor);
+        Assert.Equal("latestFeature", sdk.GetProperty("rollForward").GetString());
+        Assert.False(sdk.GetProperty("allowPrerelease").GetBoolean());
+    }
+
+    [Fact]
+    public void Local_release_pins_the_installer_compiler_and_derives_assets_from_the_project_version()
+    {
         var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
 
-        Assert.Contains("\"version\": \"10.0.203\"", sdk, StringComparison.Ordinal);
         Assert.Contains("$requiredInnoSetupVersion = '6.7.3'", localRelease, StringComparison.Ordinal);
         Assert.Contains("$tag = \"v$version\"", localRelease, StringComparison.Ordinal);
         Assert.Contains("CodexHp-Setup-{version}-x64.exe", localRelease, StringComparison.Ordinal);
@@ -62,7 +74,9 @@ public sealed class ReleaseConfigurationTests
         var localRelease = ReadRequiredRepositoryFile("scripts", "Publish-LocalRelease.ps1");
         var verification = ReadRequiredRepositoryFile("scripts", "Verify-Core.ps1");
 
-        Assert.Contains("& $verifyScript -BuildFlavor Official", localRelease, StringComparison.Ordinal);
+        Assert.Contains("$sdkVersion = Get-CheckedCommandOutput $dotnet @('--version')", localRelease, StringComparison.Ordinal);
+        Assert.Contains("& $verifyScript -BuildFlavor Official -ExpectedSdkVersion $sdkVersion", localRelease, StringComparison.Ordinal);
+        Assert.Contains(".Replace('{sdkVersion}', $sdkVersion)", localRelease, StringComparison.Ordinal);
         Assert.Contains("[ValidateSet('Development', 'Official')]", verification, StringComparison.Ordinal);
         Assert.Contains("-p:CodexHpBuildFlavor=$BuildFlavor", verification, StringComparison.Ordinal);
     }

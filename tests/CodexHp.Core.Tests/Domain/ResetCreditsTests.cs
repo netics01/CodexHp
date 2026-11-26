@@ -54,9 +54,9 @@ public sealed class ResetCreditsTests
         {
             "Banked resets: 3",
             "Expires " + DateTimeOffset.FromUnixTimeMilliseconds(Now + 10 * 86_400_000L).ToLocalTime()
-                .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture),
+                .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture),
             "Expires " + DateTimeOffset.FromUnixTimeMilliseconds(Now + 20 * 86_400_000L).ToLocalTime()
-                .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture),
+                .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture),
         }, state.Tooltip.Split("\r\n"));
     }
 

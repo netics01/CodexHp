@@ -47,5 +47,5 @@ internal static class OverlayTooltipFormatting
 {
     internal static string FormatLocalDateTime(long unixMs) =>
         DateTimeOffset.FromUnixTimeMilliseconds(unixMs).ToLocalTime()
-            .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture);
+            .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture);
 }

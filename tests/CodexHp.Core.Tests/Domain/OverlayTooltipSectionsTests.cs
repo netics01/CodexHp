@@ -17,7 +17,7 @@ public sealed class OverlayTooltipSectionsTests
         var state = Create(mode, remaining);
         var rows = state.TooltipSections[0].Rows;
         var localTime = DateTimeOffset.FromUnixTimeMilliseconds(86_400_000).ToLocalTime()
-            .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture);
+            .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture);
         Assert.Equal(new OverlayTooltipRow("Week reset", localTime), rows[0]);
         Assert.Equal(new OverlayTooltipRow("Time remaining", "23h 43m"), rows[1]);
         Assert.Equal(show5H, state.TooltipSections.SelectMany(section => section.Rows).Any(row => row.Label.StartsWith("5H")));
@@ -36,8 +36,8 @@ public sealed class OverlayTooltipSectionsTests
         var rows = ResetCreditsDisplayState.Create(snapshot, now, false).TooltipRows.Where(row => row.Label == "Expires").ToArray();
         Assert.Equal(2, rows.Length);
         Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(now + 100_000).ToLocalTime()
-            .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture), rows[0].Value);
-        Assert.Equal(17, rows[0].Value.Length);
+            .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture), rows[0].Value);
+        Assert.Equal(15, rows[0].Value.Length);
     }
 
     [Fact]

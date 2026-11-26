@@ -58,7 +58,7 @@ public sealed record ResetCreditsDisplayState(
             {
                 foreach (var credit in credits.Where(credit => IsValidExpiry(credit.ExpiresAtUnixMs)).Take(2))
                 {
-                    var localExpiry = $"{DateTimeOffset.FromUnixTimeMilliseconds(credit.ExpiresAtUnixMs!.Value).ToLocalTime():yyyy-MM-dd HH:mm}";
+                    var localExpiry = OverlayTooltipFormatting.FormatLocalDateTime(credit.ExpiresAtUnixMs!.Value);
                     lines.Add($"Expires {localExpiry}");
                     rows.Add(new("Expires", localExpiry));
                 }

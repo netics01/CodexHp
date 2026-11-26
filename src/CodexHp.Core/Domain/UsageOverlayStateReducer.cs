@@ -1,4 +1,3 @@
-using System.Globalization;
 using CodexHp.Core.Settings;
 
 namespace CodexHp.Core.Domain;
@@ -294,8 +293,7 @@ public static class UsageOverlayStateReducer
             return ([new("Week reset", remaining)], FormatResetText("Week", remaining));
         }
 
-        var localTime = DateTimeOffset.FromUnixTimeMilliseconds(resetUnixMs).ToLocalTime()
-            .ToString("ddd, MMM d '·' HH:mm", CultureInfo.InvariantCulture);
+        var localTime = OverlayTooltipFormatting.FormatLocalDateTime(resetUnixMs);
         OverlayTooltipRow[] rows = [new("Week reset", localTime), new("Time remaining", remaining)];
         return (rows, string.Join("\r\n", rows.Select(row => $"{row.Label} {row.Value}")));
     }

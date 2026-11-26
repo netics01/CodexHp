@@ -17,11 +17,14 @@ public sealed class OverlayTooltipSectionsTests
         var state = Create(mode, remaining);
         var rows = state.TooltipSections[0].Rows;
         var localTime = DateTimeOffset.FromUnixTimeMilliseconds(86_400_000).ToLocalTime()
-            .ToString("ddd, MMM d '·' HH:mm", CultureInfo.InvariantCulture);
+            .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture);
         Assert.Equal(new OverlayTooltipRow("Week reset", localTime), rows[0]);
         Assert.Equal(new OverlayTooltipRow("Time remaining", "23h 43m"), rows[1]);
         Assert.Equal(show5H, state.TooltipSections.SelectMany(section => section.Rows).Any(row => row.Label.StartsWith("5H")));
-        Assert.Equal(mode == UpperBarMode.BankedResets, state.TooltipSections.Any(section => section.Title == "Banked resets"));
+        var bankedResets = state.TooltipSections.SingleOrDefault(section => section.Title == "Banked resets");
+        Assert.Equal(mode == UpperBarMode.BankedResets, bankedResets is not null);
+        if (bankedResets is not null)
+            Assert.Contains(new OverlayTooltipRow("Expires", rows[0].Value), bankedResets.Rows);
         Assert.True(state.TooltipSections[^1].IsWarning);
     }
 
@@ -32,8 +35,9 @@ public sealed class OverlayTooltipSectionsTests
         var snapshot = new ResetCreditsSnapshot(3, [new("c", now + 300_000), new("a", now + 100_000), new("b", now + 200_000)]);
         var rows = ResetCreditsDisplayState.Create(snapshot, now, false).TooltipRows.Where(row => row.Label == "Expires").ToArray();
         Assert.Equal(2, rows.Length);
-        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(now + 100_000).ToLocalTime().ToString("yyyy-MM-dd HH:mm"), rows[0].Value);
-        Assert.Equal(16, rows[0].Value.Length);
+        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(now + 100_000).ToLocalTime()
+            .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture), rows[0].Value);
+        Assert.Equal(17, rows[0].Value.Length);
     }
 
     [Fact]
@@ -47,7 +51,7 @@ public sealed class OverlayTooltipSectionsTests
 
     private static UsageOverlayState Create(UpperBarMode mode, int remaining) => UsageOverlayStateReducer.Reduce(
         UsageProviderState.Current(new(remaining, 70, 3_600_000, 18_000, 86_400_000, 604_800)
-        { ResetCredits = new(0, []) }), TokenActivityProviderState.Waiting,
+        { ResetCredits = new(1, [new("one", 86_400_000)]) }), TokenActivityProviderState.Waiting,
         ServiceHealthState.Issue, "Partial System Degradation", new(true, false),
         AppSettings.Default with { UpperBarMode = mode }, 1_000_000,
         affectedServiceComponentGroups: [new("Codex", ["CLI"])]);

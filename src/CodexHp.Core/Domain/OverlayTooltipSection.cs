@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace CodexHp.Core.Domain;
 
 // Presentation data is produced with the plain-text tooltip, never parsed from English sentences.
@@ -39,4 +41,11 @@ public sealed record OverlayTooltipSection(
         && this.Rows.SequenceEqual(other.Rows);
 
     public override int GetHashCode() => HashCode.Combine(this.Title, this.IsWarning, this.Rows.Count);
+}
+
+internal static class OverlayTooltipFormatting
+{
+    internal static string FormatLocalDateTime(long unixMs) =>
+        DateTimeOffset.FromUnixTimeMilliseconds(unixMs).ToLocalTime()
+            .ToString("MM-dd (ddd) HH:mm", CultureInfo.InvariantCulture);
 }

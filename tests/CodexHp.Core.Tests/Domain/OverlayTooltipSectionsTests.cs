@@ -1,3 +1,4 @@
+using System.Globalization;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
 using Xunit;
@@ -14,7 +15,11 @@ public sealed class OverlayTooltipSectionsTests
     public void Structured_tooltip_preserves_week_first_and_5H_visibility(UpperBarMode mode, int remaining, bool show5H)
     {
         var state = Create(mode, remaining);
-        Assert.Equal("Week resets in", state.TooltipSections[0].Rows[0].Label);
+        var rows = state.TooltipSections[0].Rows;
+        var localTime = DateTimeOffset.FromUnixTimeMilliseconds(86_400_000).ToLocalTime()
+            .ToString("ddd, MMM d '·' HH:mm", CultureInfo.InvariantCulture);
+        Assert.Equal(new OverlayTooltipRow("Week reset", localTime), rows[0]);
+        Assert.Equal(new OverlayTooltipRow("Time remaining", "23h 43m"), rows[1]);
         Assert.Equal(show5H, state.TooltipSections.SelectMany(section => section.Rows).Any(row => row.Label.StartsWith("5H")));
         Assert.Equal(mode == UpperBarMode.BankedResets, state.TooltipSections.Any(section => section.Title == "Banked resets"));
         Assert.True(state.TooltipSections[^1].IsWarning);

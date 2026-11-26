@@ -14,7 +14,7 @@ internal sealed class OverlayTooltipView : Grid
 
     internal OverlayTooltipView(IReadOnlyList<OverlayTooltipSection> sections, bool isLight, ColorSettings? gaugeColors = null)
     {
-        this.preferredWidth = sections.Any(section => section.IsWarning) ? 320 : 200;
+        this.preferredWidth = sections.Any(section => section.IsWarning) ? 320 : 232;
         var background = Brush(isLight ? "#F8FAFC" : "#18212D");
         var border = Brush(isLight ? "#BCC8D6" : "#405064");
         var foreground = Brush(isLight ? "#15273B" : "#F1F5FB");

@@ -101,7 +101,8 @@ public sealed class ResetCreditsTests
             new(false, false), selected, Now, ["Responses"], ["APIs"]);
         var state = Reduce(settings, UsageProviderState.Current(usage));
         Assert.Equal("1 · 2d", state.BankedResets!.Text);
-        Assert.StartsWith("Week resets in 1d\r\n", state.Tooltip);
+        Assert.StartsWith("Week reset ", state.Tooltip);
+        Assert.Contains("\r\nTime remaining 1d\r\n", state.Tooltip);
         if (remainingPercent == 100)
         {
             Assert.DoesNotContain("5H", state.Tooltip);

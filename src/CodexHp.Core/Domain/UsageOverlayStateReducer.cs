@@ -1,3 +1,4 @@
+using System.Globalization;
 using CodexHp.Core.Settings;
 
 namespace CodexHp.Core.Domain;
@@ -67,9 +68,12 @@ public static class UsageOverlayStateReducer
                 affectedServiceComponentGroups)
             : ((string Text, OverlayTooltipSection Section)?)null;
         var statusStripeTooltip = serviceTooltip?.Text;
+        var (weeklyResetRows, weeklyResetText) = snapshot is not null
+            ? CreateWeeklyResetDisplay(snapshot.WeeklyResetUnixMs, nowUnixMs, isClaude)
+            : (Array.Empty<OverlayTooltipRow>(), string.Empty);
         var contentStatus = isClaude
-            ? CreateClaudeContentStatus(usage, snapshot, isExpired, observationAgeMs, nowUnixMs)
-            : CreateContentStatus(usage, nowUnixMs);
+            ? CreateClaudeContentStatus(usage, snapshot, isExpired, observationAgeMs, nowUnixMs, weeklyResetText)
+            : CreateContentStatus(usage, nowUnixMs, weeklyResetText);
         var bankedResets = !isClaude && settings.UpperBarMode == UpperBarMode.BankedResets
             ? ResetCreditsDisplayState.Create(snapshot?.ResetCredits, nowUnixMs, isUsageStale)
             : null;
@@ -86,10 +90,7 @@ public static class UsageOverlayStateReducer
         var tooltipSections = new List<OverlayTooltipSection>();
         if (snapshot is not null)
         {
-            var resetRows = new List<OverlayTooltipRow>
-            {
-                CreateResetRow("Week", snapshot.WeeklyResetUnixMs, nowUnixMs, isClaude),
-            };
+            var resetRows = new List<OverlayTooltipRow>(weeklyResetRows);
             if (manaBar.RemainingPercent < 100)
             {
                 resetRows.Add(CreateResetRow("5H", snapshot.SessionResetUnixMs, nowUnixMs, isClaude));
@@ -203,17 +204,15 @@ public static class UsageOverlayStateReducer
         UsageSnapshot? snapshot,
         bool isExpired,
         long? observationAgeMs,
-        long nowUnixMs)
+        long nowUnixMs,
+        string weeklyResetText)
     {
         if (snapshot is not null)
         {
-            var lines = new List<string>
-            {
-                FormatResetTime("Week", snapshot.WeeklyResetUnixMs, nowUnixMs, isClaude: true),
-            };
+            var lines = new List<string> { weeklyResetText };
             if (Math.Clamp(snapshot.SessionRemainingPercent, 0, 100) < 100)
             {
-                lines.Add(FormatResetTime("5H", snapshot.SessionResetUnixMs, nowUnixMs, isClaude: true));
+                lines.Add(FormatResetText("5H", FormatResetValue(snapshot.SessionResetUnixMs, nowUnixMs, isClaude: true)));
             }
 
             if (observationAgeMs is { } ageMs)
@@ -246,17 +245,15 @@ public static class UsageOverlayStateReducer
 
     private static (string? Message, string? Tooltip) CreateContentStatus(
         UsageProviderState usage,
-        long nowUnixMs)
+        long nowUnixMs,
+        string weeklyResetText)
     {
         if (usage.LastSuccessful is { } snapshot)
         {
-            var lines = new List<string>
-            {
-                FormatResetTime("Week", snapshot.WeeklyResetUnixMs, nowUnixMs),
-            };
+            var lines = new List<string> { weeklyResetText };
             if (Math.Clamp(snapshot.SessionRemainingPercent, 0, 100) < 100)
             {
-                lines.Add(FormatResetTime("5H", snapshot.SessionResetUnixMs, nowUnixMs));
+                lines.Add(FormatResetText("5H", FormatResetValue(snapshot.SessionResetUnixMs, nowUnixMs)));
             }
 
             if (usage.Availability == ProviderAvailability.Failed)
@@ -288,23 +285,38 @@ public static class UsageOverlayStateReducer
         };
     }
 
+    private static (OverlayTooltipRow[] Rows, string Text) CreateWeeklyResetDisplay(
+        long resetUnixMs, long nowUnixMs, bool isClaude)
+    {
+        var remaining = FormatResetValue(resetUnixMs, nowUnixMs, isClaude);
+        if (!HasResetCountdown(remaining))
+        {
+            return ([new("Week reset", remaining)], FormatResetText("Week", remaining));
+        }
+
+        var localTime = DateTimeOffset.FromUnixTimeMilliseconds(resetUnixMs).ToLocalTime()
+            .ToString("ddd, MMM d '·' HH:mm", CultureInfo.InvariantCulture);
+        OverlayTooltipRow[] rows = [new("Week reset", localTime), new("Time remaining", remaining)];
+        return (rows, string.Join("\r\n", rows.Select(row => $"{row.Label} {row.Value}")));
+    }
+
     private static OverlayTooltipRow CreateResetRow(string label, long resetUnixMs, long nowUnixMs, bool isClaude = false)
     {
         var value = FormatResetValue(resetUnixMs, nowUnixMs, isClaude);
-        return new(value is "Unavailable" or "Pending" or "Waiting for update" ? $"{label} reset" : $"{label} resets in", value);
+        return new(HasResetCountdown(value) ? $"{label} resets in" : $"{label} reset", value);
     }
 
-    private static string FormatResetTime(string label, long resetUnixMs, long nowUnixMs, bool isClaude = false)
-    {
-        var value = FormatResetValue(resetUnixMs, nowUnixMs, isClaude);
-        return value switch
+    private static bool HasResetCountdown(string value) =>
+        value is not ("Unavailable" or "Pending" or "Waiting for update");
+
+    private static string FormatResetText(string label, string value) =>
+        value switch
         {
             "Unavailable" => $"{label} reset time unavailable",
             "Pending" => $"{label} reset pending",
             "Waiting for update" => $"{label} reset passed; waiting for update",
             _ => $"{label} resets in {value}",
         };
-    }
 
     // Claude values are only as new as the desktop app's last refresh; a passed reset is not
     // proof of a full allowance until the app reports again.

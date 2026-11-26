@@ -4,6 +4,17 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-11-26
+
+### Added
+
+- Show the local date, weekday, and time of the weekly reset above its countdown.
+- Add a repository command to update the installed app from the latest stable GitHub Release and verify the installer checksum.
+
+### Changed
+
+- Use the same compact date and time format for weekly resets and banked reset expirations.
+
 ## [0.6.3] - 2026-11-24
 
 ### Fixed

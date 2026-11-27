@@ -124,7 +124,7 @@ public sealed class UsageOverlayStateReducerTests
     private static string WeeklyResetText(UsageSnapshot usage, string remaining = "3d 4h 12m")
     {
         var localTime = DateTimeOffset.FromUnixTimeMilliseconds(usage.WeeklyResetUnixMs).ToLocalTime();
-        return $"Week reset {localTime:ddd} {localTime:t} · {localTime:M}\r\nTime remaining {remaining}";
+        return FormattableString.Invariant($"Week reset {localTime:ddd HH:mm · yyyy-MM-dd}\r\nTime remaining {remaining}");
     }
 
     private static UsageOverlayState ReduceResetTooltip(

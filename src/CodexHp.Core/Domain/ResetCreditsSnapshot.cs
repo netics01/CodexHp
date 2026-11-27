@@ -24,7 +24,7 @@ public sealed record ResetCreditsDisplayState(
     public IReadOnlyList<OverlayTooltipRow> TooltipRows { get; init; } = [];
 
     public static ResetCreditsDisplayState Create(
-        ResetCreditsSnapshot? snapshot, long nowUnixMs, bool isStale, Func<DateTimeOffset, string>? formatMonthDay = null)
+        ResetCreditsSnapshot? snapshot, long nowUnixMs, bool isStale)
     {
         if (snapshot is null)
         {
@@ -59,7 +59,7 @@ public sealed record ResetCreditsDisplayState(
             {
                 foreach (var credit in credits.Where(credit => IsValidExpiry(credit.ExpiresAtUnixMs)).Take(2))
                 {
-                    var localExpiry = OverlayTooltipFormatting.FormatLocalDateTime(credit.ExpiresAtUnixMs!.Value, formatMonthDay);
+                    var localExpiry = OverlayTooltipFormatting.FormatLocalDateTime(credit.ExpiresAtUnixMs!.Value);
                     lines.Add($"Expires {localExpiry}");
                     rows.Add(new("Expires", localExpiry));
                 }

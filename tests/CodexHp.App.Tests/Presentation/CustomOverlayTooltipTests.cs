@@ -14,11 +14,10 @@ namespace CodexHp.App.Tests.Presentation;
 public sealed class CustomOverlayTooltipTests
 {
     [Theory]
-    [InlineData("ko-KR", "금 오후 3:30 · 1월 1일")]
-    [InlineData("en-US", "Fri 3:30 PM · Jan 1")]
-    [InlineData("en-GB", "Fri 15:30 · 1 Jan")]
-    public void Weekly_reset_and_expiry_use_the_same_local_date_format_across_new_year(
-        string cultureName, string expected) => StaTest.Run(() =>
+    [InlineData("ko-KR")]
+    [InlineData("en-US")]
+    [InlineData("en-GB")]
+    public void Weekly_reset_and_expiry_use_the_same_english_and_numeric_format_across_new_year(string cultureName) => StaTest.Run(() =>
     {
         var previousCulture = CultureInfo.CurrentCulture;
         try
@@ -34,12 +33,12 @@ public sealed class CustomOverlayTooltipTests
             var state = UsageOverlayStateReducer.Reduce(
                 UsageProviderState.Current(snapshot), TokenActivityProviderState.Waiting, ServiceHealthState.Operational,
                 "", new(true, false), AppSettings.Default with { UpperBarMode = UpperBarMode.BankedResets },
-                deadline.AddDays(-1).ToUnixTimeMilliseconds(), formatMonthDay: WindowsTooltipDateFormatting.FormatMonthDay);
+                deadline.AddDays(-1).ToUnixTimeMilliseconds());
 
             var rows = state.TooltipSections.SelectMany(section => section.Rows).ToArray();
             var weekly = Assert.Single(rows, row => row.Label == "Week reset");
             var expiry = Assert.Single(rows, row => row.Label == "Expires");
-            Assert.Equal(expected, weekly.Value.Replace("\u200E", "", StringComparison.Ordinal));
+            Assert.Equal("Fri 15:30 · 2027-01-01", weekly.Value);
             Assert.Equal(weekly.Value, expiry.Value);
             Assert.Equal("1d", Assert.Single(rows, row => row.Label == "Time remaining").Value);
 
@@ -58,7 +57,7 @@ public sealed class CustomOverlayTooltipTests
     public void Two_fixed_widths_keep_ordinary_rows_on_one_line_and_wrap_incidents(bool light) => StaTest.Run(() =>
     {
         var normal = new OverlayTooltipView([
-            new(null, [new("Week reset", "월 오전 11:59 · 12월 31일"), new("Time remaining", "6d 23h 59m")]),
+            new(null, [new("Week reset", "Wed 23:59 · 2025-12-31"), new("Time remaining", "6d 23h 59m")]),
         ], light);
         var compact = normal.MeasurePreferredSize(320);
         Assert.Equal(256, compact.Width);
@@ -67,10 +66,10 @@ public sealed class CustomOverlayTooltipTests
         AssertRowsAreSingleLine(normal, normal.MeasurePreferredSize(320));
         normal.SetTail(TooltipTailEdge.Bottom, 40);
         var shortCountdown = new OverlayTooltipView([
-            new(null, [new("Week reset", "05-28 Thu 23:59"), new("Time remaining", "1m")]),
+            new(null, [new("Week reset", "Thu 23:59 · 2026-05-28"), new("Time remaining", "1m")]),
         ], light);
         Assert.Equal(compact.Width, shortCountdown.MeasurePreferredSize(320).Width);
-        var credits = new OverlayTooltipView([new("Banked resets", [new("Available", "2"), new("Expires", "목 오후 11:59 · 11월 12일")])], light);
+        var credits = new OverlayTooltipView([new("Banked resets", [new("Available", "2"), new("Expires", "Thu 23:59 · 2026-11-12")])], light);
         var creditSize = credits.MeasurePreferredSize(320);
         Assert.Equal(256, creditSize.Width);
         AssertRowsAreSingleLine(credits, creditSize);
@@ -255,7 +254,7 @@ public sealed class CustomOverlayTooltipTests
     {
         var view = new OverlayTooltipView([
             new(null, [new("Week resets in", "6d 23h 59m")]),
-            new("Banked resets", [new("Available", "2"), new("Expires", "09-26 Sat 18:30")]),
+            new("Banked resets", [new("Available", "2"), new("Expires", "Sat 18:30 · 2026-09-26")]),
             new("OpenAI service issue", [new("", "ChatGPT - " + string.Join(", ", Enumerable.Repeat("An affected component", 30)))], true),
         ], light);
         view.Measure(new Size(320, double.PositiveInfinity));

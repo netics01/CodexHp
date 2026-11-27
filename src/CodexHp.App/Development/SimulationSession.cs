@@ -2,7 +2,6 @@ using System.Diagnostics;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
 using CodexHp.App.Application;
-using CodexHp.App.Infrastructure;
 
 namespace CodexHp.App.Development;
 
@@ -156,8 +155,7 @@ internal sealed class SimulationSession
         return UsageOverlayStateReducer.Reduce(usage, TokenActivityProviderState.Current(buckets),
             issue ? ServiceHealthState.Issue : id == "status-unknown" ? ServiceHealthState.Unknown : ServiceHealthState.Operational,
             issue ? "Partial System Degradation" : "", new(true, false), this.Settings, this.Clock.Now,
-            affectedServiceComponentGroups: groups, presentation: this.CreatePresentation(),
-            formatMonthDay: WindowsTooltipDateFormatting.FormatMonthDay);
+            affectedServiceComponentGroups: groups, presentation: this.CreatePresentation());
     }
 
     private UsageSnapshot CreateClaudeSnapshot(string id)

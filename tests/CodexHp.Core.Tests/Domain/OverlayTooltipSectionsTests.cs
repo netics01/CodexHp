@@ -16,7 +16,7 @@ public sealed class OverlayTooltipSectionsTests
         var state = Create(mode, remaining);
         var rows = state.TooltipSections[0].Rows;
         var localTime = DateTimeOffset.FromUnixTimeMilliseconds(86_400_000).ToLocalTime();
-        Assert.Equal(new OverlayTooltipRow("Week reset", $"{localTime:ddd} {localTime:t} · {localTime:M}"), rows[0]);
+        Assert.Equal(new OverlayTooltipRow("Week reset", FormattableString.Invariant($"{localTime:ddd HH:mm · yyyy-MM-dd}")), rows[0]);
         Assert.Equal(new OverlayTooltipRow("Time remaining", "23h 43m"), rows[1]);
         Assert.Equal(show5H, state.TooltipSections.SelectMany(section => section.Rows).Any(row => row.Label.StartsWith("5H")));
         var bankedResets = state.TooltipSections.SingleOrDefault(section => section.Title == "Banked resets");
@@ -34,7 +34,7 @@ public sealed class OverlayTooltipSectionsTests
         var rows = ResetCreditsDisplayState.Create(snapshot, now, false).TooltipRows.Where(row => row.Label == "Expires").ToArray();
         Assert.Equal(2, rows.Length);
         var firstExpiry = DateTimeOffset.FromUnixTimeMilliseconds(now + 100_000).ToLocalTime();
-        Assert.Equal($"{firstExpiry:ddd} {firstExpiry:t} · {firstExpiry:M}", rows[0].Value);
+        Assert.Equal(FormattableString.Invariant($"{firstExpiry:ddd HH:mm · yyyy-MM-dd}"), rows[0].Value);
     }
 
     [Fact]

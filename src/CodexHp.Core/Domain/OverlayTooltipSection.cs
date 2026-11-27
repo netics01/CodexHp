@@ -45,13 +45,9 @@ public sealed record OverlayTooltipSection(
 
 internal static class OverlayTooltipFormatting
 {
-    internal static string FormatLocalDateTime(long unixMs, Func<DateTimeOffset, string>? formatMonthDay)
+    internal static string FormatLocalDateTime(long unixMs)
     {
         var localTime = DateTimeOffset.FromUnixTimeMilliseconds(unixMs).ToLocalTime();
-        var culture = CultureInfo.CurrentCulture;
-        var weekday = localTime.ToString("ddd", culture);
-        var time = localTime.ToString("t", culture);
-        var date = formatMonthDay?.Invoke(localTime) ?? localTime.ToString("M", culture);
-        return $"{weekday} {time} · {date}";
+        return localTime.ToString("ddd HH:mm · yyyy-MM-dd", CultureInfo.InvariantCulture);
     }
 }

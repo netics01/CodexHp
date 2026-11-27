@@ -54,8 +54,8 @@ public sealed class ResetCreditsTests
         Assert.Equal(new[]
         {
             "Banked resets: 3",
-            $"Expires {firstExpiry:ddd} {firstExpiry:t} · {firstExpiry:M}",
-            $"Expires {secondExpiry:ddd} {secondExpiry:t} · {secondExpiry:M}",
+            FormattableString.Invariant($"Expires {firstExpiry:ddd HH:mm · yyyy-MM-dd}"),
+            FormattableString.Invariant($"Expires {secondExpiry:ddd HH:mm · yyyy-MM-dd}"),
         }, state.Tooltip.Split("\r\n"));
     }
 

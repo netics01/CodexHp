@@ -19,8 +19,7 @@ public static class UsageOverlayStateReducer
         IReadOnlyList<string>? affectedServiceComponents = null,
         IReadOnlyList<string>? affectedServiceGroups = null,
         IReadOnlyList<ServiceStatusComponentGroup>? affectedServiceComponentGroups = null,
-        ProviderPresentation? presentation = null,
-        Func<DateTimeOffset, string>? formatMonthDay = null)
+        ProviderPresentation? presentation = null)
     {
         ArgumentNullException.ThrowIfNull(usage);
         ArgumentNullException.ThrowIfNull(tokenActivity);
@@ -69,13 +68,13 @@ public static class UsageOverlayStateReducer
             : ((string Text, OverlayTooltipSection Section)?)null;
         var statusStripeTooltip = serviceTooltip?.Text;
         var (weeklyResetRows, weeklyResetText) = snapshot is not null
-            ? CreateWeeklyResetDisplay(snapshot.WeeklyResetUnixMs, nowUnixMs, isClaude, formatMonthDay)
+            ? CreateWeeklyResetDisplay(snapshot.WeeklyResetUnixMs, nowUnixMs, isClaude)
             : (Array.Empty<OverlayTooltipRow>(), string.Empty);
         var contentStatus = isClaude
             ? CreateClaudeContentStatus(usage, snapshot, isExpired, observationAgeMs, nowUnixMs, weeklyResetText)
             : CreateContentStatus(usage, nowUnixMs, weeklyResetText);
         var bankedResets = !isClaude && settings.UpperBarMode == UpperBarMode.BankedResets
-            ? ResetCreditsDisplayState.Create(snapshot?.ResetCredits, nowUnixMs, isUsageStale, formatMonthDay)
+            ? ResetCreditsDisplayState.Create(snapshot?.ResetCredits, nowUnixMs, isUsageStale)
             : null;
         if (bankedResets is not null && snapshot is not null)
         {
@@ -286,7 +285,7 @@ public static class UsageOverlayStateReducer
     }
 
     private static (OverlayTooltipRow[] Rows, string Text) CreateWeeklyResetDisplay(
-        long resetUnixMs, long nowUnixMs, bool isClaude, Func<DateTimeOffset, string>? formatMonthDay)
+        long resetUnixMs, long nowUnixMs, bool isClaude)
     {
         var remaining = FormatResetValue(resetUnixMs, nowUnixMs, isClaude);
         if (!HasResetCountdown(remaining))
@@ -294,7 +293,7 @@ public static class UsageOverlayStateReducer
             return ([new("Week reset", remaining)], FormatResetText("Week", remaining));
         }
 
-        var localTime = OverlayTooltipFormatting.FormatLocalDateTime(resetUnixMs, formatMonthDay);
+        var localTime = OverlayTooltipFormatting.FormatLocalDateTime(resetUnixMs);
         OverlayTooltipRow[] rows = [new("Week reset", localTime), new("Time remaining", remaining)];
         return (rows, string.Join("\r\n", rows.Select(row => $"{row.Label} {row.Value}")));
     }

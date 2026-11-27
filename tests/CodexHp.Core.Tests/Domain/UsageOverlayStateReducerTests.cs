@@ -1,4 +1,3 @@
-using System.Globalization;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
 using Xunit;
@@ -124,9 +123,8 @@ public sealed class UsageOverlayStateReducerTests
 
     private static string WeeklyResetText(UsageSnapshot usage, string remaining = "3d 4h 12m")
     {
-        var localTime = DateTimeOffset.FromUnixTimeMilliseconds(usage.WeeklyResetUnixMs).ToLocalTime()
-            .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture);
-        return $"Week reset {localTime}\r\nTime remaining {remaining}";
+        var localTime = DateTimeOffset.FromUnixTimeMilliseconds(usage.WeeklyResetUnixMs).ToLocalTime();
+        return $"Week reset {localTime:ddd} {localTime:t} · {localTime:M}\r\nTime remaining {remaining}";
     }
 
     private static UsageOverlayState ReduceResetTooltip(

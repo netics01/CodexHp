@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -5,12 +6,52 @@ using CodexHp.App.Infrastructure;
 using CodexHp.App.Presentation;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Positioning;
+using CodexHp.Core.Settings;
 using Xunit;
 
 namespace CodexHp.App.Tests.Presentation;
 
 public sealed class CustomOverlayTooltipTests
 {
+    [Theory]
+    [InlineData("ko-KR", "금 오후 3:30 · 1월 1일")]
+    [InlineData("en-US", "Fri 3:30 PM · Jan 1")]
+    [InlineData("en-GB", "Fri 15:30 · 1 Jan")]
+    public void Weekly_reset_and_expiry_use_the_same_local_date_format_across_new_year(
+        string cultureName, string expected) => StaTest.Run(() =>
+    {
+        var previousCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            var deadline = new DateTimeOffset(new DateTime(2027, 1, 1, 15, 30, 0, DateTimeKind.Local));
+            var resetUnixMs = deadline.ToUnixTimeMilliseconds();
+            var snapshot = new UsageSnapshot(100, 70, 0, 18_000, resetUnixMs, 604_800)
+            {
+                ResetCredits = new(1, [new("one", resetUnixMs)]),
+            };
+
+            var state = UsageOverlayStateReducer.Reduce(
+                UsageProviderState.Current(snapshot), TokenActivityProviderState.Waiting, ServiceHealthState.Operational,
+                "", new(true, false), AppSettings.Default with { UpperBarMode = UpperBarMode.BankedResets },
+                deadline.AddDays(-1).ToUnixTimeMilliseconds(), formatMonthDay: WindowsTooltipDateFormatting.FormatMonthDay);
+
+            var rows = state.TooltipSections.SelectMany(section => section.Rows).ToArray();
+            var weekly = Assert.Single(rows, row => row.Label == "Week reset");
+            var expiry = Assert.Single(rows, row => row.Label == "Expires");
+            Assert.Equal(expected, weekly.Value.Replace("\u200E", "", StringComparison.Ordinal));
+            Assert.Equal(weekly.Value, expiry.Value);
+            Assert.Equal("1d", Assert.Single(rows, row => row.Label == "Time remaining").Value);
+
+            var view = new OverlayTooltipView(state.TooltipSections, isLight: false);
+            AssertRowsAreSingleLine(view, view.MeasurePreferredSize(320));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previousCulture;
+        }
+    });
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

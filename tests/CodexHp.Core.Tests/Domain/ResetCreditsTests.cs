@@ -1,4 +1,3 @@
-using System.Globalization;
 using CodexHp.Core.Domain;
 using CodexHp.Core.Settings;
 using Xunit;
@@ -49,14 +48,14 @@ public sealed class ResetCreditsTests
             new("first", Now + 10 * 86_400_000L),
         ]);
         var state = ResetCreditsDisplayState.Create(snapshot, Now, false);
+        var firstExpiry = DateTimeOffset.FromUnixTimeMilliseconds(Now + 10 * 86_400_000L).ToLocalTime();
+        var secondExpiry = DateTimeOffset.FromUnixTimeMilliseconds(Now + 20 * 86_400_000L).ToLocalTime();
         Assert.Equal("3 · 10d", state.Text);
         Assert.Equal(new[]
         {
             "Banked resets: 3",
-            "Expires " + DateTimeOffset.FromUnixTimeMilliseconds(Now + 10 * 86_400_000L).ToLocalTime()
-                .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture),
-            "Expires " + DateTimeOffset.FromUnixTimeMilliseconds(Now + 20 * 86_400_000L).ToLocalTime()
-                .ToString("MM-dd ddd HH:mm", CultureInfo.InvariantCulture),
+            $"Expires {firstExpiry:ddd} {firstExpiry:t} · {firstExpiry:M}",
+            $"Expires {secondExpiry:ddd} {secondExpiry:t} · {secondExpiry:M}",
         }, state.Tooltip.Split("\r\n"));
     }
 

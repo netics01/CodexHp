@@ -572,7 +572,8 @@ public sealed class ApplicationCoordinator
                     shown.ServiceAffectedComponents,
                     shown.ServiceAffectedGroups,
                     shown.ServiceAffectedComponentGroups,
-                    presentation);
+                    presentation,
+                    formatMonthDay: WindowsTooltipDateFormatting.FormatMonthDay);
             }
         }
         catch (Exception exception)

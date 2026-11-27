@@ -58,10 +58,10 @@ public sealed class CustomOverlayTooltipTests
     public void Two_fixed_widths_keep_ordinary_rows_on_one_line_and_wrap_incidents(bool light) => StaTest.Run(() =>
     {
         var normal = new OverlayTooltipView([
-            new(null, [new("Week reset", "05-28 Thu 23:59"), new("Time remaining", "6d 23h 59m")]),
+            new(null, [new("Week reset", "월 오전 11:59 · 12월 31일"), new("Time remaining", "6d 23h 59m")]),
         ], light);
         var compact = normal.MeasurePreferredSize(320);
-        Assert.Equal(232, compact.Width);
+        Assert.Equal(256, compact.Width);
         AssertRowsAreSingleLine(normal, compact);
         normal.SetTail(TooltipTailEdge.Left, 40);
         AssertRowsAreSingleLine(normal, normal.MeasurePreferredSize(320));
@@ -70,9 +70,9 @@ public sealed class CustomOverlayTooltipTests
             new(null, [new("Week reset", "05-28 Thu 23:59"), new("Time remaining", "1m")]),
         ], light);
         Assert.Equal(compact.Width, shortCountdown.MeasurePreferredSize(320).Width);
-        var credits = new OverlayTooltipView([new("Banked resets", [new("Available", "2"), new("Expires", "09-26 Sat 18:30")])], light);
+        var credits = new OverlayTooltipView([new("Banked resets", [new("Available", "2"), new("Expires", "목 오후 11:59 · 11월 12일")])], light);
         var creditSize = credits.MeasurePreferredSize(320);
-        Assert.Equal(232, creditSize.Width);
+        Assert.Equal(256, creditSize.Width);
         AssertRowsAreSingleLine(credits, creditSize);
         var shortIncident = new OverlayTooltipView([new("OpenAI service issue", [new("", "APIs")], true)], light);
         Assert.Equal(320, shortIncident.MeasurePreferredSize(1000).Width);
@@ -101,7 +101,7 @@ public sealed class CustomOverlayTooltipTests
         var view = new OverlayTooltipView(
             [new(null, [new("Updated", "4m ago · cache")]), new(null, [summary])], light, colors);
         var size = view.MeasurePreferredSize(320);
-        Assert.Equal(232, size.Width);
+        Assert.Equal(256, size.Width);
         AssertRowsAreSingleLine(view, size);
 
         var bars = FindAll<TooltipGaugeBar>(view).ToArray();

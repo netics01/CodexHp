@@ -4,6 +4,13 @@ All notable user-facing changes to CodexHp are documented here.
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-11-27
+
+### Changed
+
+- Show weekly reset and banked reset expiry dates as an English weekday, 24-hour local time, and numeric date (e.g., Thu 13:30 · 2026-11-12).
+- Widen regular tooltips to keep dates on one line.
+
 ## [0.6.4] - 2026-11-26
 
 ### Added
